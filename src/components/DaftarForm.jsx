@@ -1,33 +1,71 @@
 import { useState } from "react";
-import {Link} from "react-router"
+import { Link, useNavigate } from "react-router";
+import { authAPI } from "../services/api";
 
-export default function DaftarEOForm() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [namaLengkap, setNamaLengkap] = useState("");
-  const [password2, setPassword2] = useState("");
+export default function DaftarForm() {
+  const [formData, setFormData] = useState({
+    username: "",
+    name: "",
+    email: "",
+    password: "",
+    role: "user"
+  });
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Email:", email);
-    console.log("Password:", password);
-    console.log("Username:", username);
-    console.log("Password:", namaLengkap);
-    console.log("Password:", password2);
+    
+    if (formData.password !== confirmPassword) {
+      setError("Password dan konfirmasi password tidak sama");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await authAPI.register(formData);
+      
+      if (response.data.message) {
+        alert("Registrasi berhasil! Silakan login.");
+        navigate('/login');
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || "Registrasi gagal");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex items-end justify-center p-4 overflow-auto">
       <div className="w-full max-w-lg my-45 bg-white shadow-xl rounded-2xl p-8 ">
         <h2 className="text-2xl font-bold text-center mb-6">Daftar</h2>
+        
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-gray-700 mb-1">Nama Lengkap</label>
             <input
               type="text"
-              value={namaLengkap}
-              onChange={(e) => setNamaLengkap(e.target.value)}
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
               className="w-full border border-gray-500 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               placeholder="Masukkan Nama Lengkap"
               required
@@ -38,8 +76,9 @@ export default function DaftarEOForm() {
             <label className="block text-gray-700 mb-1">Username</label>
             <input
               type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
               className="w-full border border-gray-500 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               placeholder="Masukkan Username"
               required
@@ -49,9 +88,10 @@ export default function DaftarEOForm() {
           <div>
             <label className="block text-gray-700 mb-1">Email</label>
             <input
-              type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
               className="w-full border border-gray-500 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               placeholder="Masukkan Email"
               required
@@ -62,8 +102,9 @@ export default function DaftarEOForm() {
             <label className="block text-gray-700 mb-1">Password</label>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
               className="w-full border border-gray-500 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               placeholder="Masukkan Password"
               required
@@ -76,23 +117,22 @@ export default function DaftarEOForm() {
             </label>
             <input
               type="password"
-              value={password2}
-              onChange={(e) => setPassword2(e.target.value)}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full border border-gray-500 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              placeholder="konfirmasi Password"
+              placeholder="Konfirmasi Password"
               required
             />
           </div>
         
           <button
             type="submit"
-            className="w-full mb-7 bg-[#044888] text-white py-2 rounded-xl hover:bg-[#0C8CE9] transition-all"
+            disabled={loading}
+            className="w-full mb-7 bg-[#044888] text-white py-2 rounded-xl hover:bg-[#0C8CE9] transition-all disabled:opacity-50"
           >
-            Daftar
+            {loading ? "Loading..." : "Daftar"}
           </button>
 
-            
-            
           <p className="text-sm text-left mb-3">
             Ingin mengadakan Event?{" "}
             <Link to="/daftarEO" className="text-indigo-600 font-medium hover:underline">

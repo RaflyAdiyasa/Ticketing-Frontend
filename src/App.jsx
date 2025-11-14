@@ -24,6 +24,7 @@ function App() {
          <Route path="/cariEvent/:namaEvent?" element={<CariEvent/>} />
          <Route path="/detailEvent/:id" element={<EventDetail />} />
       </Routes>
+      
       </BrowserRouter>
      
       {/* This is a JSX comment <LoginPage/>*/}
