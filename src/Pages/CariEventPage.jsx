@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
+import api from "../services/api";
 
 export default function CariEvent() {
   const navigate = useNavigate();
-   // const [ namaEvent] = useParams();
-
+  
   // Fungsi helper: ubah angka ke format Rupiah
   const formatRupiah = (angka) => {
     return new Intl.NumberFormat("id-ID", {
@@ -15,92 +15,107 @@ export default function CariEvent() {
     }).format(angka);
   };
 
-  const [events, setEvents] = useState([
-    {
-      id: 1,
-      name: "Jakarta Music Festival yang iya-iyalah",
-      date: "29 Nov 2025 - 30 Nov 2025",
-      price: 100000,
-      image:
-        "https://cdn2.steamgriddb.com/icon_thumb/63872edc3fa52d645b3d48f6d98caf2c.png",
-    },
-    {
-      id: 2,
-      name: "Tech Expo Indonesia",
-      date: "15 Des 2025 - 17 Des 2025",
-      price: 150000,
-      image:
-        "https://cdn2.steamgriddb.com/thumb/150baffb015150eb28e684c68469e438.jpg",
-    },
-    {
-      id: 3,
-      name: "Marathon Surabaya 2025",
-      date: "10 Jan 2026",
-      price: 200000,
-      image:
-        "https://pbs.twimg.com/media/F8Fb3tPXgAA2Xs8?format=jpg&name=large",
-    },
-    {
-      id: 4,
-      name: "Art Exhibition Jogja",
-      date: "22 Feb 2026 - 25 Feb 2026",
-      price: 120000,
-      image:
-        "https://cdn2.steamgriddb.com/icon_thumb/4cf54a3d780b9294815e5f249164f20f.png",
-    },
-    {
-      id: 5,
-      name: "Art Exhibition Jogja",
-      date: "22 Feb 2026 - 25 Feb 2026",
-      price: 120000,
-      image:
-        "https://cdn2.steamgriddb.com/icon_thumb/4cf54a3d780b9294815e5f249164f20f.png",
-    },
-    {
-      id: 6,
-      name: "Art Exhibition Jogja",
-      date: "22 Feb 2026 - 25 Feb 2026",
-      price: 120000,
-      image:
-        "https://cdn2.steamgriddb.com/icon_thumb/4cf54a3d780b9294815e5f249164f20f.png",
-    },
-    {
-      id: 7,
-      name: "Art Exhibition Jogja",
-      date: "22 Feb 2026 - 25 Feb 2026",
-      price: 120000,
-      image:
-        "https://cdn2.steamgriddb.com/icon_thumb/4cf54a3d780b9294815e5f249164f20f.png",
-    },
-    {
-      id: 8,
-      name: "Art Exhibition Jogja",
-      date: "22 Feb 2026 - 25 Feb 2026",
-      price: 120000,
-      image:
-        "https://cdn2.steamgriddb.com/icon_thumb/4cf54a3d780b9294815e5f249164f20f.png",
-    },
-    {
-      id: 9,
-      name: "Art Exhibition Jogja",
-      date: "22 Feb 2026 - 25 Feb 2026",
-      price: 120000,
-      image:
-        "https://cdn2.steamgriddb.com/icon_thumb/4cf54a3d780b9294815e5f249164f20f.png",
-    },
-  ]);
+  // Format tanggal dari backend
+  const formatDate = (dateStart, dateEnd) => {
+    const start = new Date(dateStart);
+    const end = new Date(dateEnd);
+    
+    const formatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+    const startFormatted = start.toLocaleDateString('id-ID', formatOptions);
+    const endFormatted = end.toLocaleDateString('id-ID', formatOptions);
+    
+    if (startFormatted === endFormatted) {
+      return startFormatted;
+    }
+    return `${startFormatted} - ${endFormatted}`;
+  };
 
-  // Jika ingin load dari backend (contoh)
+  const [events, setEvents] = useState([]);
+  const [filteredEvents, setFilteredEvents] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  // State untuk filter
+  const [filters, setFilters] = useState({
+    keyword: "",
+    date: "",
+    category: "",
+    city: ""
+  });
+
+  // Load data dari backend
   useEffect(() => {
-    // fetch("https://your-backend-api.com/events")
-    //   .then(res => res.json())
-    //   .then(data => setEvents(data))
-    //   .catch(err => console.error("Error fetching events:", err));
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/api/events');
+        const eventsData = response.data;
+        
+        setEvents(eventsData);
+        setFilteredEvents(eventsData);
+        
+        // Extract unique cities dan categories
+        const uniqueCities = [...new Set(eventsData.map(event => event.city).filter(Boolean))];
+        const uniqueCategories = [...new Set(eventsData.map(event => event.category).filter(Boolean))];
+        
+        setCities(uniqueCities);
+        setCategories(uniqueCategories);
+        
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
   }, []);
 
-  // Fungsi klik kartu event
+  // Apply filters
+  useEffect(() => {
+    let result = events;
+
+    if (filters.keyword) {
+      result = result.filter(event => 
+        event.name.toLowerCase().includes(filters.keyword.toLowerCase())
+      );
+    }
+
+    if (filters.date) {
+      const selectedDate = new Date(filters.date);
+      result = result.filter(event => {
+        const eventStartDate = new Date(event.date_start);
+        const eventEndDate = new Date(event.date_end);
+        return selectedDate >= eventStartDate && selectedDate <= eventEndDate;
+      });
+    }
+
+    if (filters.category) {
+      result = result.filter(event => event.category === filters.category);
+    }
+
+    if (filters.city) {
+      result = result.filter(event => event.city === filters.city);
+    }
+
+    setFilteredEvents(result);
+  }, [filters, events]);
+
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const handleCardClick = (id) => {
     navigate(`/detailEvent/${id}`);
+  };
+
+  const handleApplyFilters = () => {
+    // Filters sudah diterapkan secara real-time melalui useEffect
+    console.log("Filters applied:", filters);
   };
 
   return (
@@ -120,8 +135,9 @@ export default function CariEvent() {
                   <label className="block mb-1">Kata kunci :</label>
                   <input
                     type="text"
-                    
-                    placeholder="Event 1"
+                    value={filters.keyword}
+                    onChange={(e) => handleFilterChange('keyword', e.target.value)}
+                    placeholder="Cari event..."
                     className="w-full border border-gray-400 rounded px-2 py-1"
                   />
                 </div>
@@ -130,32 +146,48 @@ export default function CariEvent() {
                   <label className="block mb-1">Tanggal :</label>
                   <input
                     type="date"
+                    value={filters.date}
+                    onChange={(e) => handleFilterChange('date', e.target.value)}
                     className="w-full border border-gray-400 rounded px-2 py-1"
                   />
                 </div>
 
                 <div>
                   <label className="block mb-1">Kategori :</label>
-                  <select className="w-full border border-gray-400 rounded px-2 py-1">
-                    <option>Semua Kategori</option>
-                    <option>Musik</option>
-                    <option>Olahraga</option>
-                    <option>Pameran</option>
-                    <option>Lainnya</option>
+                  <select 
+                    value={filters.category}
+                    onChange={(e) => handleFilterChange('category', e.target.value)}
+                    className="w-full border border-gray-400 rounded px-2 py-1"
+                  >
+                    <option value="">Semua Kategori</option>
+                    {categories.map((category, index) => (
+                      <option key={index} value={category}>
+                        {category}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
                   <label className="block mb-1">Lokasi :</label>
-                  <select className="w-full border border-gray-400 rounded px-2 py-1">
-                    <option>Kota Jakarta</option>
-                    <option>Bandung</option>
-                    <option>Surabaya</option>
-                    <option>Yogyakarta</option>
+                  <select 
+                    value={filters.city}
+                    onChange={(e) => handleFilterChange('city', e.target.value)}
+                    className="w-full border border-gray-400 rounded px-2 py-1"
+                  >
+                    <option value="">Semua Kota</option>
+                    {cities.map((city, index) => (
+                      <option key={index} value={city}>
+                        {city}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
-                <button className="bg-gray-700 text-white py-1.5 rounded hover:bg-gray-800">
+                <button 
+                  onClick={handleApplyFilters}
+                  className="bg-gray-700 text-white py-1.5 rounded hover:bg-gray-800"
+                >
                   FILTER
                 </button>
               </div>
@@ -163,37 +195,58 @@ export default function CariEvent() {
 
             {/* === EVENT GRID === */}
             <div className="col-span-2 sm:col-span-3 md:col-span-4 lg:col-span-5 xl:col-span-6 rounded-md">
-              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-30">
-                {events.map((event) => (
-                  <div
-                    key={event.id}
-                    onClick={() => handleCardClick(event.id)}
-                    className="bg-white border rounded-md shadow-sm overflow-hidden cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
-                  >
-                    {/* Kontainer gambar persegi (rasio 1:1) */}
-                    <div className="relative w-full pb-[100%] bg-gray-300">
-                      <img
-                        src={event.image}
-                        alt={event.name}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        onError={(e) => (e.target.style.display = "none")}
-                      />
-                    </div>
+              {loading ? (
+                <div className="flex justify-center items-center py-20">
+                  <div className="text-lg">Memuat event...</div>
+                </div>
+              ) : filteredEvents.length === 0 ? (
+                <div className="flex justify-center items-center py-20">
+                  <div className="text-lg text-gray-500">Tidak ada event yang ditemukan</div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-30">
+                  {filteredEvents.map((event) => {
+                    // Cari harga termurah dari ticket categories
+                    const minPrice = event.ticket_categories && event.ticket_categories.length > 0
+                      ? Math.min(...event.ticket_categories.map(tc => tc.price))
+                      : 0;
 
-                    {/* Informasi event */}
-                    <div className="p-2 text-sm">
-                      <p className="font-semibold text-base truncate whitespace-nowrap overflow-hidden">
-                        {event.name}
-                      </p>
-                      <p className="text-xs text-gray-700">{event.date}</p>
-                      <p className="text-xs text-gray-700 mt-3">Mulai dari</p>
-                      <p className="text-base text-red-900 font-semibold">
-                        {formatRupiah(event.price)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    return (
+                      <div
+                        key={event.event_id}
+                        onClick={() => handleCardClick(event.event_id)}
+                        className="bg-white border rounded-md shadow-sm overflow-hidden cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+                      >
+                        {/* Kontainer gambar persegi (rasio 1:1) */}
+                        <div className="relative w-full pb-[100%] bg-gray-300">
+                          <img
+                            src={event.image || "https://cdn2.steamgriddb.com/icon_thumb/63872edc3fa52d645b3d48f6d98caf2c.png"}
+                            alt={event.name}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.src = "https://cdn2.steamgriddb.com/icon_thumb/63872edc3fa52d645b3d48f6d98caf2c.png";
+                            }}
+                          />
+                        </div>
+
+                        {/* Informasi event */}
+                        <div className="p-2 text-sm">
+                          <p className="font-semibold text-base truncate whitespace-nowrap overflow-hidden">
+                            {event.name}
+                          </p>
+                          <p className="text-xs text-gray-700">
+                            {formatDate(event.date_start, event.date_end)}
+                          </p>
+                          <p className="text-xs text-gray-700 mt-3">Mulai dari</p>
+                          <p className="text-base text-red-900 font-semibold">
+                            {formatRupiah(minPrice)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

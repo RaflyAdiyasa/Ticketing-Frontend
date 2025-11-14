@@ -33,4 +33,9 @@ export const authAPI = {
   login: (loginData) => api.post('/api/auth/login', loginData),
 };
 
+export const eventAPI = {
+  getEvents: () => api.get('/api/events'),
+  getEvent: (id) => api.get(`/api/event/${id}`),
+};
+
 export default api;
