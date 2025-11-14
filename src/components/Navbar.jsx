@@ -1,6 +1,7 @@
 
 import { Menu, Search, ShoppingCart, X } from "lucide-react";
 import { useState } from "react";
+import { Link, NavLink } from "react-router"
 
 export default function Navbar() {
   const [mobileMenuIsOpen, setMobileMenuIsOpen] = useState(false);
@@ -22,11 +23,13 @@ export default function Navbar() {
                   <Menu className="w-8 h-8" />
                 </button>
               </div>
+              <Link to="/">
+                <span className="text-xl sm:text-2xl md:text-3xl py-7 font-semibold cursor-pointer">
+                  <span className="text-white">TIKE</span>
+                  <span className="text-white">RIA.COM</span>
+                </span>
+              </Link>
 
-              <span className="text-xl sm:text-2xl md:text-3xl py-7 font-semibold cursor-pointer">
-                <span className="text-white">TIKE</span>
-                <span className="text-white">RIA.COM</span>
-              </span>
             </div>
 
             {/* SEARCH BAR */}
@@ -48,9 +51,11 @@ export default function Navbar() {
               <button className="text-white hover:text-amber-400 cursor-pointer">
                 <ShoppingCart className="w-8 h-8 md:w-9 md:h-9" />
               </button>
-              <button className="w-22 md:w-24 text-sm md:text-base bg-[#044888] text-white py-2 rounded-lg hover:bg-amber-400 font-semibold cursor-pointer transition-all ">
-                Masuk
-              </button>
+              <Link to="/login">
+                <button className="w-22 md:w-24 text-sm md:text-base bg-[#044888] text-white py-2 rounded-lg hover:bg-amber-400 font-semibold cursor-pointer transition-all ">
+                  Masuk
+                </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -60,12 +65,15 @@ export default function Navbar() {
       <nav className="fixed hidden md:block sm:top-18 md:top-20 w-full z-40 transition-all duration-10 bg-[#044888]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center bg-[#044888]">
-            <a
-              href="#"
-              className="text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white"
-            >
+            <NavLink
+              to="/cariEvent"
+              className={({ isActive }) =>
+                isActive ? "bg-[#0C8CE9] text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white" : "bg-[#044888] text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white"
+              }
+
+              >
               Cari Event
-            </a>
+            </NavLink>
             <a
               href="#"
               className="text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white"
@@ -109,17 +117,15 @@ export default function Navbar() {
       {/* DRAWER SIDE MENU */}
 
       <div
-        className={`${
-          mobileMenuIsOpen
+        className={`${mobileMenuIsOpen
             ? "fixed inset-0 opacity-100"
             : "opacity-0 max-h-0 max-w-0"
-        } z-50 transition-opacity bg-black/50 duration-300 `}
+          } z-50 transition-opacity bg-black/50 duration-300 `}
         onClick={() => setMobileMenuIsOpen(false)}
       >
         <div
-          className={`${
-            mobileMenuIsOpen ? "animate-slideIn" : "animate-slideOut"
-          } absolute top-0 left-0 w-75 z-50 h-full bg-[#044888] shadow-xl p-6 flex flex-col`}
+          className={`${mobileMenuIsOpen ? "animate-slideIn" : "animate-slideOut"
+            } absolute top-0 left-0 w-75 z-50 h-full bg-[#044888] shadow-xl p-6 flex flex-col`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* CLOSE BUTTON */}
@@ -131,12 +137,12 @@ export default function Navbar() {
           </button>
 
           {/* NAV ITEMS */}
-          <a
-            href="#"
+          <NavLink
+            to="/cariEvent"
             className="text-white text-lg font-semibold mb-4 hover:text-[#0C8CE9]"
           >
             Cari Event
-          </a>
+          </NavLink>
           <a
             href="#"
             className="text-white text-lg font-semibold mb-4 hover:text-[#0C8CE9]"

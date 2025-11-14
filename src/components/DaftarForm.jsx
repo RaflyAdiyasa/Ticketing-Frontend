@@ -1,4 +1,5 @@
 import { useState } from "react";
+import {Link} from "react-router"
 
 export default function DaftarEOForm() {
   const [email, setEmail] = useState("");
@@ -94,9 +95,9 @@ export default function DaftarEOForm() {
             
           <p className="text-sm text-left mb-3">
             Ingin mengadakan Event?{" "}
-            <a href="#" className="text-indigo-600 font-medium">
+            <Link to="/daftarEO" className="text-indigo-600 font-medium hover:underline">
               Daftar Sebagai Penyelenggara Event
-            </a>
+            </Link>
           </p>
         </form>
       </div>

@@ -88,7 +88,7 @@ export default function DaftarForm() {
                 type="text"
                 value={namaInstansi}
                 onChange={(e) => setNamaInstansi(e.target.value)}
-                className="w-full border border-gray-500 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full border border-gray-500 rounded-xl px-4 py-2"
                 placeholder="Masukkan Nama Instansi"
                 required
               />
@@ -100,7 +100,7 @@ export default function DaftarForm() {
               <select
                 value={jenisInstansi}
                 onChange={(e) => setJenisInstansi(e.target.value)}
-                className="w-full border border-gray-500 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+                className="w-full border border-gray-500 rounded-xl px-4 py-2 cursor-pointer"
                 required
               >
                 <option value="">-- Pilih Jenis Instansi --</option>

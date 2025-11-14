@@ -1,4 +1,5 @@
 import { useState } from "react";
+import {Link} from "react-router"
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -47,8 +48,9 @@ export default function LoginForm() {
           </button>
           
 
-          <p className="text-sm text-left mt-2">Belum punya Akun? <a href="#" className="text-indigo-600 font-medium">Daftar</a>.</p>
-          <p className="text-sm text-left mb-3">Ingin mengadakan Event? <a href="#" className="text-indigo-600 font-medium">Daftar Sebagai Penyelenggara Event</a></p>
+          <p className="text-sm text-left mt-2">Belum punya Akun? 
+            <Link to="/daftar" className="text-indigo-600 font-medium hover:underline"> Daftar</Link>  </p>
+          <p className="text-sm text-left mb-3">Ingin mengadakan Event? <Link to="/daftarEO" className="text-indigo-600 font-medium hover:underline">Daftar Sebagai Penyelenggara Event</Link></p>
         </form>
       </div>
     </div>
