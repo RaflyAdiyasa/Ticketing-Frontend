@@ -33,9 +33,25 @@ export const authAPI = {
   login: (loginData) => api.post('/api/auth/login', loginData),
 };
 
+export const userAPI = {
+  getProfile: () => api.get('/api/users/profile'),
+  updateProfile: (formData) => {
+    const token = sessionStorage.getItem('token');
+    return axios.put(`${API_BASE_URL}/api/users/profile`, formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  getUsers: () => api.get('/api/users'),
+  verifyUser: (id, statusData) => api.post(`/api/users/${id}/verify`, statusData),
+};
+
 export const eventAPI = {
   getEvents: () => api.get('/api/events'),
   getEvent: (id) => api.get(`/api/event/${id}`),
+  getEventsPopular: () => api.get('/api/events/popular'),
   createEvent: (formData) => {
     const token = sessionStorage.getItem('token');
     return axios.post(`${API_BASE_URL}/api/events`, formData, {
