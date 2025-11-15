@@ -10,6 +10,7 @@ export default function Navbar() {
   const [showAccessNotification, setShowAccessNotification] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const [notificationMessage, setNotificationMessage] = useState("");
 
   useEffect(() => {
     // Get user data from sessionStorage
@@ -68,6 +69,7 @@ export default function Navbar() {
 
   const handleShoppingCartClick = () => {
     if (!isLoggedIn()) {
+      setNotificationMessage("Harap login terlebih dahulu");
       setShowAccessNotification(true);
       return;
     }
@@ -75,6 +77,7 @@ export default function Navbar() {
     if (getUserRole() === 'user') {
       navigate('/keranjang');
     } else {
+      setNotificationMessage("Fitur ini hanya tersedia untuk User");
       setShowAccessNotification(true);
     }
   };
@@ -107,7 +110,7 @@ export default function Navbar() {
           >
             <div className="bg-[#0C8CE9] text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-3 max-w-sm">
               <span>ⓘ</span>
-              <span className="text-sm">Fitur keranjang hanya tersedia untuk role User</span>
+              <span className="text-base">{notificationMessage}</span>
               <button 
                 onClick={() => setShowAccessNotification(false)}
                 className="text-white hover:text-amber-200 ml-2 shrink-0"
