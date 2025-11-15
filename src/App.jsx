@@ -7,8 +7,10 @@ import CariEvent from "./Pages/CariEventPage";
 import EventDetail from "./Pages/DetailEventPage";
 import EventRegister from "./Pages/EventRegister";
 import Keranjang from "./Pages/KeranjangPage";
-
-
+import TiketSaya from "./Pages/TiketSayaPage";
+import EventSaya from "./Pages/EventSayaPage";
+import VerifikasiEvent from "./Pages/VerifikasiEventPage";
+import LihatProfilPage from "./Pages/LihatProfilPage";
 
 
 function App() {
@@ -23,11 +25,14 @@ function App() {
           <Route path="/daftar-event" element={<EventRegister />} />
           <Route path="/cariEvent/:namaEvent?" element={<CariEvent />} />
           <Route path="/detailEvent/:id" element={<EventDetail />} />
-         <Route path="/keranjang" element={<Keranjang />} />
+          <Route path="/keranjang" element={<Keranjang />} />
+          {/* Route baru untuk role-based pages */}
+          <Route path="/tiket-saya" element={<TiketSaya />} />
+          <Route path="/event-saya" element={<EventSaya />} />
+          <Route path="/verifikasi-event" element={<VerifikasiEvent />} />
+          <Route path="/lihat-profil" element={<LihatProfilPage />} />
         </Routes>
       </BrowserRouter>
-
-      {/* This is a JSX comment <LoginPage/>*/}
     </div>
   );
 }

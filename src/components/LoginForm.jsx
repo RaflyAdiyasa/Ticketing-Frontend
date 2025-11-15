@@ -30,13 +30,8 @@ export default function LoginForm() {
         sessionStorage.setItem('token', response.data.token);
         sessionStorage.setItem('user', JSON.stringify(response.data.user));
         
-        if (response.data.user.role === 'admin') {
-          navigate('/admin');
-        } else if (response.data.user.role === 'organizer') {
-          navigate('/organizer');
-        } else {
-          navigate('/');
-        }
+        navigate('/');
+      
       }
     } catch (err) {
       setError(err.response?.data?.error || "Login failed");

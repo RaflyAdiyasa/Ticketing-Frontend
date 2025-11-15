@@ -1,15 +1,126 @@
-
-import { Menu, Search, ShoppingCart, X } from "lucide-react";
-import { useState } from "react";
-import { Link, NavLink } from "react-router"
+import { Menu, Search, ShoppingCart, X, CircleUser, LogOut, User } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Link, NavLink, useNavigate } from "react-router"
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
   const [mobileMenuIsOpen, setMobileMenuIsOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [showAccessNotification, setShowAccessNotification] = useState(false);
+  const dropdownRef = useRef(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Get user data from sessionStorage
+    const userData = sessionStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+
+    // Close dropdown when clicking outside
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Auto hide notification after 3 seconds
+  useEffect(() => {
+    if (showAccessNotification) {
+      const timer = setTimeout(() => {
+        setShowAccessNotification(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showAccessNotification]);
+
+  const getUserRole = () => {
+    return user?.role || null;
+  };
+
+  const isLoggedIn = () => {
+    return user !== null;
+  };
+
+  const handleLogout = () => {
+    // Clear session storage
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+    
+    // Reset state
+    setUser(null);
+    setProfileDropdownOpen(false);
+    
+    // Navigate to landing page
+    navigate('/');
+  };
+
+  const handleProfileClick = () => {
+    setProfileDropdownOpen(!profileDropdownOpen);
+  };
+
+  const handleShoppingCartClick = () => {
+    if (!isLoggedIn()) {
+      setShowAccessNotification(true);
+      return;
+    }
+
+    if (getUserRole() === 'user') {
+      navigate('/keranjang');
+    } else {
+      setShowAccessNotification(true);
+    }
+  };
+
+  const handleViewProfile = () => {
+    setProfileDropdownOpen(false);
+    navigate('/lihat-profil');
+  };
+
+  const getRoleDisplayName = (role) => {
+    switch(role) {
+      case 'user': return 'User';
+      case 'organizer': return 'Event Organizer';
+      case 'admin': return 'Administrator';
+      default: return 'User';
+    }
+  };
 
   return (
     <div>
+      {/* ACCESS DENIED NOTIFICATION - Pojok Kanan Atas */}
+      <AnimatePresence>
+        {showAccessNotification && (
+          <motion.div
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 100 }}
+            transition={{ duration: 0.3 }}
+            className="fixed top-38 right-4 z-70"
+          >
+            <div className="bg-[#0C8CE9] text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-3 max-w-sm">
+              <span>ⓘ</span>
+              <span className="text-sm">Fitur keranjang hanya tersedia untuk role User</span>
+              <button 
+                onClick={() => setShowAccessNotification(false)}
+                className="text-white hover:text-amber-200 ml-2 shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* NAVBAR TOP */}
-      <nav className="fixed top-0 w-full z-40 transition-all duration-300 bg-[#0C8CE9]">
+      <nav className="fixed top-0 w-full z-50 transition-all duration-300 bg-[#0C8CE9]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-18 md:h-20">
             {/* LEFT SIDE */}
@@ -48,14 +159,69 @@ export default function Navbar() {
 
             {/* RIGHT BUTTONS */}
             <div className="flex items-center space-x-4 lg:space-x-6">
-              <button className="text-white hover:text-amber-400 cursor-pointer">
-                <ShoppingCart className="w-8 h-8 md:w-9 md:h-9" />
+              <button 
+                className="text-white hover:text-amber-400 cursor-pointer flex items-center justify-center"
+                onClick={handleShoppingCartClick}
+              >
+                <ShoppingCart className="w-7 h-7 md:w-8 md:h-8" />
               </button>
-              <Link to="/login">
-                <button className="w-22 md:w-24 text-sm md:text-base bg-[#044888] text-white py-2 rounded-lg hover:bg-amber-400 font-semibold cursor-pointer transition-all ">
-                  Masuk
-                </button>
-              </Link>
+              {isLoggedIn() ? (
+                <div className="relative" ref={dropdownRef}>
+                  <button 
+                    className="text-white hover:text-amber-400 cursor-pointer transition-all flex items-center justify-center"
+                    onClick={handleProfileClick}
+                  >
+                    <CircleUser className="w-7 h-7 md:w-8 md:h-8" />
+                  </button>
+                  
+                  {/* Profile Dropdown - POSITION ABSOLUTE dengan container relative */}
+                  {profileDropdownOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-60">
+                      {/* User Info */}
+                      <div className="p-4 border-b border-gray-200">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-[#0C8CE9] rounded-full flex items-center justify-center">
+                            <User className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">
+                              {user.username}
+                            </p>
+                            <p className="text-xs text-gray-500 capitalize">
+                              {getRoleDisplayName(user.role)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Menu Items */}
+                      <div className="p-2">
+                        <button 
+                          onClick={handleViewProfile}
+                          className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer transition-all"
+                        >
+                          <User className="w-4 h-4" />
+                          <span>Lihat Profil</span>
+                        </button>
+                        
+                        <button 
+                          onClick={handleLogout}
+                          className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md cursor-pointer transition-all"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span>Keluar</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link to="/login">
+                  <button className="w-22 md:w-24 text-sm md:text-base bg-[#044888] text-white py-2 rounded-lg hover:bg-amber-400 font-semibold cursor-pointer transition-all ">
+                    Masuk
+                  </button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -70,21 +236,63 @@ export default function Navbar() {
               className={({ isActive }) =>
                 isActive ? "bg-[#0C8CE9] text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white" : "bg-[#044888] text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white"
               }
-
-              >
+            >
               Cari Event
             </NavLink>
+            
+            {/* Menu untuk User - HANYA muncul jika login DAN role user */}
+            {isLoggedIn() && getUserRole() === 'user' && (
+              <NavLink
+                to="/tiket-saya"
+                className={({ isActive }) =>
+                  isActive ? "bg-[#0C8CE9] text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white" : "bg-[#044888] text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white"
+                }
+              >
+                Tiket Saya
+              </NavLink>
+            )}
+            
+            {/* Menu untuk Organizer - HANYA muncul jika login DAN role organizer */}
+            {isLoggedIn() && getUserRole() === 'organizer' && (
+              <NavLink
+                to="/daftar-event"
+                className={({ isActive }) =>
+                  isActive ? "bg-[#0C8CE9] text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white" : "bg-[#044888] text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white"
+                }
+              >
+                Buat Event
+              </NavLink>
+            )}
+
+            {/* Menu untuk Organizer - HANYA muncul jika login DAN role organizer */}
+            {isLoggedIn() && getUserRole() === 'organizer' && (
+              <NavLink
+                to="/event-saya"
+                className={({ isActive }) =>
+                  isActive ? "bg-[#0C8CE9] text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white" : "bg-[#044888] text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white"
+                }
+              >
+                Event Saya
+              </NavLink>
+            )}
+            
+            {/* Menu untuk Admin - HANYA muncul jika login DAN role admin */}
+            {isLoggedIn() && getUserRole() === 'admin' && (
+              <NavLink
+                to="/verifikasi-event"
+                className={({ isActive }) =>
+                  isActive ? "bg-[#0C8CE9] text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white" : "bg-[#044888] text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white"
+                }
+              >
+                Verifikasi Event
+              </NavLink>
+            )}
+            
             <a
               href="#"
               className="text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white"
             >
               Event Populer
-            </a>
-            <a
-              href="#"
-              className="text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white"
-            >
-              Menu wahaha
             </a>
           </div>
         </div>
@@ -108,19 +316,16 @@ export default function Navbar() {
                 </button>
               </form>
             </div>
-
-
           </div>
         </div>
       </nav>
 
       {/* DRAWER SIDE MENU */}
-
       <div
         className={`${mobileMenuIsOpen
-            ? "fixed inset-0 opacity-100"
-            : "opacity-0 max-h-0 max-w-0"
-          } z-50 transition-opacity bg-black/50 duration-300 `}
+            ? "fixed inset-0 drawer-visible"
+            : "drawer-hidden"
+          } z-50 transition-all duration-300 bg-black/50`}
         onClick={() => setMobileMenuIsOpen(false)}
       >
         <div
@@ -140,20 +345,60 @@ export default function Navbar() {
           <NavLink
             to="/cariEvent"
             className="text-white text-lg font-semibold mb-4 hover:text-[#0C8CE9]"
+            onClick={() => setMobileMenuIsOpen(false)}
           >
             Cari Event
           </NavLink>
+          
+          {/* Menu untuk User - HANYA muncul jika login DAN role user */}
+          {isLoggedIn() && getUserRole() === 'user' && (
+            <NavLink
+              to="/tiket-saya"
+              className="text-white text-lg font-semibold mb-4 hover:text-[#0C8CE9]"
+              onClick={() => setMobileMenuIsOpen(false)}
+            >
+              Tiket Saya
+            </NavLink>
+          )}
+          
+          {/* Menu untuk Organizer - HANYA muncul jika login DAN role organizer */}
+          {isLoggedIn() && getUserRole() === 'organizer' && (
+            <NavLink
+              to="/daftar-event"
+              className="text-white text-lg font-semibold mb-4 hover:text-[#0C8CE9]"
+              onClick={() => setMobileMenuIsOpen(false)}
+            >
+              Buat Event
+            </NavLink>
+          )}
+
+          {/* Menu untuk Organizer - HANYA muncul jika login DAN role organizer */}
+          {isLoggedIn() && getUserRole() === 'organizer' && (
+            <NavLink
+              to="/event-saya"
+              className="text-white text-lg font-semibold mb-4 hover:text-[#0C8CE9]"
+              onClick={() => setMobileMenuIsOpen(false)}
+            >
+              Event Saya
+            </NavLink>
+          )}
+          
+          {/* Menu untuk Admin - HANYA muncul jika login DAN role admin */}
+          {isLoggedIn() && getUserRole() === 'admin' && (
+            <NavLink
+              to="/verifikasi-event"
+              className="text-white text-lg font-semibold mb-4 hover:text-[#0C8CE9]"
+              onClick={() => setMobileMenuIsOpen(false)}
+            >
+              Verifikasi Event
+            </NavLink>
+          )}
+          
           <a
             href="#"
             className="text-white text-lg font-semibold mb-4 hover:text-[#0C8CE9]"
           >
             Event Populer
-          </a>
-          <a
-            href="#"
-            className="text-white text-lg font-semibold mb-4 hover:text-[#0C8CE9]"
-          >
-            Menu wahaha
           </a>
         </div>
       </div>
