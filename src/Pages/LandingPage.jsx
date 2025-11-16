@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -21,8 +23,7 @@ export default function LandingPage() {
       date: "29 Nov 2025 - 30 Nov 2025",
       price: 100000,
       poster: "https://picsum.photos/800/800?random=11",
-      banner:
-        "https://gametora.com/images/umamusume/en/gacha/img_bnr_gacha_30040.png",
+      banner: "https://gametora.com/images/umamusume/en/gacha/img_bnr_gacha_30040.png",
     },
     {
       id: 2,
@@ -30,8 +31,7 @@ export default function LandingPage() {
       date: "15 Des 2025 - 17 Des 2025",
       price: 150000,
       poster: "https://picsum.photos/800/800?random=22",
-      banner:
-        "https://cdn2.steamgriddb.com/hero_thumb/beac6d8fdd97a5e184ace84f9988a0fc.jpg",
+      banner: "https://cdn2.steamgriddb.com/hero_thumb/beac6d8fdd97a5e184ace84f9988a0fc.jpg",
     },
     {
       id: 3,
@@ -39,8 +39,7 @@ export default function LandingPage() {
       date: "10 Jan 2026",
       price: 200000,
       poster: "https://picsum.photos/800/800?random=33",
-      banner:
-        "https://cdn2.steamgriddb.com/hero_thumb/6c528267ba256819c1607cddbd7b650b.jpg",
+      banner: "https://cdn2.steamgriddb.com/hero_thumb/6c528267ba256819c1607cddbd7b650b.jpg",
     },
     {
       id: 4,
@@ -48,25 +47,100 @@ export default function LandingPage() {
       date: "22 Feb 2026 - 25 Feb 2026",
       price: 120000,
       poster: "https://cdn2.steamgriddb.com/icon_thumb/4cf54a3d780b9294815e5f249164f20f.png",
-      banner:
-        "https://cdn2.steamgriddb.com/hero_thumb/64118b7020f3dc8d26b09149d29050cf.jpg",
+      banner: "https://cdn2.steamgriddb.com/hero_thumb/64118b7020f3dc8d26b09149d29050cf.jpg",
     },
-    
   ]);
 
-  // Ambil max 5 banner
-  const bannerList = events.slice(0, 5).map((e) => e.banner);
-
+  const bannerEvents = events.slice(0, 5);
   const [currentBanner, setCurrentBanner] = useState(0);
+  const [showArrows, setShowArrows] = useState(false);
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
+  // Auto slide - hanya jika tidak sedang drag atau animasi
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentBanner((prev) => (prev + 1) % bannerList.length);
-    }, 3000);
+      if (!isDragging && !isAnimating) {
+        handleNext();
+      }
+    }, 5000);
     return () => clearInterval(timer);
-  }, [bannerList.length]);
+  }, [currentBanner, isDragging, isAnimating]);
 
-  const handleCardClick = (id) => navigate(`/detailevent/${id}`);
+  const handleNext = useCallback(() => {
+    setIsAnimating(true);
+    setCurrentBanner((prev) => (prev + 1) % bannerEvents.length);
+    setTimeout(() => setIsAnimating(false), 600);
+  }, [bannerEvents.length]);
+
+  const handlePrev = useCallback(() => {
+    setIsAnimating(true);
+    setCurrentBanner((prev) => (prev - 1 + bannerEvents.length) % bannerEvents.length);
+    setTimeout(() => setIsAnimating(false), 600);
+  }, [bannerEvents.length]);
+
+  // Mouse drag handlers
+  const handleDragStart = () => {
+    setIsDragging(true);
+  };
+
+  const handleDrag = (event, info) => {
+    setDragX(info.offset.x);
+  };
+
+  const handleDragEnd = (event, info) => {
+    setIsDragging(false);
+    const threshold = 100;
+    
+    if (info.offset.x < -threshold) {
+      handleNext(); // Drag ke kiri
+    } else if (info.offset.x > threshold) {
+      handlePrev(); // Drag ke kanan
+    } else {
+      // Jika drag tidak mencapai threshold, kembali ke posisi semula dengan animasi
+      setIsAnimating(true);
+      setTimeout(() => setIsAnimating(false), 600);
+    }
+    
+    setDragX(0);
+  };
+
+  // Touch swipe handlers
+  const handleTouchStart = (e) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const minSwipeDistance = 50;
+
+    if (distance > minSwipeDistance) {
+      handleNext(); // Swipe kiri
+    } else if (distance < -minSwipeDistance) {
+      handlePrev(); // Swipe kanan
+    }
+
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+
+  const handleBannerClick = (eventId) => {
+    if (!isDragging && Math.abs(dragX) < 10 && !isAnimating) {
+      navigate(`/detailEvent/${eventId}`);
+    }
+  };
+
+  const handleCardClick = (id) => navigate(`/detailEvent/${id}`);
 
   return (
     <div>
@@ -75,22 +149,92 @@ export default function LandingPage() {
       <div className="min-h-screen bg-[#E5E7EB] flex items-start justify-center p-4 overflow-auto">
         <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-40 bg-white shadow-xl p-8 rounded-2xl">
 
-          {/* Banner Slider (exact ratio & stable) */}
-          <div className="w-full aspect-16/6 rounded-xl mb-10 overflow-hidden relative shadow-lg">
-            <img
-              src={bannerList[currentBanner]}
-              className="w-full h-full object-cover transition-all duration-700"
-            />
+          {/* Banner Slider */}
+          <div 
+            className="w-full aspect-16/6 rounded-xl mb-10 overflow-hidden relative shadow-lg bg-gray-900"
+            onMouseEnter={() => setShowArrows(true)}
+            onMouseLeave={() => setShowArrows(false)}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* Container utama untuk drag + animasi */}
+            <motion.div 
+              className="relative w-full h-full cursor-grab active:cursor-grabbing"
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              onDragStart={handleDragStart}
+              onDrag={handleDrag}
+              onDragEnd={handleDragEnd}
+              style={{ x: dragX }}
+            >
+              {/* Render semua banner untuk continuous effect */}
+              {bannerEvents.map((event, index) => (
+                <motion.div
+                  key={event.id}
+                  className={`absolute top-0 left-0 w-full h-full ${index === currentBanner ? 'z-10' : 'z-0'}`}
+                  // Animasi position berdasarkan state
+                  animate={{
+                    x: `${(index - currentBanner) * 100}%`
+                  }}
+                  // Transition yang berbeda untuk drag vs animasi biasa
+                  transition={
+                    isDragging 
+                      ? { type: "spring", stiffness: 300, damping: 30 } // Real-time selama drag
+                      : { 
+                          type: "tween", 
+                          duration: 0.6, // Lebih smooth - 0.6 detik
+                          ease: [0.25, 0.46, 0.45, 0.94] // easeOutQuad untuk natural feeling
+                        }
+                  }
+                >
+                  <img
+                    src={event.banner}
+                    alt={event.name}
+                    className="w-full h-full object-cover object-center select-none"
+                    draggable="false"
+                    onClick={() => handleBannerClick(event.id)}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
 
-            {/* dots */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
-              {bannerList.map((_, i) => (
-                <div
+            {/* Navigation Arrows */}
+            <div className={`absolute inset-0 flex items-center justify-between px-4 transition-opacity duration-300 ${showArrows ? 'opacity-100' : 'opacity-0'}`}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrev();
+                }}
+                className="w-10 h-10 bg-[#0C8CE9] bg-opacity-80 rounded-full flex items-center justify-center text-white hover:bg-opacity-100 transition-all z-20"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNext();
+                }}
+                className="w-10 h-10 bg-[#0C8CE9] bg-opacity-80 rounded-full flex items-center justify-center text-white hover:bg-opacity-100 transition-all z-20"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Dots Indicator */}
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+              {bannerEvents.map((_, i) => (
+                <button
                   key={i}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentBanner(i);
+                  }}
                   className={`w-3 h-3 rounded-full transition-all ${
-                    i === currentBanner ? "bg-white" : "bg-white/50"
+                    i === currentBanner ? "bg-white" : "bg-white/50 hover:bg-white/80"
                   }`}
-                ></div>
+                />
               ))}
             </div>
           </div>
@@ -106,7 +250,7 @@ export default function LandingPage() {
             </button>
           </div>
 
-          {/* === EVENT CARDS (exact same style as cari event) === */}
+          {/* Event Cards */}
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-30">
             {events.slice(0, 5).map((event) => (
               <div
@@ -114,7 +258,6 @@ export default function LandingPage() {
                 onClick={() => handleCardClick(event.id)}
                 className="bg-white border rounded-md shadow-sm overflow-hidden cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
               >
-                {/* Poster 1:1 */}
                 <div className="relative w-full pb-[100%] bg-gray-300">
                   <img
                     src={event.poster}
@@ -124,7 +267,6 @@ export default function LandingPage() {
                   />
                 </div>
 
-                {/* Detail */}
                 <div className="p-2 text-sm">
                   <p className="font-semibold text-base truncate whitespace-nowrap overflow-hidden">
                     {event.name}
@@ -144,5 +286,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-
