@@ -52,7 +52,7 @@ export const eventAPI = {
   getEvents: () => api.get('/api/events'),
   getEvent: (id) => api.get(`/api/event/${id}`),
   getEventsPopular: () => api.get('/api/events/popular'),
-  getMyEvents: () => api.get('/api/events/my-events'), // Tambahkan ini
+  getMyEvents: () => api.get('/api/events/my-events'),
   createEvent: (formData) => {
     const token = sessionStorage.getItem('token');
     return axios.post(`${API_BASE_URL}/api/events`, formData, {
@@ -62,6 +62,7 @@ export const eventAPI = {
       },
     });
   },
+  getPendingEvents: () => api.get('/api/events/all'), 
   updateEvent: (id, updateData) => api.put(`/api/events/${id}`, updateData),
   deleteEvent: (id) => api.delete(`/api/events/${id}`),
   verifyEvent: (id, statusData) => api.patch(`/api/events/${id}/verify`, statusData),

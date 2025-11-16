@@ -1,47 +1,54 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
-// import eventAPI from wherever your API is
+import { eventAPI } from "../services/api";
 
 export default function VerifikasiEventPage() {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [approvalComment, setApprovalComment] = useState("");
 
   useEffect(() => {
-    fetchEvents();
+    fetchPendingEvents();
   }, []);
 
-  const fetchEvents = async () => {
+  const fetchPendingEvents = async () => {
     try {
-      // const response = await eventAPI.getPendingEvents();
-      // setEvents(response.data);
-      setEvents([
-        {
-          id: 1,
-          title: "Festival Musik Nusantara",
-          organizerName: "IndoEvent Corp",
-          description: "Festival musik terbesar dengan artis lokal dan internasional.",
-        },
-        {
-          id: 2,
-          title: "Tech Expo 2025",
-          organizerName: "FutureTech ID",
-          description: "Pameran teknologi inovatif dan showcase startup.",
-        },
-        {
-          id: 3,
-          title: "Charity Run 10K",
-          organizerName: "RunForHelp Foundation",
-          description: "Acara lari amal untuk penggalangan dana kesehatan.",
-        },
-      ]);
+      const response = await eventAPI.getPendingEvents();
+      // Filter hanya event dengan status pending
+      const pendingEvents = response.data.filter(event => event.status === "pending");
+      setEvents(pendingEvents);
     } catch (error) {
-      console.error("Error fetching events:", error);
+      console.error("Error fetching pending events:", error);
+      alert("Gagal memuat daftar event pending");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerifyEvent = async (eventId, status) => {
+    try {
+      const statusData = {
+        status: status,
+        approval_comment: approvalComment || `${status === "approved" ? "Event disetujui" : "Event ditolak"} oleh admin`
+      };
+
+      await eventAPI.verifyEvent(eventId, statusData);
+      
+      alert(`Event berhasil ${status === "approved" ? "disetujui" : "ditolak"}`);
+      setSelectedEvent(null);
+      setApprovalComment("");
+      fetchPendingEvents(); // Refresh list
+    } catch (error) {
+      console.error("Error verifying event:", error);
+      alert(`Gagal ${status === "approved" ? "menyetujui" : "menolak"} event`);
+    }
+  };
+
+  const handleViewDetails = (event) => {
+    navigate(`/detailEvent/${event.event_id}`);
   };
 
   return (
@@ -63,43 +70,88 @@ export default function VerifikasiEventPage() {
             <div className="space-y-4">
               {events.map((event) => (
                 <div
-                  key={event.id}
+                  key={event.event_id}
                   className="p-4 bg-gray-50 rounded-lg shadow flex justify-between items-center"
                 >
-                  <div>
-                    <h3 className="text-xl font-semibold">{event.title}</h3>
-                    <p className="text-gray-600 text-sm">{event.organizerName}</p>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold">{event.name}</h3>
+                    <p className="text-gray-600 text-sm">
+                      Organizer: {event.owner?.name || "Unknown"}
+                    </p>
+                    <p className="text-gray-500 text-xs">
+                      Kategori: {event.category} | Lokasi: {event.location}, {event.city}
+                    </p>
+                    <p className="text-gray-500 text-xs mt-1">
+                      Tanggal: {new Date(event.date_start).toLocaleDateString('id-ID')} - {new Date(event.date_end).toLocaleDateString('id-ID')}
+                    </p>
                   </div>
-                  <button
-                    onClick={() => setSelectedEvent(event)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-                  >
-                    Lihat Detail
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleViewDetails(event)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+                    >
+                      Lihat Detail
+                    </button>
+                    <button
+                      onClick={() => setSelectedEvent(event)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm"
+                    >
+                      Verifikasi
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
 
+          {/* Modal Verifikasi */}
           {selectedEvent && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white max-w-lg w-full p-6 rounded-xl shadow-xl">
-                <h3 className="text-xl font-bold mb-4">Detail Event</h3>
-                <p className="text-gray-700 mb-2"><b>Nama Event:</b> {selectedEvent.title}</p>
-                <p className="text-gray-700 mb-2"><b>Organizer:</b> {selectedEvent.organizerName}</p>
-                <p className="text-gray-700 mb-4"><b>Deskripsi:</b> {selectedEvent.description}</p>
+              <div className="bg-white max-w-md w-full p-6 rounded-xl shadow-xl">
+                <h3 className="text-xl font-bold mb-4">Verifikasi Event</h3>
+                <p className="text-gray-700 mb-2">
+                  <b>Nama Event:</b> {selectedEvent.name}
+                </p>
+                <p className="text-gray-700 mb-2">
+                  <b>Organizer:</b> {selectedEvent.owner?.name || "Unknown"}
+                </p>
+                <p className="text-gray-700 mb-4">
+                  <b>Deskripsi:</b> {selectedEvent.description}
+                </p>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Komentar Verifikasi (Opsional):
+                  </label>
+                  <textarea
+                    value={approvalComment}
+                    onChange={(e) => setApprovalComment(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg text-sm"
+                    rows="3"
+                    placeholder="Berikan komentar verifikasi..."
+                  />
+                </div>
 
                 <div className="flex justify-end space-x-3">
                   <button
-                    onClick={() => setSelectedEvent(null)}
+                    onClick={() => {
+                      setSelectedEvent(null);
+                      setApprovalComment("");
+                    }}
                     className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
                   >
-                    Tutup
+                    Batal
                   </button>
-                  <button className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">
+                  <button 
+                    onClick={() => handleVerifyEvent(selectedEvent.event_id, "rejected")}
+                    className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                  >
                     Tolak
                   </button>
-                  <button className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700">
+                  <button 
+                    onClick={() => handleVerifyEvent(selectedEvent.event_id, "approved")}
+                    className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+                  >
                     Setujui
                   </button>
                 </div>
