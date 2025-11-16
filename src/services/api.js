@@ -68,6 +68,12 @@ export const eventAPI = {
   updateEvent: (id, updateData) => api.put(`/api/events/${id}`, updateData),
   deleteEvent: (id) => api.delete(`/api/events/${id}`),
   verifyEvent: (id, statusData) => api.patch(`/api/events/${id}/verify`, statusData),
+  getEventReport: (eventId) => api.get(`/api/events/${eventId}/report`),
+  downloadEventReport: (eventId) => {
+    return api.get(`/api/events/${eventId}/report/download`, {
+      responseType: 'blob'
+    });
+  }
 };
 
 export const cartAPI = {

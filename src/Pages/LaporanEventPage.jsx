@@ -137,16 +137,16 @@ export default function LaporanEventPage() {
             <h2 className="text-xl font-semibold mb-4">Persentase Pembelian Tiket</h2>
 
             <div className="flex flex-col items-center">
-              {/* PIE CHART WRAPPER */}
-              <div className="w-60 h-60">
-                <ResponsiveContainer>
+              {/* PIE CHART WRAPPER - Fixed dimensions */}
+              <div className="w-full max-w-md h-80">
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={reportData.purchase_data}
                       dataKey="value"
                       nameKey="name"
-                      innerRadius={40}
-                      outerRadius={70}
+                      innerRadius={60}
+                      outerRadius={100}
                       paddingAngle={4}
                       label={({ name, percent }) => `${name} (${(percent * 100).toFixed(1)}%)`}
                     >
@@ -159,7 +159,7 @@ export default function LaporanEventPage() {
               </div>
 
               {/* Legend Categories */}
-              <div className="flex gap-4 mt-4 flex-wrap">
+              <div className="flex gap-4 mt-4 flex-wrap justify-center">
                 {reportData.purchase_data.map((item, i) => (
                   <div
                     key={i}
@@ -181,15 +181,16 @@ export default function LaporanEventPage() {
             <h2 className="text-xl font-semibold mb-4">Persentase Check-in Tiket</h2>
 
             <div className="flex flex-col items-center">
-              <div className="w-60 h-60">
-                <ResponsiveContainer>
+              {/* PIE CHART WRAPPER - Fixed dimensions */}
+              <div className="w-full max-w-md h-80">
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={reportData.checkin_data}
                       dataKey="value"
                       nameKey="name"
-                      innerRadius={40}
-                      outerRadius={70}
+                      innerRadius={60}
+                      outerRadius={100}
                       paddingAngle={4}
                       label={({ name, percent }) => `${name} (${(percent * 100).toFixed(1)}%)`}
                     >
@@ -201,7 +202,7 @@ export default function LaporanEventPage() {
                 </ResponsiveContainer>
               </div>
 
-              <div className="flex gap-4 mt-4 flex-wrap">
+              <div className="flex gap-4 mt-4 flex-wrap justify-center">
                 {reportData.checkin_data.map((item, i) => (
                   <div
                     key={i}
