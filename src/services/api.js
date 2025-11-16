@@ -45,7 +45,9 @@ export const userAPI = {
     });
   },
   getUsers: () => api.get('/api/users'),
-  verifyUser: (id, statusData) => api.post(`/api/users/${id}/verify`, statusData),
+  getAllOrganizers: () => api.get('/api/users?role=organizer'),
+  verifyOrganizer: (id, statusData) => api.post(`/api/users/${id}/verify`, statusData),
+  getUserById: (id) => api.get(`/api/users/${id}`), 
 };
 
 export const eventAPI = {

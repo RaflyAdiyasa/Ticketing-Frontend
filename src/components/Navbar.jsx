@@ -96,17 +96,17 @@ export default function Navbar() {
   };
 
   // Search handler
-const handleSearchSubmit = (e) => {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const searchQuery = formData.get('search');
-  
-  if (searchQuery && searchQuery.trim() !== '') {
-    navigate(`/cariEvent/${encodeURIComponent(searchQuery.trim())}`);
-    // Clear form setelah submit
-    e.target.reset();
-  }
-};
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const searchQuery = formData.get("search");
+
+    if (searchQuery && searchQuery.trim() !== "") {
+      navigate(`/cariEvent/${encodeURIComponent(searchQuery.trim())}`);
+      // Clear form setelah submit
+      e.target.reset();
+    }
+  };
 
   const getRoleDisplayName = (role) => {
     switch (role) {
@@ -330,6 +330,18 @@ const handleSearchSubmit = (e) => {
             {/* Menu untuk Admin - HANYA muncul jika login DAN role admin */}
             {isLoggedIn() && getUserRole() === "admin" && (
               <NavLink
+                to="/verifikasiUser"
+                className={({ isActive }) =>
+                  isActive
+                    ? "bg-[#0C8CE9] text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white"
+                    : "bg-[#044888] text-lg hover:bg-[#0C8CE9] py-1.5 px-2 font-semibold text-white"
+                }
+              >
+                Verifikasi User
+              </NavLink>
+            )}
+            {isLoggedIn() && getUserRole() === "admin" && (
+              <NavLink
                 to="/verifikasi-event"
                 className={({ isActive }) =>
                   isActive
@@ -433,6 +445,15 @@ const handleSearchSubmit = (e) => {
           )}
 
           {/* Menu untuk Admin - HANYA muncul jika login DAN role admin */}
+          {isLoggedIn() && getUserRole() === "admin" && (
+            <NavLink
+              to="/verifikasiUser"
+              className="text-white text-lg font-semibold mb-4 hover:text-[#0C8CE9]"
+              onClick={() => setMobileMenuIsOpen(false)}
+            >
+              Verifikasi User
+            </NavLink>
+          )}
           {isLoggedIn() && getUserRole() === "admin" && (
             <NavLink
               to="/verifikasi-event"

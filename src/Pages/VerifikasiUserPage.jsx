@@ -7,6 +7,7 @@ export default function VerifikasiUserPage() {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchPendingOrganizers();
@@ -14,17 +15,24 @@ export default function VerifikasiUserPage() {
 
   const fetchPendingOrganizers = async () => {
     try {
+      setLoading(true);
+      setError("");
       const response = await userAPI.getAllOrganizers(); 
+      
       const pending = response.data.filter(
-        (u) => u.register_status !== "approved"
+        (u) => u.register_status === "pending"
       );
       setUsers(pending);
     } catch (error) {
-      console.error(error);
-      alert("Gagal memuat daftar organizer");
+      console.error("Error fetching organizers:", error);
+      setError("Gagal memuat daftar organizer");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchPendingOrganizers();
   };
 
   return (
@@ -34,7 +42,21 @@ export default function VerifikasiUserPage() {
       <div className="min-h-screen bg-[#E5E7EB] flex items-start justify-center p-4 overflow-auto">
         <div className="min-h-screen w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-40 bg-white shadow-xl p-8 rounded-2xl">
           
-          <h2 className="text-2xl font-bold mb-6">Verifikasi Pengguna Organizer</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">Verifikasi Pengguna Organizer</h2>
+            <button
+              onClick={handleRefresh}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+            >
+              Refresh
+            </button>
+          </div>
+
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+              {error}
+            </div>
+          )}
 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
@@ -42,34 +64,39 @@ export default function VerifikasiUserPage() {
               <p className="mt-4 text-gray-600">Memuat data pengguna...</p>
             </div>
           ) : users.length === 0 ? (
-            <p className="text-gray-600">Tidak ada pengguna pending.</p>
+            <div className="text-center py-20">
+              <p className="text-gray-600 text-lg">Tidak ada pengguna organizer yang menunggu verifikasi.</p>
+            </div>
           ) : (
             <div className="space-y-4">
-              {users.map((u) => (
+              {users.map((user) => (
                 <div
-                  key={u.user_id}
-                  className="p-4 bg-gray-50 rounded-lg shadow flex justify-between items-center"
+                  key={user.user_id}
+                  className="p-4 bg-gray-50 rounded-lg shadow flex justify-between items-center hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold">{u.name || u.username}</h3>
-                    <p className="text-gray-700 text-sm">{u.email}</p>
-
+                    <h3 className="text-xl font-semibold">{user.name || user.username}</h3>
+                    <p className="text-gray-700 text-sm">{user.email}</p>
+                    <p className="text-gray-600 text-sm mt-1">
+                      Organisasi: {user.organization || "-"}
+                    </p>
+                    
                     <span
-                      className={`inline-block mt-2 px-2 py-1 text-xs rounded-full ${
-                        u.register_status === "pending"
+                      className={`inline-block mt-2 px-3 py-1 text-xs font-medium rounded-full ${
+                        user.register_status === "pending"
                           ? "bg-yellow-100 text-yellow-800"
-                          : u.register_status === "rejected"
+                          : user.register_status === "rejected"
                           ? "bg-red-100 text-red-800"
                           : "bg-green-100 text-green-800"
                       }`}
                     >
-                      {u.register_status}
+                      Status: {user.register_status}
                     </span>
                   </div>
 
                   <button
-                    onClick={() => navigate(`/tinjauUser/${u.user_id}`)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+                    onClick={() => navigate(`/tinjauUser/${user.user_id}`)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
                   >
                     Tinjau
                   </button>
