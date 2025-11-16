@@ -2,9 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
 import { eventAPI } from "../services/api";
+import NotificationModal from "../components/NotificationModal";
+import useNotification from "../hooks/useNotification";
 
 export default function VerifikasiEventPage() {
   const navigate = useNavigate();
+  const { notification, showNotification, hideNotification } = useNotification();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -22,7 +25,7 @@ export default function VerifikasiEventPage() {
       setEvents(pendingEvents);
     } catch (error) {
       console.error("Error fetching pending events:", error);
-      alert("Gagal memuat daftar event pending");
+      showNotification("Gagal memuat daftar event pending", "Error", "error");
     } finally {
       setLoading(false);
     }
@@ -37,13 +40,22 @@ export default function VerifikasiEventPage() {
 
       await eventAPI.verifyEvent(eventId, statusData);
       
-      alert(`Event berhasil ${status === "approved" ? "disetujui" : "ditolak"}`);
+      showNotification(
+        `Event berhasil ${status === "approved" ? "disetujui" : "ditolak"}`,
+        "Sukses",
+        "success"
+      );
+      
       setSelectedEvent(null);
       setApprovalComment("");
       fetchPendingEvents(); // Refresh list
     } catch (error) {
       console.error("Error verifying event:", error);
-      alert(`Gagal ${status === "approved" ? "menyetujui" : "menolak"} event`);
+      showNotification(
+        `Gagal ${status === "approved" ? "menyetujui" : "menolak"} event`,
+        "Error",
+        "error"
+      );
     }
   };
 
@@ -54,6 +66,15 @@ export default function VerifikasiEventPage() {
   return (
     <div>
       <Navbar />
+      
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={hideNotification}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
 
       <div className="min-h-screen bg-[#E5E7EB] flex items-start justify-center p-4 overflow-auto">
         <div className="min-h-screen w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-40 bg-white shadow-xl p-8 rounded-2xl">

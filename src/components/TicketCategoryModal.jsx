@@ -156,7 +156,7 @@ export default function TicketCategoryModal({
           {/* Tanggal Tiket */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <p className="font-medium mb-1">Tanggal mulai penjualan *</p>
+              <p className="font-medium mb-1">Tanggal mulai *</p>
               <label className="flex items-center gap-2 border rounded-lg p-2">
                 <Calendar size={18} />
                 <input 
@@ -171,7 +171,7 @@ export default function TicketCategoryModal({
             </div>
 
             <div>
-              <p className="font-medium mb-1">Tanggal selesai penjualan *</p>
+              <p className="font-medium mb-1">Tanggal selesai *</p>
               <label className="flex items-center gap-2 border rounded-lg p-2">
                 <Calendar size={18} />
                 <input 

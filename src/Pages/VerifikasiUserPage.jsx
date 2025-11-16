@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
 import { userAPI } from "../services/api";
+import NotificationModal from "../components/NotificationModal";
+import useNotification from "../hooks/useNotification";
 
 export default function VerifikasiUserPage() {
   const navigate = useNavigate();
+  const { notification, showNotification, hideNotification } = useNotification();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchPendingOrganizers();
@@ -16,7 +18,6 @@ export default function VerifikasiUserPage() {
   const fetchPendingOrganizers = async () => {
     try {
       setLoading(true);
-      setError("");
       const response = await userAPI.getAllOrganizers(); 
       
       const pending = response.data.filter(
@@ -25,7 +26,7 @@ export default function VerifikasiUserPage() {
       setUsers(pending);
     } catch (error) {
       console.error("Error fetching organizers:", error);
-      setError("Gagal memuat daftar organizer");
+      showNotification("Gagal memuat daftar organizer", "Error", "error");
     } finally {
       setLoading(false);
     }
@@ -33,11 +34,21 @@ export default function VerifikasiUserPage() {
 
   const handleRefresh = () => {
     fetchPendingOrganizers();
+    showNotification("Data diperbarui", "Sukses", "success");
   };
 
   return (
     <div>
       <Navbar />
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={hideNotification}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
 
       <div className="min-h-screen bg-[#E5E7EB] flex items-start justify-center p-4 overflow-auto">
         <div className="min-h-screen w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-40 bg-white shadow-xl p-8 rounded-2xl">
@@ -51,12 +62,6 @@ export default function VerifikasiUserPage() {
               Refresh
             </button>
           </div>
-
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
-            </div>
-          )}
 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">

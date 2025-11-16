@@ -2,16 +2,18 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
 import { userAPI } from "../services/api";
+import NotificationModal from "../components/NotificationModal";
+import useNotification from "../hooks/useNotification";
 
 export default function TinjauUserDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { notification, showNotification, hideNotification } = useNotification();
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [comment, setComment] = useState("");
-  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchUserDetail();
@@ -20,12 +22,11 @@ export default function TinjauUserDetailPage() {
   const fetchUserDetail = async () => {
     try {
       setLoading(true);
-      setError("");
       const response = await userAPI.getUserById(id);
       setUser(response.data);
     } catch (error) {
       console.error("Error fetching user detail:", error);
-      setError("Gagal memuat detail pengguna");
+      showNotification("Gagal memuat detail pengguna", "Error", "error");
     } finally {
       setLoading(false);
     }
@@ -36,19 +37,25 @@ export default function TinjauUserDetailPage() {
 
     try {
       setSubmitting(true);
-      setError("");
 
       await userAPI.verifyOrganizer(id, {
         status: status,
-        comment:
-          comment || `User ${status === "approved" ? "disetujui" : "ditolak"}`,
+        comment: comment || `User ${status === "approved" ? "disetujui" : "ditolak"}`,
       });
 
-      alert(`Pengguna ${status === "approved" ? "disetujui" : "ditolak"}!`);
-      navigate("/verifikasiUser");
+      showNotification(
+        `Pengguna berhasil ${status === "approved" ? "disetujui" : "ditolak"}!`,
+        "Sukses",
+        "success"
+      );
+      
+      // Navigate after a short delay to show the notification
+      setTimeout(() => {
+        navigate("/verifikasiUser");
+      }, 1500);
     } catch (error) {
       console.error("Error verifying user:", error);
-      setError("Gagal memverifikasi pengguna");
+      showNotification("Gagal memverifikasi pengguna", "Error", "error");
     } finally {
       setSubmitting(false);
     }
@@ -69,15 +76,18 @@ export default function TinjauUserDetailPage() {
     <div>
       <Navbar />
 
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={hideNotification}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
+
       <div className="min-h-screen bg-[#E5E7EB] flex justify-center p-4">
         <div className="w-full max-w-4xl bg-white shadow-xl rounded-2xl p-10 mt-32">
           <h2 className="text-2xl font-bold mb-6">Tinjau Pengguna Organizer</h2>
-
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-              {error}
-            </div>
-          )}
 
           {user ? (
             <div className="space-y-6">

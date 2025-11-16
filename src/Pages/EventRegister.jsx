@@ -4,9 +4,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { eventAPI } from "../services/api";
 import TicketCategoryModal from "../components/TicketCategoryModal";
+import NotificationModal from "../components/NotificationModal";
+import useNotification from "../hooks/useNotification";
 
 export default function EventRegister() {
   const navigate = useNavigate();
+  const { notification, showNotification, hideNotification } =
+    useNotification();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -27,11 +31,37 @@ export default function EventRegister() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTicket, setEditingTicket] = useState(null);
 
+  // State untuk kategori custom
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
+  const [customCategory, setCustomCategory] = useState("");
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }));
+
+    // Jika yang diubah adalah kategori, cek apakah memilih "Lainnya"
+    if (name === "category") {
+      if (value === "Lainnya") {
+        setShowCustomCategory(true);
+        // Reset custom category ketika memilih lainnya
+        setCustomCategory("");
+      } else {
+        setShowCustomCategory(false);
+        setCustomCategory("");
+      }
+    }
+  };
+
+  const handleCustomCategoryChange = (e) => {
+    const value = e.target.value;
+    setCustomCategory(value);
+    // Update juga formData.category dengan nilai custom
+    setFormData((prev) => ({
+      ...prev,
+      category: value,
     }));
   };
 
@@ -49,6 +79,11 @@ export default function EventRegister() {
   // Fungsi untuk menambah tiket baru
   const handleAddTicket = (ticket) => {
     setTicketList((prev) => [...prev, ticket]);
+    showNotification(
+      "Kategori tiket berhasil ditambahkan",
+      "Sukses",
+      "success"
+    );
   };
 
   // Fungsi untuk mengupdate tiket yang sudah ada
@@ -59,6 +94,7 @@ export default function EventRegister() {
       )
     );
     setEditingTicket(null);
+    showNotification("Kategori tiket berhasil diperbarui", "Sukses", "success");
   };
 
   // Fungsi untuk edit tiket
@@ -70,6 +106,7 @@ export default function EventRegister() {
   // Fungsi untuk hapus tiket
   const removeTicketCategory = (id) => {
     setTicketList((prev) => prev.filter((ticket) => ticket.id !== id));
+    showNotification("Kategori tiket berhasil dihapus", "Sukses", "success");
   };
 
   // Fungsi untuk buka modal tambah tiket
@@ -89,7 +126,22 @@ export default function EventRegister() {
     setLoading(true);
 
     if (ticketList.length === 0) {
-      alert("Harap tambahkan minimal satu kategori tiket!");
+      showNotification(
+        "Harap tambahkan minimal satu kategori tiket!",
+        "Peringatan",
+        "warning"
+      );
+      setLoading(false);
+      return;
+    }
+
+    // Validasi kategori custom
+    if (showCustomCategory && !customCategory.trim()) {
+      showNotification(
+        "Harap isi kategori event custom!",
+        "Peringatan",
+        "warning"
+      );
       setLoading(false);
       return;
     }
@@ -151,14 +203,24 @@ export default function EventRegister() {
 
       if (response.data) {
         clearAllData();
-        alert("Event berhasil dibuat! Menunggu verifikasi admin.");
-        navigate("/");
+        showNotification(
+          "Event berhasil dibuat! Menunggu verifikasi admin.",
+          "Sukses",
+          "success"
+        );
+
+        // Navigate after a short delay to show the notification
+        setTimeout(() => {
+          navigate("/");
+        }, 2000);
       }
     } catch (error) {
       console.error("Error creating event:", error);
       console.error("Error response:", error.response?.data);
-      alert(
-        `Gagal membuat event: ${error.response?.data?.error || error.message}`
+      showNotification(
+        `Gagal membuat event: ${error.response?.data?.error || error.message}`,
+        "Error",
+        "error"
       );
     } finally {
       setLoading(false);
@@ -178,6 +240,8 @@ export default function EventRegister() {
     setPosterFile(null);
     setBannerFile(null);
     setTicketList([]);
+    setShowCustomCategory(false);
+    setCustomCategory("");
   };
 
   // Get file names for display
@@ -192,6 +256,15 @@ export default function EventRegister() {
   return (
     <div>
       <Navbar />
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={hideNotification}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
 
       {/* Modal untuk tambah/edit kategori tiket */}
       <TicketCategoryModal
@@ -230,20 +303,79 @@ export default function EventRegister() {
                 <select
                   name="category"
                   className="w-full border rounded-lg p-2"
-                  value={formData.category}
+                  value={showCustomCategory ? "Lainnya" : formData.category}
                   onChange={handleInputChange}
                   required
                 >
                   <option value="">Pilih kategori event</option>
+
+                  {/* Kategori Hiburan */}
                   <option value="Musik">Musik</option>
+                  <option value="Festival">Festival</option>
+                  <option value="Konser">Konser</option>
+                  <option value="Film & Teater">Film & Teater</option>
+
+                  {/* Kategori Teknologi */}
                   <option value="Teknologi">Teknologi</option>
+                  <option value="Startup">Startup</option>
+                  <option value="Workshop IT">Workshop IT</option>
+                  <option value="Gaming">Gaming</option>
+
+                  {/* Kategori Edukasi */}
+                  <option value="Seminar">Seminar</option>
+                  <option value="Workshop">Workshop</option>
+                  <option value="Pelatihan">Pelatihan</option>
+                  <option value="Webinar">Webinar</option>
+
+                  {/* Kategori Olahraga */}
                   <option value="Olah Raga">Olah Raga</option>
+                  <option value="Marathon">Marathon</option>
+                  <option value="Esport">Esport</option>
+
+                  {/* Kategori Bisnis & Profesional */}
+                  <option value="Bisnis">Bisnis</option>
+                  <option value="Networking">Networking</option>
+                  <option value="Karir">Karir</option>
+
+                  {/* Kategori Seni & Budaya */}
+                  <option value="Pameran Seni">Pameran Seni</option>
+                  <option value="Budaya">Budaya</option>
+                  <option value="Fotografi">Fotografi</option>
+
+                  {/* Kategori Komunitas */}
+                  <option value="Komunitas">Komunitas</option>
+                  <option value="Relawan">Relawan</option>
+                  <option value="Sosial">Sosial</option>
+
+                  {/* Kategori Kuliner */}
+                  <option value="Kuliner">Kuliner</option>
+                  <option value="Food Festival">Food Festival</option>
+
+                  {/* Lainnya */}
+                  <option value="Lainnya">Lainnya</option>
                 </select>
+
+                {/* Input untuk kategori custom */}
+                {showCustomCategory && (
+                  <div className="mt-2">
+                    <p className="font-medium mb-1">Kategori Custom :</p>
+                    <input
+                      type="text"
+                      className="w-full border rounded-lg p-2"
+                      placeholder="Masukkan kategori event custom"
+                      value={customCategory}
+                      onChange={handleCustomCategoryChange}
+                      required
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Poster Event */}
               <div>
-                <p className="font-medium mb-1">Pilih poster event (1x1) :</p>
+                <p className="font-medium mb-1">
+                  Pilih poster event : (1x1)
+                </p>
                 <label className="flex items-center gap-2 border rounded-lg p-2 cursor-pointer">
                   <Folder />
                   <input
@@ -258,7 +390,9 @@ export default function EventRegister() {
 
               {/* Banner Event */}
               <div>
-                <p className="font-medium mb-1">Pilih banner event :</p>
+                <p className="font-medium mb-1">
+                  Pilih banner event : (16x6)
+                </p>
                 <label className="flex items-center gap-2 border rounded-lg p-2 cursor-pointer">
                   <Folder />
                   <input

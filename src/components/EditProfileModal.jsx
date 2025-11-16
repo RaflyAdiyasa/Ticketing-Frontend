@@ -287,44 +287,6 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
                         className="w-full text-sm p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
-
-                    {/* KTP Upload */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Upload KTP
-                      </label>
-                      
-                      {/* KTP Preview */}
-                      {(previewImages.ktp || user.ktp) && (
-                        <div className="mb-3">
-                          <p className="text-xs text-gray-600 mb-2">Preview KTP:</p>
-                          <div className="relative inline-block">
-                            <img
-                              src={previewImages.ktp || user.ktp}
-                              alt="KTP preview"
-                              className="w-32 h-20 object-cover border-2 border-gray-300 rounded"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => clearFile('ktp')}
-                              className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                      
-                      <input
-                        ref={ktpRef}
-                        type="file"
-                        name="ktp"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        className="w-full text-sm p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Kosongkan jika tidak ingin mengubah</p>
-                    </div>
                   </div>
                 </div>
               </>

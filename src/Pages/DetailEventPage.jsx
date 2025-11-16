@@ -5,10 +5,15 @@ import Navbar from "../components/Navbar";
 import { MapPin, CalendarDays, Grid3X3, Edit, Save, X, CheckCircle, XCircle, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api, { eventAPI } from "../services/api";
+import useNotification from "../hooks/useNotification"; // Import hook
+import NotificationModal from "../components/NotificationModal"; // Import modal
 
 export default function EventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  
+  // Gunakan hook notification
+  const { notification, showNotification, hideNotification } = useNotification();
 
   // Format Rupiah
   const formatRupiah = (angka) => {
@@ -51,6 +56,7 @@ export default function EventDetail() {
   const [error, setError] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isRegularUser, setIsRegularUser] = useState(false); // State untuk user biasa
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
@@ -110,6 +116,7 @@ export default function EventDetail() {
       } catch (err) {
         console.error("Error fetching event detail:", err);
         setError("Gagal memuat detail event");
+        showNotification("Gagal memuat detail event", "Error", "error");
       } finally {
         setLoading(false);
       }
@@ -122,6 +129,7 @@ export default function EventDetail() {
           const payload = JSON.parse(atob(token.split('.')[1]));
           setIsOwner(payload.user_id === eventData.owner_id);
           setIsAdmin(payload.role === 'admin');
+          setIsRegularUser(payload.role === 'user' && payload.user_id !== eventData.owner_id);
         }
       } catch (err) {
         console.error('Error checking user role:', err);
@@ -154,7 +162,7 @@ export default function EventDetail() {
         }));
 
       if (cartItems.length === 0) {
-        alert("Pilih setidaknya satu tiket");
+        showNotification("Pilih setidaknya satu tiket", "Peringatan", "warning");
         return;
       }
 
@@ -168,7 +176,7 @@ export default function EventDetail() {
       const allSuccess = results.every((result) => result.status === 201);
 
       if (allSuccess) {
-        alert("Tiket berhasil dimasukkan ke keranjang!");
+        showNotification("Tiket berhasil dimasukkan ke keranjang!", "Sukses", "success");
         // Reset quantity setelah berhasil ditambahkan
         setTickets((prev) => prev.map((t) => ({ ...t, qty: 0 })));
         
@@ -180,9 +188,9 @@ export default function EventDetail() {
     } catch (error) {
       console.error("Error adding to cart:", error);
       if (error.response?.data?.error) {
-        alert(`Gagal menambahkan tiket: ${error.response.data.error}`);
+        showNotification(`Gagal menambahkan tiket: ${error.response.data.error}`, "Error", "error");
       } else {
-        alert("Gagal menambahkan tiket ke keranjang");
+        showNotification("Gagal menambahkan tiket ke keranjang", "Error", "error");
       }
     }
   };
@@ -233,7 +241,7 @@ export default function EventDetail() {
         }));
         
         setIsEditing(false);
-        alert("Event berhasil diperbarui!");
+        showNotification("Event berhasil diperbarui!", "Sukses", "success");
         
         // Refresh data
         const refreshedResponse = await api.get(`/api/event/${id}`);
@@ -242,9 +250,9 @@ export default function EventDetail() {
     } catch (error) {
       console.error("Error updating event:", error);
       if (error.response?.data?.error) {
-        alert(`Gagal memperbarui event: ${error.response.data.error}`);
+        showNotification(`Gagal memperbarui event: ${error.response.data.error}`, "Error", "error");
       } else {
-        alert("Gagal memperbarui event");
+        showNotification("Gagal memperbarui event", "Error", "error");
       }
     } finally {
       setSaving(false);
@@ -262,7 +270,12 @@ export default function EventDetail() {
 
       await eventAPI.verifyEvent(id, statusData);
       
-      alert(`Event berhasil ${action === 'approve' ? 'disetujui' : 'ditolak'}!`);
+      showNotification(
+        `Event berhasil ${action === 'approve' ? 'disetujui' : 'ditolak'}!`, 
+        "Sukses", 
+        action === 'approve' ? 'success' : 'warning'
+      );
+      
       setShowVerificationModal(false);
       setApprovalComment("");
       
@@ -271,7 +284,11 @@ export default function EventDetail() {
       setEvent(refreshedResponse.data);
     } catch (error) {
       console.error("Error verifying event:", error);
-      alert(`Gagal ${action === 'approve' ? 'menyetujui' : 'menolak'} event`);
+      showNotification(
+        `Gagal ${action === 'approve' ? 'menyetujui' : 'menolak'} event`, 
+        "Error", 
+        "error"
+      );
     } finally {
       setVerifying(false);
     }
@@ -352,6 +369,15 @@ export default function EventDetail() {
     <div>
       <Navbar />
 
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={hideNotification}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
+
       <div className="min-h-screen bg-[#E5E7EB] flex justify-center p-4 overflow-auto">
         <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-36 bg-white shadow-xl p-8">
           {/* Header dengan tombol edit untuk owner */}
@@ -404,23 +430,25 @@ export default function EventDetail() {
             )}
           </div>
 
-          {/* Status Info */}
-          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
-            event.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
-            event.status === 'rejected' ? 'bg-red-100 text-red-800 border border-red-200' :
-            event.status === 'approved' ? 'bg-green-100 text-green-800 border border-green-200' :
-            'bg-gray-100 text-gray-800 border border-gray-200'
-          }`}>
-            {getStatusIcon(event.status)}
-            <div>
-              <p className="font-semibold">
-                Status: {getStatusText(event.status)}
-              </p>
-              {event.approval_comment && (
-                <p className="text-sm mt-1">Komentar: {event.approval_comment}</p>
-              )}
+          {/* Status Info - Hanya ditampilkan jika bukan user biasa */}
+          {!isRegularUser && (
+            <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
+              event.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
+              event.status === 'rejected' ? 'bg-red-100 text-red-800 border border-red-200' :
+              event.status === 'approved' ? 'bg-green-100 text-green-800 border border-green-200' :
+              'bg-gray-100 text-gray-800 border border-gray-200'
+            }`}>
+              {getStatusIcon(event.status)}
+              <div>
+                <p className="font-semibold">
+                  Status: {getStatusText(event.status)}
+                </p>
+                {event.approval_comment && (
+                  <p className="text-sm mt-1">Komentar: {event.approval_comment}</p>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Admin Verification Panel */}
           {canVerify && (
