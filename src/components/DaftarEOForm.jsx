@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authAPI } from "../services/api";
+import NotificationModal from "../components/NotificationModal";
+import useNotification from "../hooks/useNotification";
 
 export default function DaftarEOForm() {
   const [formData, setFormData] = useState({
@@ -15,78 +17,45 @@ export default function DaftarEOForm() {
   });
   const [confirmPassword, setConfirmPassword] = useState("");
   const [ktpFile, setKtpFile] = useState(null);
-  const [ktpPreview, setKtpPreview] = useState(null); // Tambahkan state untuk preview
-  const [uploadProgress, setUploadProgress] = useState(0); // Tambahkan state untuk progress
-  const [errorMsg, setErrorMsg] = useState(""); // Tambahkan state untuk error message
+  const [ktpPreview, setKtpPreview] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [error, setError] = useState("");
 
   const navigate = useNavigate();
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleKtpChange = (e) => {
-    const file = e.target.files[0];
-
-    // reset error & progress
-    setErrorMsg("");
-    setUploadProgress(0);
-
-    if (!file) return;
-
-    // ✅ Validasi format file JPG/PNG
-    if (!["image/jpeg", "image/png"].includes(file.type)) {
-      setErrorMsg("Format tidak valid. Hanya diperbolehkan JPG atau PNG.");
-      return;
-    }
-
-    setKtpFile(file);
-
-    // Preview gambar
-    const imageUrl = URL.createObjectURL(file);
-    setKtpPreview(imageUrl);
-
-    // ✅ Progress bar simulasi upload (nanti bisa diganti ke upload backend)
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 10;
-      setUploadProgress(progress);
-      if (progress >= 100) clearInterval(interval);
-    }, 100);
-  };
+  const { notification, showNotification, hideNotification } =
+    useNotification();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Validasi frontend
     if (formData.password !== confirmPassword) {
-      setError("Password dan konfirmasi tidak sama!");
+      showNotification("Password dan konfirmasi tidak sama!", "Error", "error");
       return;
     }
 
     if (formData.password.length < 6) {
-      setError("Password minimal 6 karakter!");
+      showNotification("Password minimal 6 karakter!", "Error", "error");
       return;
     }
 
     if (!ktpFile) {
-      setError("Harap upload foto KTP!");
+      showNotification("Harap upload foto KTP!", "Error", "error");
       return;
     }
 
-    if (!formData.organization || !formData.organization_type || !formData.organization_description) {
-      setError("Semua field organisasi harus diisi!");
+    if (
+      !formData.organization ||
+      !formData.organization_type ||
+      !formData.organization_description
+    ) {
+      showNotification("Semua field organisasi harus diisi!", "Error", "error");
       return;
     }
 
     setLoading(true);
-    setError("");
 
     try {
       const submitData = new FormData();
@@ -97,25 +66,30 @@ export default function DaftarEOForm() {
       submitData.append("role", formData.role);
       submitData.append("organization", formData.organization);
       submitData.append("organization_type", formData.organization_type);
-      submitData.append("organization_description", formData.organization_description);
+      submitData.append(
+        "organization_description",
+        formData.organization_description
+      );
       submitData.append("ktp", ktpFile);
 
-      console.log("Mengirim data registrasi...");
-      
       const response = await authAPI.register(submitData);
-      console.log("Response:", response);
 
       if (response.data.message) {
-        alert("Registrasi berhasil! Menunggu persetujuan admin.");
-        navigate("/login");
+        showNotification(
+          "Registrasi berhasil! Menunggu persetujuan admin.",
+          "Sukses",
+          "success"
+        );
+        setTimeout(() => {
+          navigate("/login");
+        }, 2000);
       }
     } catch (err) {
-      console.error("Error detail:", err);
-      const errorMessage = err.response?.data?.error || 
-                          err.message || 
-                          "Registrasi gagal. Coba lagi.";
-      setError(errorMessage);
-      alert(`Error: ${errorMessage}`);
+      const errorMessage =
+        err.response?.data?.error ||
+        err.message ||
+        "Registrasi gagal. Coba lagi.";
+      showNotification(errorMessage, "Error", "error");
     } finally {
       setLoading(false);
     }
@@ -123,16 +97,19 @@ export default function DaftarEOForm() {
 
   return (
     <div className="min-h-screen flex items-start justify-center p-4 overflow-auto">
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={hideNotification}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
+
       <div className="w-full max-w-lg bg-white shadow-xl my-50 rounded-2xl p-8 ">
         <h2 className="text-2xl font-bold text-center mb-6">
           Daftar Sebagai <br /> Penyelenggara Event
         </h2>
-
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Nama Instansi */}
