@@ -28,10 +28,10 @@ export default function EventSayaPage() {
 
   const getStatusText = (status) => {
     const statusMap = {
-      'pending': 'Pending',
-      'rejected': 'Ditolak',
-      'approved': 'Diterima',
-      'completed': 'Selesai'
+      pending: "Pending",
+      rejected: "Ditolak",
+      approved: "Diterima",
+      completed: "Selesai",
     };
     return statusMap[status] || status;
   };
@@ -56,15 +56,11 @@ export default function EventSayaPage() {
   };
 
   const handleEdit = (eventId) => {
-    // Navigate to edit page or show edit modal
-    // Untuk sekarang, kita arahkan ke detail page dulu
     navigate(`/detailEvent/${eventId}`);
   };
 
   const handleLaporan = (eventId) => {
-    // Navigate to laporan page
-    console.log("Buka laporan untuk event:", eventId);
-    // navigate(`/laporan/${eventId}`);
+    navigate(`/laporan/${eventId}`);
   };
 
   const handleScan = (eventId) => {
@@ -122,10 +118,14 @@ export default function EventSayaPage() {
                 <tbody>
                   {events.map((event) => (
                     <tr key={event.event_id} className="hover:bg-gray-50">
-                      <td className="p-4 border text-sm font-medium">{event.name}</td>
-                      <td className="p-4 border text-sm">{event.location}, {event.city}</td>
+                      <td className="p-4 border text-sm font-medium">
+                        {event.name}
+                      </td>
                       <td className="p-4 border text-sm">
-                        {new Date(event.date_start).toLocaleDateString('id-ID')}
+                        {event.location}, {event.city}
+                      </td>
+                      <td className="p-4 border text-sm">
+                        {new Date(event.date_start).toLocaleDateString("id-ID")}
                       </td>
                       <td className="p-4 border text-sm">
                         <span
@@ -135,46 +135,49 @@ export default function EventSayaPage() {
                         >
                           {getStatusText(event.status)}
                         </span>
-                        {event.approval_comment && event.status === 'rejected' && (
-                          <div className="text-xs text-red-600 mt-1">
-                            Alasan: {event.approval_comment}
-                          </div>
-                        )}
+                        {event.approval_comment &&
+                          event.status === "rejected" && (
+                            <div className="text-xs text-red-600 mt-1">
+                              Alasan: {event.approval_comment}
+                            </div>
+                          )}
                       </td>
 
                       <td className="p-4 border text-sm">
                         <div className="flex gap-2 justify-center">
                           {/* Tombol Rincian - selalu ada */}
-                          <button 
+                          <button
                             onClick={() => handleDetail(event.event_id)}
                             className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-md text-xs"
                           >
                             Rincian
                           </button>
-                          
+
                           {/* Tombol Edit - hanya untuk status pending dan rejected */}
-                          {(event.status === "pending" || event.status === "rejected") && (
-                            <button 
+                          {(event.status === "pending" ||
+                            event.status === "rejected") && (
+                            <button
                               onClick={() => handleEdit(event.event_id)}
                               className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs"
                             >
                               Edit
                             </button>
                           )}
-                          
+
                           {/* Tombol Laporan - untuk status approved dan completed */}
-                          {(event.status === "approved" || event.status === "completed") && (
-                            <button 
+                          {(event.status === "approved" ||
+                            event.status === "completed") && (
+                            <button
                               onClick={() => handleLaporan(event.event_id)}
                               className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-md text-xs"
                             >
                               Laporan
                             </button>
                           )}
-                          
+
                           {/* Tombol Scan - hanya untuk status approved */}
                           {event.status === "approved" && (
-                            <button 
+                            <button
                               onClick={() => handleScan(event.event_id)}
                               className="px-3 py-1 bg-gray-800 hover:bg-black text-white rounded-md text-xs"
                             >
