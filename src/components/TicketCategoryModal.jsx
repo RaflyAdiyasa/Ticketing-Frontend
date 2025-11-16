@@ -1,6 +1,7 @@
 // components/TicketCategoryModal.jsx
 import { useState, useEffect } from "react";
 import { Calendar, X } from "lucide-react";
+import useNotification from "../hooks/useNotification"; // Sesuaikan path
 
 export default function TicketCategoryModal({ 
   isOpen, 
@@ -17,6 +18,9 @@ export default function TicketCategoryModal({
     date_end: "",
     description: ""
   });
+
+  // Gunakan hook useNotification
+  const { showNotification } = useNotification();
 
   // Reset form ketika modal dibuka atau ticket yang diedit berubah
   useEffect(() => {
@@ -56,7 +60,7 @@ export default function TicketCategoryModal({
     
     // Validasi form
     if (!formData.name || !formData.quota || !formData.price || !formData.date_start || !formData.date_end) {
-      alert("Harap isi semua field yang wajib diisi!");
+      showNotification("Harap isi semua field yang wajib diisi!", "Validasi Gagal", "warning");
       return;
     }
 
@@ -69,8 +73,10 @@ export default function TicketCategoryModal({
 
     if (editingTicket) {
       onUpdateTicket(ticketData);
+      showNotification("Kategori tiket berhasil diperbarui!", "Update Berhasil", "success");
     } else {
       onAddTicket(ticketData);
+      showNotification("Kategori tiket berhasil ditambahkan!", "Tambah Berhasil", "success");
     }
 
     onClose();
@@ -78,6 +84,7 @@ export default function TicketCategoryModal({
 
   const handleCancel = () => {
     onClose();
+    showNotification("Proses dibatalkan", "Informasi", "info");
   };
 
   if (!isOpen) return null;

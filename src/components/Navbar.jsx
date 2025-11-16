@@ -11,15 +11,18 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
+import useNotification from "../hooks/useNotification"; // Sesuaikan path
+import NotificationModal from "./NotificationModal"; // Sesuaikan path
 
 export default function Navbar() {
   const [mobileMenuIsOpen, setMobileMenuIsOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [showAccessNotification, setShowAccessNotification] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
-  const [notificationMessage, setNotificationMessage] = useState("");
+  
+  // Gunakan hook useNotification
+  const { notification, showNotification, hideNotification } = useNotification();
 
   useEffect(() => {
     // Get user data from sessionStorage
@@ -41,16 +44,6 @@ export default function Navbar() {
     };
   }, []);
 
-  // Auto hide notification after 3 seconds
-  useEffect(() => {
-    if (showAccessNotification) {
-      const timer = setTimeout(() => {
-        setShowAccessNotification(false);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [showAccessNotification]);
-
   const getUserRole = () => {
     return user?.role || null;
   };
@@ -68,6 +61,9 @@ export default function Navbar() {
     setUser(null);
     setProfileDropdownOpen(false);
 
+    // Show notification
+    showNotification("Anda telah berhasil logout", "Logout Berhasil", "success");
+
     // Navigate to landing page
     navigate("/");
   };
@@ -78,16 +74,14 @@ export default function Navbar() {
 
   const handleShoppingCartClick = () => {
     if (!isLoggedIn()) {
-      setNotificationMessage("Harap login terlebih dahulu");
-      setShowAccessNotification(true);
+      showNotification("Harap login terlebih dahulu", "Akses Ditolak", "warning");
       return;
     }
 
     if (getUserRole() === "user") {
       navigate("/keranjang");
     } else {
-      setNotificationMessage("Fitur ini hanya tersedia untuk User");
-      setShowAccessNotification(true);
+      showNotification("Fitur ini hanya tersedia untuk User", "Akses Ditolak", "warning");
     }
   };
 
@@ -111,6 +105,7 @@ export default function Navbar() {
       navigate(`/cariEvent/${encodeURIComponent(searchQuery.trim())}`);
       // Clear form setelah submit
       e.target.reset();
+      showNotification(`Mencari event: ${searchQuery}`, "Pencarian", "info");
     }
   };
 
@@ -129,29 +124,14 @@ export default function Navbar() {
 
   return (
     <div>
-      {/* ACCESS DENIED NOTIFICATION - Pojok Kanan Atas */}
-      <AnimatePresence>
-        {showAccessNotification && (
-          <motion.div
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 100 }}
-            transition={{ duration: 0.3 }}
-            className="fixed top-38 right-4 z-70"
-          >
-            <div className="bg-[#0C8CE9] text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-3 max-w-sm">
-              <span>ⓘ</span>
-              <span className="text-base">{notificationMessage}</span>
-              <button
-                onClick={() => setShowAccessNotification(false)}
-                className="text-white hover:text-amber-200 ml-2 shrink-0"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={hideNotification}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
 
       {/* NAVBAR TOP */}
       <nav className="fixed top-0 w-full z-50 transition-all duration-300 bg-[#0C8CE9]">

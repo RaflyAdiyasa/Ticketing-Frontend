@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { userAPI } from "../services/api";
+import useNotification from "../hooks/useNotification"; // Sesuaikan path
 
 export default function EditProfileModal({ user, onClose, onUpdate }) {
   const [formData, setFormData] = useState({
@@ -17,10 +18,12 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
     ktp: user.ktp || ''
   });
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
   
   const profilePictRef = useRef(null);
   const ktpRef = useRef(null);
+
+  // Gunakan hook useNotification
+  const { showNotification } = useNotification();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -71,7 +74,6 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage('');
 
     try {
       const submitData = new FormData();
@@ -103,7 +105,9 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
 
       const response = await userAPI.updateProfile(submitData);
       onUpdate(response.data.user);
-      setMessage('Profil berhasil diperbarui');
+      
+      // Show success notification
+      showNotification('Profil berhasil diperbarui!', 'Update Berhasil', 'success');
       
       // Clear preview URLs
       Object.values(previewImages).forEach(url => {
@@ -116,7 +120,7 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
       setFormData(prev => ({ ...prev, password: '' }));
     } catch (error) {
       console.error('Error updating profile:', error);
-      setMessage('Gagal memperbarui profil');
+      showNotification('Gagal memperbarui profil', 'Update Gagal', 'error');
     } finally {
       setLoading(false);
     }
@@ -324,16 +328,6 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
                   </div>
                 </div>
               </>
-            )}
-
-            {message && (
-              <div className={`p-2 rounded text-sm ${
-                message.includes('berhasil') 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-red-100 text-red-700'
-              }`}>
-                {message}
-              </div>
             )}
 
             <div className="flex space-x-2 pt-3">

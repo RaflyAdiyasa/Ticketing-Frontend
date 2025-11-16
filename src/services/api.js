@@ -52,6 +52,7 @@ export const userAPI = {
 
 export const eventAPI = {
   getEvents: () => api.get('/api/events'),
+  getApprovedEvents: () => api.get('/api/events?status=approved'),
   getEvent: (id) => api.get(`/api/event/${id}`),
   getEventsPopular: () => api.get('/api/events/popular'),
   getMyEvents: () => api.get('/api/events/my-events'),

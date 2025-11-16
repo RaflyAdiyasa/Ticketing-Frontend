@@ -17,9 +17,12 @@ export default function useNotification() {
     });
 
     // Auto hide after 3 seconds
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setNotification(prev => ({ ...prev, isOpen: false }));
     }, 3000);
+
+    // Return cleanup function
+    return () => clearTimeout(timer);
   }, []);
 
   const hideNotification = useCallback(() => {
