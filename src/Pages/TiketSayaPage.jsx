@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
+import QRCodeGenerator from "../components/QRCodeGenerator";
 
 export default function TiketSaya() {
   const navigate = useNavigate();
@@ -31,8 +32,8 @@ export default function TiketSaya() {
           price: "Rp 100.000,-",
           startDate: "29 Nov 2025",
           endDate: "29 Nov 2025",
-          ticketId: "TKT-DEW-001",
-          qrCode: "QR-DEWASA-001" 
+          ticketId: "TKT-DEW-001-ARIMA-KINEN-2025",
+          qrCode: "abasdbabsdasd" 
         },
         { 
           type: "Anak-Anak", 
@@ -40,8 +41,8 @@ export default function TiketSaya() {
           price: "Rp 50.000,-",
           startDate: "30 Nov 2025",
           endDate: "30 Nov 2025",
-          ticketId: "TKT-ANK-001",
-          qrCode: "QR-ANAK-001" 
+          ticketId: "TKT-ANK-001-ARIMA-KINEN-2025",
+          qrCode: "inisudahDiganti" 
         },
         { 
           type: "3 Days Pass", 
@@ -49,8 +50,8 @@ export default function TiketSaya() {
           price: "Rp 250.000,-",
           startDate: "29 Nov 2025",
           endDate: "01 Des 2025",
-          ticketId: "TKT-3DP-001",
-          qrCode: "QR-3DAYS-001" 
+          ticketId: "TKT-3DP-001-ARIMA-KINEN-2025",
+          qrCode: "TKT-3DP-001-ARIMA-KINEN-2025" 
         }
       ]
     },
@@ -67,8 +68,8 @@ export default function TiketSaya() {
           price: "Rp 200.000,-",
           startDate: "15 Des 2025",
           endDate: "15 Des 2025",
-          ticketId: "TKT-VIP-002",
-          qrCode: "QR-VIP-002" 
+          ticketId: "TKT-VIP-002-NHK-MILE-2025",
+          qrCode: "TKT-VIP-002-NHK-MILE-2025" 
         },
         { 
           type: "Reguler", 
@@ -76,8 +77,8 @@ export default function TiketSaya() {
           price: "Rp 100.000,-",
           startDate: "15 Des 2025",
           endDate: "15 Des 2025",
-          ticketId: "TKT-REG-002",
-          qrCode: "QR-REG-002" 
+          ticketId: "TKT-REG-002-NHK-MILE-2025",
+          qrCode: "TKT-REG-002-NHK-MILE-2025" 
         }
       ]
     },
@@ -94,8 +95,8 @@ export default function TiketSaya() {
           price: "Rp 180.000,-",
           startDate: "21 Jan 2026",
           endDate: "22 Jan 2026",
-          ticketId: "TKT-WKP-003",
-          qrCode: "QR-WKP-003" 
+          ticketId: "TKT-WKP-003-BREEDER-CUP-2026",
+          qrCode: "TKT-WKP-003-BREEDER-CUP-2026" 
         }
       ]
     }
@@ -229,10 +230,18 @@ export default function TiketSaya() {
               </h3>
               <p className="text-gray-600 text-sm mb-4">{selectedTicket.detail.type}</p>
               
-              {/* QR Code Placeholder */}
-              <div className="bg-gray-200 w-48 h-48 mx-auto flex items-center justify-center rounded-lg mb-4">
-                <span className="text-gray-500 text-sm">QR Code: {selectedTicket.detail.qrCode}</span>
+              {/* QR Code Generator */}
+              <div className="flex justify-center mb-4">
+                <QRCodeGenerator 
+                  value={selectedTicket.detail.qrCode}
+                  size={200}
+                  level="H" // High error correction untuk lebih robust
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                  includeMargin={true}
+                />
               </div>
+              
               <p className="text-gray-500 text-xs mb-4">
                 Tunjukkan QR code ini saat masuk venue
               </p>
@@ -266,8 +275,6 @@ export default function TiketSaya() {
                   </span>
                 </div>
               </div>
-              
-              
               
               <button
                 onClick={handleCloseQR}
