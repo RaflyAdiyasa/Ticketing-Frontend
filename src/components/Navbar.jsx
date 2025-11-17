@@ -10,9 +10,8 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
-import { motion, AnimatePresence } from "framer-motion";
-import useNotification from "../hooks/useNotification"; // Sesuaikan path
-import NotificationModal from "./NotificationModal"; // Sesuaikan path
+import useNotification from "../hooks/useNotification";
+import NotificationModal from "./NotificationModal"; 
 
 export default function Navbar() {
   const [mobileMenuIsOpen, setMobileMenuIsOpen] = useState(false);
@@ -122,6 +121,11 @@ export default function Navbar() {
     }
   };
 
+  // Function to check if cart button should be shown
+  const shouldShowCart = () => {
+    return isLoggedIn() && getUserRole() === "user";
+  };
+
   return (
     <div>
       {/* Notification Modal */}
@@ -176,12 +180,16 @@ export default function Navbar() {
 
             {/* RIGHT BUTTONS */}
             <div className="flex items-center space-x-4 lg:space-x-6">
-              <button
-                className="text-white hover:text-amber-400 cursor-pointer flex items-center justify-center"
-                onClick={handleShoppingCartClick}
-              >
-                <ShoppingCart className="w-7 h-7 md:w-8 md:h-8" />
-              </button>
+              {/* Cart Button - Hanya muncul untuk user yang sudah login */}
+              {shouldShowCart() && (
+                <button
+                  className="text-white hover:text-amber-400 cursor-pointer flex items-center justify-center"
+                  onClick={handleShoppingCartClick}
+                >
+                  <ShoppingCart className="w-7 h-7 md:w-8 md:h-8" />
+                </button>
+              )}
+              
               {isLoggedIn() ? (
                 <div className="relative" ref={dropdownRef}>
                   <button
