@@ -176,17 +176,45 @@ export default function EventDetail() {
         return;
       }
 
-      const promises = cartItems.map((item) => api.post("/api/cart", item));
-      const results = await Promise.all(promises);
-      const allSuccess = results.every((result) => result.status === 201);
+      const results = await Promise.allSettled(cartItems.map((item) => api.post("/api/cart", item)));
+      
+      const successfulItems = results.filter(result => result.status === 'fulfilled' && 
+        (result.value.status === 200 || result.value.status === 201));
+      
+      const failedItems = results.filter(result => 
+        result.status === 'rejected' || 
+        (result.status === 'fulfilled' && result.value.status !== 200 && result.value.status !== 201)
+      );
 
-      if (allSuccess) {
-        showNotification("Tiket berhasil dimasukkan ke keranjang!", "Sukses", "success");
+      if (successfulItems.length > 0) {
+        showNotification(
+          `${successfulItems.length} tiket berhasil dimasukkan ke keranjang!`, 
+          "Sukses", 
+          "success"
+        );
         setTickets((prev) => prev.map((t) => ({ ...t, qty: 0 })));
-        navigate("/keranjang");
-      } else {
-        throw new Error("Beberapa tiket gagal ditambahkan");
+        
+        if (failedItems.length === 0) {
+          navigate("/keranjang");
+        }
       }
+
+      if (failedItems.length > 0) {
+        const errorMessages = failedItems.map(item => {
+          if (item.status === 'rejected') {
+            return item.reason?.response?.data?.error || item.reason?.message || 'Error tidak diketahui';
+          } else {
+            return item.value?.data?.error || `Status: ${item.value.status}`;
+          }
+        });
+        
+        showNotification(
+          `${failedItems.length} tiket gagal ditambahkan: ${errorMessages.join(', ')}`, 
+          "Peringatan", 
+          "warning"
+        );
+      }
+
     } catch (error) {
       console.error("Error adding to cart:", error);
       if (error.response?.data?.error) {
@@ -196,6 +224,8 @@ export default function EventDetail() {
       }
     }
   };
+
+  // ... (fungsi-fungsi lainnya tetap sama)
 
   const handleEditToggle = () => {
     if (isEditing) {
