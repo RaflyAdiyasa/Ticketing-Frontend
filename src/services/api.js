@@ -66,7 +66,15 @@ export const eventAPI = {
     });
   },
   getPendingEvents: () => api.get('/api/events/all'), 
-  updateEvent: (id, updateData) => api.put(`/api/events/${id}`, updateData),
+   updateEvent: (id, formData) => {
+    const token = sessionStorage.getItem('token');
+    return axios.put(`${API_BASE_URL}/api/events/${id}`, formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
   deleteEvent: (id) => api.delete(`/api/events/${id}`),
   verifyEvent: (id, statusData) => api.patch(`/api/events/${id}/verify`, statusData),
   getEventReport: (eventId) => api.get(`/api/events/${eventId}/report`),

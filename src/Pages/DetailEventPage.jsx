@@ -2,7 +2,7 @@ import { useParams } from "react-router";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { MapPin, CalendarDays, Grid3X3, Edit, Save, X, CheckCircle, XCircle, Clock } from "lucide-react";
+import { MapPin, CalendarDays, Grid3X3, CheckCircle, XCircle, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api, { eventAPI } from "../services/api";
 import useNotification from "../hooks/useNotification";
@@ -55,17 +55,6 @@ export default function EventDetail() {
   const [isEO, setIsEO] = useState(false);
   const [isRegularUser, setIsRegularUser] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
-    name: "",
-    description: "",
-    location: "",
-    city: "",
-    date_start: "",
-    date_end: "",
-    category: ""
-  });
-  const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [verificationAction, setVerificationAction] = useState(null);
@@ -80,16 +69,6 @@ export default function EventDetail() {
         const eventData = response.data;
 
         setEvent(eventData);
-        
-        setEditForm({
-          name: eventData.name,
-          description: eventData.description,
-          location: eventData.location,
-          city: eventData.city,
-          date_start: eventData.date_start ? new Date(eventData.date_start).toISOString().slice(0, 16) : "",
-          date_end: eventData.date_end ? new Date(eventData.date_end).toISOString().slice(0, 16) : "",
-          category: eventData.category
-        });
 
         const formattedTickets = eventData.ticket_categories?.map((ticket) => ({
           ticket_category_id: ticket.ticket_category_id,
@@ -225,68 +204,6 @@ export default function EventDetail() {
     }
   };
 
-  // ... (fungsi-fungsi lainnya tetap sama)
-
-  const handleEditToggle = () => {
-    if (isEditing) {
-      setEditForm({
-        name: event.name,
-        description: event.description,
-        location: event.location,
-        city: event.city,
-        date_start: event.date_start ? new Date(event.data_start).toISOString().slice(0, 16) : "",
-        date_end: event.date_end ? new Date(event.date_end).toISOString().slice(0, 16) : "",
-        category: event.category
-      });
-    }
-    setIsEditing(!isEditing);
-  };
-
-  const handleEditChange = (field, value) => {
-    setEditForm(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleSaveEdit = async () => {
-    try {
-      setSaving(true);
-      
-      const updateData = {
-        ...editForm,
-        date_start: new Date(editForm.date_start).toISOString(),
-        date_end: new Date(editForm.date_end).toISOString()
-      };
-
-      const response = await api.put(`/api/events/${id}`, updateData);
-      
-      if (response.status === 200) {
-        setEvent(prev => ({
-          ...prev,
-          ...editForm,
-          date_start: updateData.date_start,
-          date_end: updateData.date_end
-        }));
-        
-        setIsEditing(false);
-        showNotification("Event berhasil diperbarui!", "Sukses", "success");
-        
-        const refreshedResponse = await api.get(`/api/event/${id}`);
-        setEvent(refreshedResponse.data);
-      }
-    } catch (error) {
-      console.error("Error updating event:", error);
-      if (error.response?.data?.error) {
-        showNotification(`Gagal memperbarui event: ${error.response.data.error}`, "Error", "error");
-      } else {
-        showNotification("Gagal memperbarui event", "Error", "error");
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleVerifyEvent = async (action) => {
     try {
       setVerifying(true);
@@ -356,7 +273,6 @@ export default function EventDetail() {
   const canVerify = isAdmin && event?.status === 'pending';
   const canPurchase = isLoggedIn && !isOwner && !isAdmin && !isEO && event?.status === 'approved';
   const showTicketControls = canPurchase;
-  const showTicketSection = !isEditing && !isOwner;
   const showStatusInfo = (isOwner || isAdmin) && isLoggedIn;
 
   if (loading) {
@@ -411,49 +327,17 @@ export default function EventDetail() {
         <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-36 bg-white shadow-xl p-8">
           <div className="flex justify-between items-start mb-6">
             <div className="flex-1">
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={editForm.name}
-                  onChange={(e) => handleEditChange('name', e.target.value)}
-                  className="text-3xl font-bold w-full p-2 border border-gray-300 rounded"
-                  placeholder="Nama Event"
-                />
-              ) : (
-                <h1 className="text-3xl font-bold mb-4">{event.name}</h1>
-              )}
+              <h1 className="text-3xl font-bold mb-4">{event.name}</h1>
             </div>
             
             {canEdit && (
               <div className="flex gap-2">
-                {isEditing ? (
-                  <>
-                    <button
-                      onClick={handleSaveEdit}
-                      disabled={saving}
-                      className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
-                    >
-                      <Save size={18} />
-                      {saving ? "Menyimpan..." : "Simpan"}
-                    </button>
-                    <button
-                      onClick={handleEditToggle}
-                      disabled={saving}
-                      className="flex items-center gap-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 disabled:opacity-50"
-                    >
-                      <X size={18} />
-                      Batal
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={handleEditToggle}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                  >
-                    <Edit size={18} />
-                    Edit Event
-                  </button>
-                )}
+                <button
+                  onClick={() => navigate(`/edit-event/${id}`)}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                >
+                  Edit Event
+                </button>
               </div>
             )}
           </div>
@@ -505,91 +389,28 @@ export default function EventDetail() {
               <div className="space-y-2 text-gray-700 text-sm mb-8">
                 <div className="flex items-start gap-2">
                   <MapPin className="w-5 h-5 text-[#0C8CE9] shrink-0 mt-0.5" />
-                  {isEditing ? (
-                    <div className="flex-1 space-y-2">
-                      <input
-                        type="text"
-                        value={editForm.location}
-                        onChange={(e) => handleEditChange('location', e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded text-sm"
-                        placeholder="Lokasi"
-                      />
-                      <input
-                        type="text"
-                        value={editForm.city}
-                        onChange={(e) => handleEditChange('city', e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded text-sm"
-                        placeholder="Kota"
-                      />
-                    </div>
-                  ) : (
-                    <span>{event.location}, {event.city}</span>
-                  )}
+                  <span>{event.location}, {event.city}</span>
                 </div>
                 
                 <div className="flex items-center gap-2">
                   <CalendarDays className="w-5 h-5 text-[#0C8CE9]" />
-                  {isEditing ? (
-                    <div className="flex-1 space-y-2">
-                      <input
-                        type="datetime-local"
-                        value={editForm.date_start}
-                        onChange={(e) => handleEditChange('date_start', e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded text-sm"
-                      />
-                      <input
-                        type="datetime-local"
-                        value={editForm.date_end}
-                        onChange={(e) => handleEditChange('date_end', e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded text-sm"
-                      />
-                    </div>
-                  ) : (
-                    <span>{formatDate(event.date_start, event.date_end)}</span>
-                  )}
+                  <span>{formatDate(event.date_start, event.date_end)}</span>
                 </div>
                 
                 <div className="flex items-center gap-2">
                   <Grid3X3 className="w-5 h-5 text-[#0C8CE9]" />
-                  {isEditing ? (
-                    <select
-                      value={editForm.category}
-                      onChange={(e) => handleEditChange('category', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded text-sm"
-                    >
-                      <option value="">Pilih Kategori</option>
-                      <option value="Music">Music</option>
-                      <option value="Sports">Sports</option>
-                      <option value="Arts">Arts</option>
-                      <option value="Business">Business</option>
-                      <option value="Technology">Technology</option>
-                      <option value="Education">Education</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  ) : (
-                    <span>{event.category}</span>
-                  )}
+                  <span>{event.category}</span>
                 </div>
               </div>
 
               <div className="mt-8">
                 <h2 className="text-xl font-semibold mb-2">Tentang Event</h2>
-                {isEditing ? (
-                  <textarea
-                    value={editForm.description}
-                    onChange={(e) => handleEditChange('description', e.target.value)}
-                    rows="6"
-                    className="w-full p-3 border border-gray-300 rounded text-sm"
-                    placeholder="Deskripsi event"
-                  />
-                ) : (
-                  <p className="text-gray-700 leading-relaxed text-sm">
-                    {event.description}
-                  </p>
-                )}
+                <p className="text-gray-700 leading-relaxed text-sm">
+                  {event.description}
+                </p>
               </div>
 
-              {showTicketSection && (
+              {!isOwner && (
                 <div className="mt-8">
                   <h2 className="text-xl font-semibold mb-4">Pilihan Tiket</h2>
 
@@ -672,7 +493,7 @@ export default function EventDetail() {
                 </div>
               )}
 
-              {isOwner && !isEditing && (
+              {isOwner && (
                 <div className="mt-8">
                   <h2 className="text-xl font-semibold mb-4">Manajemen Tiket</h2>
                   {tickets.length === 0 ? (
@@ -827,14 +648,6 @@ export default function EventDetail() {
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {isEditing && isOwner && (
-                <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-4">
-                  <p className="text-sm text-yellow-800">
-                    <strong>Mode Edit:</strong> Anda dapat mengubah detail event karena status masih {event.status === 'pending' ? 'pending' : 'ditolak'}.
-                  </p>
-                </div>
-              )}
 
               {isAdmin && (
                 <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">

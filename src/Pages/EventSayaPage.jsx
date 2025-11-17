@@ -56,9 +56,9 @@ export default function EventSayaPage() {
   };
 
   const handleEdit = (eventId) => {
-    navigate(`/detailEvent/${eventId}`);
+    navigate(`/edit-event/${eventId}`);
   };
-
+  
   const handleLaporan = (eventId) => {
     navigate(`/laporan/${eventId}`);
   };
@@ -66,7 +66,7 @@ export default function EventSayaPage() {
   const handleScan = (eventId) => {
     // Navigate to scan page
     console.log("Buka scan untuk event:", eventId);
-     navigate(`/scan/${eventId}`);
+    navigate(`/scan/${eventId}`);
   };
 
   if (loading) {
