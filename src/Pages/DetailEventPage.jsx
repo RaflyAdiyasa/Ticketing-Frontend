@@ -56,7 +56,9 @@ export default function EventDetail() {
   const [error, setError] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isEO, setIsEO] = useState(false); // State untuk EO
   const [isRegularUser, setIsRegularUser] = useState(false); // State untuk user biasa
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // State untuk cek login
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
@@ -126,13 +128,31 @@ export default function EventDetail() {
       try {
         const token = sessionStorage.getItem('token');
         if (token) {
+          setIsLoggedIn(true);
           const payload = JSON.parse(atob(token.split('.')[1]));
-          setIsOwner(payload.user_id === eventData.owner_id);
-          setIsAdmin(payload.role === 'admin');
-          setIsRegularUser(payload.role === 'user' && payload.user_id !== eventData.owner_id);
+          const isEventOwner = payload.user_id === eventData.owner_id;
+          const isAdminUser = payload.role === 'admin';
+          const isEOUser = payload.role === 'organizer';
+          
+          setIsOwner(isEventOwner);
+          setIsAdmin(isAdminUser);
+          setIsEO(isEOUser);
+          // User biasa hanya jika bukan owner, bukan admin, dan bukan EO
+          setIsRegularUser(payload.role === 'user' && !isEventOwner && !isAdminUser && !isEOUser);
+        } else {
+          setIsLoggedIn(false);
+          setIsOwner(false);
+          setIsAdmin(false);
+          setIsEO(false);
+          setIsRegularUser(false);
         }
       } catch (err) {
         console.error('Error checking user role:', err);
+        setIsLoggedIn(false);
+        setIsOwner(false);
+        setIsAdmin(false);
+        setIsEO(false);
+        setIsRegularUser(false);
       }
     };
 
@@ -203,7 +223,7 @@ export default function EventDetail() {
         description: event.description,
         location: event.location,
         city: event.city,
-        date_start: event.date_start ? new Date(event.date_start).toISOString().slice(0, 16) : "",
+        date_start: event.date_start ? new Date(event.data_start).toISOString().slice(0, 16) : "",
         date_end: event.date_end ? new Date(event.date_end).toISOString().slice(0, 16) : "",
         category: event.category
       });
@@ -301,7 +321,15 @@ export default function EventDetail() {
 
   const canEdit = isOwner && (event?.status === 'pending' || event?.status === 'rejected');
   const canVerify = isAdmin && event?.status === 'pending';
-  const canPurchase = !isOwner && !isAdmin && event?.status === 'approved';
+  
+  // PERUBAHAN PENTING: Hanya user biasa (bukan owner, bukan admin, bukan EO) yang bisa membeli tiket
+  const canPurchase = isLoggedIn && !isOwner && !isAdmin && !isEO && event?.status === 'approved';
+  
+  // PERUBAHAN PENTING: Hanya user biasa yang bisa mengontrol tiket
+  const showTicketControls = canPurchase;
+
+  // PERUBAHAN PENTING: Tampilkan tiket untuk semua user (termasuk admin dan EO) tapi hanya user biasa yang bisa beli
+  const showTicketSection = !isEditing && event?.status === 'approved' && !isOwner;
 
   if (loading) {
     return (
@@ -430,8 +458,8 @@ export default function EventDetail() {
             )}
           </div>
 
-          {/* Status Info - Hanya ditampilkan jika bukan user biasa */}
-          {!isRegularUser && (
+          {/* Status Info - Hanya ditampilkan jika user sudah login dan bukan user biasa */}
+          {isLoggedIn && !isRegularUser && (
             <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
               event.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
               event.status === 'rejected' ? 'bg-red-100 text-red-800 border border-red-200' :
@@ -566,8 +594,8 @@ export default function EventDetail() {
                 )}
               </div>
 
-              {/* Pilihan Tiket - Hanya ditampilkan jika bukan owner/admin atau sedang tidak edit */}
-              {(canPurchase || (!isEditing && !isAdmin && !isOwner)) && (
+              {/* Pilihan Tiket - Ditampilkan untuk semua user (termasuk admin dan EO) tapi hanya user biasa yang bisa beli */}
+              {showTicketSection && (
                 <div className="mt-8">
                   <h2 className="text-xl font-semibold mb-4">Pilihan Tiket</h2>
 
@@ -608,7 +636,8 @@ export default function EventDetail() {
                             </p>
                           </div>
 
-                          {canPurchase && (
+                          {/* PERUBAHAN PENTING: Hanya tampilkan tombol + dan - jika user bisa purchase (user biasa) */}
+                          {showTicketControls ? (
                             <div className="flex items-center gap-3">
                               <div className="flex items-center gap-2">
                                 <button
@@ -637,6 +666,14 @@ export default function EventDetail() {
                                   +
                                 </button>
                               </div>
+                            </div>
+                          ) : (
+                            // Tampilkan info untuk admin/EO yang tidak bisa membeli
+                            <div className="text-sm text-gray-500 italic">
+                              {isAdmin && "Admin tidak dapat membeli tiket"}
+                              {isEO && !isOwner && "EO tidak dapat membeli tiket event lain"}
+                              {isOwner && "Pemilik event tidak dapat membeli tiket"}
+                              {!isLoggedIn && "Login untuk membeli tiket"}
                             </div>
                           )}
                         </div>
@@ -725,7 +762,7 @@ export default function EventDetail() {
               {/* Flyer jika ada */}
               {event.flyer && (
                 <div className="border rounded-lg p-4 shadow-sm bg-white">
-                  <h3 className="text-base font-semibold mb-2">Flyer Event</h3>
+                  <h3 className="text-base font-semibold mb-2">Banner Event</h3>
                   <img
                     src={event.flyer}
                     alt={`Flyer ${event.name}`}
@@ -828,6 +865,33 @@ export default function EventDetail() {
                       Gunakan tombol verifikasi di atas untuk menyetujui atau menolak event ini.
                     </p>
                   )}
+                </div>
+              )}
+
+              {/* Info untuk EO (bukan pemilik event) */}
+              {isLoggedIn && isOwner === false && isAdmin === false && isEO && (
+                <div className="rounded-lg bg-purple-50 border border-purple-200 p-4">
+                  <p className="text-sm text-purple-800">
+                    <strong>View EO:</strong> Anda melihat event ini sebagai Event Organizer lain.
+                  </p>
+                  <p className="text-sm text-purple-800 mt-1">
+                    Anda dapat melihat detail tiket tetapi tidak dapat membelinya.
+                  </p>
+                </div>
+              )}
+
+              {/* Info untuk guest (belum login) */}
+              {!isLoggedIn && (
+                <div className="rounded-lg bg-gray-50 border border-gray-200 p-4">
+                  <p className="text-sm text-gray-800">
+                    <strong>Anda belum login.</strong> Silakan login untuk dapat membeli tiket event ini.
+                  </p>
+                  <button
+                    onClick={() => navigate("/login")}
+                    className="mt-2 w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                  >
+                    Login Sekarang
+                  </button>
                 </div>
               )}
             </div>

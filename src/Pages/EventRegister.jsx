@@ -331,6 +331,7 @@ export default function EventRegister() {
                   <option value="Olah Raga">Olah Raga</option>
                   <option value="Marathon">Marathon</option>
                   <option value="Esport">Esport</option>
+                  <option value="Horse Race">Horse Race</option>
 
                   {/* Kategori Bisnis & Profesional */}
                   <option value="Bisnis">Bisnis</option>

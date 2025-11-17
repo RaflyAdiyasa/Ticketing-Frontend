@@ -2,12 +2,18 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
 import { cartAPI } from "../services/api";
+import useNotification from "../hooks/useNotification";
+import NotificationModal from "../components/NotificationModal";
+import { Trash2 } from "lucide-react";
 
 export default function KeranjangPage() {
   const navigate = useNavigate();
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  
+  // Integrasi useNotification hook
+  const { notification, showNotification, hideNotification } = useNotification();
 
   const formatRupiah = (angka) => {
     return new Intl.NumberFormat("id-ID", {
@@ -32,6 +38,7 @@ export default function KeranjangPage() {
     } catch (err) {
       console.error("Error fetching cart:", err);
       setError("Gagal memuat data keranjang");
+      showNotification("Gagal memuat data keranjang", "Error", "error");
     } finally {
       setLoading(false);
     }
@@ -84,7 +91,7 @@ export default function KeranjangPage() {
   // === Increment handler ===
   const incrementQty = async (eventId, ticketId, cartId, currentQty, stock) => {
     if (currentQty >= stock) {
-      alert("Stok tidak mencukupi");
+      showNotification("Stok tidak mencukupi", "Peringatan", "warning");
       return;
     }
 
@@ -97,13 +104,11 @@ export default function KeranjangPage() {
       await cartAPI.updateCart(updateData);
       // Refresh cart data after successful update
       await fetchCart();
+      showNotification("Jumlah tiket berhasil ditambah", "Sukses", "success");
     } catch (err) {
       console.error("Error incrementing quantity:", err);
-      if (err.response?.data?.error) {
-        alert(err.response.data.error);
-      } else {
-        alert("Gagal menambah jumlah tiket");
-      }
+      const errorMessage = err.response?.data?.error || "Gagal menambah jumlah tiket";
+      showNotification(errorMessage, "Error", "error");
     }
   };
 
@@ -119,9 +124,10 @@ export default function KeranjangPage() {
           await cartAPI.deleteCart({ cart_id: cartId });
           // Refresh cart data after successful deletion
           await fetchCart();
+          showNotification("Tiket berhasil dihapus dari keranjang", "Sukses", "success");
         } catch (err) {
           console.error("Error deleting cart item:", err);
-          alert("Gagal menghapus tiket dari keranjang");
+          showNotification("Gagal menghapus tiket dari keranjang", "Error", "error");
         }
       }
       return;
@@ -136,13 +142,11 @@ export default function KeranjangPage() {
       await cartAPI.updateCart(updateData);
       // Refresh cart data after successful update
       await fetchCart();
+      showNotification("Jumlah tiket berhasil dikurangi", "Sukses", "success");
     } catch (err) {
       console.error("Error decrementing quantity:", err);
-      if (err.response?.data?.error) {
-        alert(err.response.data.error);
-      } else {
-        alert("Gagal mengurangi jumlah tiket");
-      }
+      const errorMessage = err.response?.data?.error || "Gagal mengurangi jumlah tiket";
+      showNotification(errorMessage, "Error", "error");
     }
   };
 
@@ -157,9 +161,10 @@ export default function KeranjangPage() {
         await cartAPI.deleteCart({ cart_id: cartId });
         // Refresh cart data after successful deletion
         await fetchCart();
+        showNotification(`Tiket "${ticketName}" berhasil dihapus`, "Sukses", "success");
       } catch (err) {
         console.error("Error deleting cart item:", err);
-        alert("Gagal menghapus tiket dari keranjang");
+        showNotification("Gagal menghapus tiket dari keranjang", "Error", "error");
       }
     }
   };
@@ -205,6 +210,15 @@ export default function KeranjangPage() {
   return (
     <div>
       <Navbar />
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={hideNotification}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
 
       <div className="min-h-screen bg-[#E5E7EB] flex items-start justify-center p-4 overflow-auto">
         <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-40 bg-white shadow-xl p-8 rounded-2xl">
@@ -292,14 +306,14 @@ export default function KeranjangPage() {
                         {formatRupiah(ticket.price * ticket.qty)}
                       </div>
 
-                      {/* Delete Button */}
+                      {/* Delete Button dengan Icon Trash */}
                       <div className="col-span-1 text-center">
                         <button
                           onClick={() => deleteCartItem(ticket.cartId, ticket.name)}
-                          className="px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 transition text-sm"
+                          className="p-2 bg-red-50 text-red-600 rounded hover:bg-red-100 transition flex items-center justify-center"
                           title="Hapus dari keranjang"
                         >
-                          🗑️
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
