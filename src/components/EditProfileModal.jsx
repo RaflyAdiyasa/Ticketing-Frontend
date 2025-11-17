@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { userAPI } from "../services/api";
-import useNotification from "../hooks/useNotification"; // Sesuaikan path
+import useNotification from "../hooks/useNotification";
 
 export default function EditProfileModal({ user, onClose, onUpdate }) {
   const [formData, setFormData] = useState({
@@ -16,10 +16,15 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
     profile_pict: user.profile_pict || '',
   });
   const [loading, setLoading] = useState(false);
+  const [showCustomOrgType, setShowCustomOrgType] = useState(
+    user.organization_type && 
+    !["Perguruan Tinggi", "Sekolah", "Perusahaan Teknologi", "Perusahaan Manufaktur", 
+      "Perusahaan Jasa", "Perusahaan Retail", "Perusahaan Finansial", "Perusahaan Startup", 
+      "Organisasi Nirlaba", "Organisasi Sosial", "Komunitas"].includes(user.organization_type)
+  );
   
   const profilePictRef = useRef(null);
 
-  // Gunakan hook useNotification
   const { showNotification } = useNotification();
 
   const handleInputChange = (e) => {
@@ -27,6 +32,33 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  // Fungsi untuk menangani perubahan jenis instansi
+  const handleOrgTypeChange = (e) => {
+    const value = e.target.value;
+    
+    if (value === "Lainnya") {
+      setShowCustomOrgType(true);
+      setFormData(prev => ({
+        ...prev,
+        organization_type: "",
+      }));
+    } else {
+      setShowCustomOrgType(false);
+      setFormData(prev => ({
+        ...prev,
+        organization_type: value,
+      }));
+    }
+  };
+
+  // Fungsi untuk menangani perubahan custom organization type
+  const handleCustomOrgTypeChange = (e) => {
+    setFormData(prev => ({
+      ...prev,
+      organization_type: e.target.value,
     }));
   };
 
@@ -40,7 +72,6 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
         [name]: file
       }));
 
-      // Create preview URL
       const previewUrl = URL.createObjectURL(file);
       setPreviewImages(prev => ({
         ...prev,
@@ -56,10 +87,9 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
     }));
     setPreviewImages(prev => ({
       ...prev,
-      [fieldName]: user[fieldName] || '' // Kembali ke gambar sebelumnya
+      [fieldName]: user[fieldName] || ''
     }));
 
-    // Reset input file
     if (fieldName === 'profile_pict' && profilePictRef.current) {
       profilePictRef.current.value = '';
     }
@@ -84,10 +114,18 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
         }
       }
 
+      // Untuk organizer, hanya kirim data organisasi jika ada perubahan
       if (user.role === 'organizer') {
-        submitData.append('organization', formData.organization);
-        submitData.append('organization_type', formData.organization_type);
-        submitData.append('organization_description', formData.organization_description);
+        if (formData.organization !== user.organization) {
+          submitData.append('organization', formData.organization);
+        }
+        if (formData.organization_type !== user.organization_type) {
+          submitData.append('organization_type', formData.organization_type);
+        }
+        if (formData.organization_description !== user.organization_description) {
+          submitData.append('organization_description', formData.organization_description);
+        }
+        // KTP tidak dikirim karena tidak boleh diubah
       }
 
       if (user.role === 'admin' && formData.password) {
@@ -97,7 +135,6 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
       const response = await userAPI.updateProfile(submitData);
       onUpdate(response.data.user);
       
-      // Show success notification
       showNotification('Profil berhasil diperbarui!', 'Update Berhasil', 'success');
       
       // Clear preview URLs
@@ -107,7 +144,6 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
         }
       });
 
-      // Clear password field after successful update
       setFormData(prev => ({ ...prev, password: '' }));
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -117,7 +153,6 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
     }
   };
 
-  // Clean up preview URLs when component unmounts
   const handleClose = () => {
     Object.values(previewImages).forEach(url => {
       if (url && url.startsWith('blob:')) {
@@ -249,21 +284,44 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Tipe Organisasi
+                        Jenis Instansi
                       </label>
                       <select
                         name="organization_type"
-                        value={formData.organization_type}
-                        onChange={handleInputChange}
-                        className="w-full text-sm p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                        value={showCustomOrgType ? "Lainnya" : formData.organization_type}
+                        onChange={handleOrgTypeChange}
+                        className="w-full text-sm p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                        required
                       >
-                        <option value="">Pilih Tipe Organisasi</option>
-                        <option value="company">Perusahaan</option>
-                        <option value="community">Komunitas</option>
-                        <option value="educational">Lembaga Pendidikan</option>
-                        <option value="government">Pemerintah</option>
-                        <option value="other">Lainnya</option>
+                        <option value="">-- Pilih Jenis Instansi --</option>
+                        <option value="Perguruan Tinggi">Perguruan Tinggi</option>
+                        <option value="Sekolah">Sekolah</option>
+                        <option value="Perusahaan Teknologi">Perusahaan Teknologi</option>
+                        <option value="Perusahaan Manufaktur">Perusahaan Manufaktur</option>
+                        <option value="Perusahaan Jasa">Perusahaan Jasa</option>
+                        <option value="Perusahaan Retail">Perusahaan Retail</option>
+                        <option value="Perusahaan Finansial">Perusahaan Finansial</option>
+                        <option value="Perusahaan Startup">Perusahaan Startup</option>
+                        <option value="Organisasi Nirlaba">Organisasi Nirlaba</option>
+                        <option value="Organisasi Sosial">Organisasi Sosial</option>
+                        <option value="Komunitas">Komunitas</option>
+                        <option value="Lainnya">Lainnya</option>
                       </select>
+                      
+                      {/* Input custom untuk jenis instansi lainnya */}
+                      {showCustomOrgType && (
+                        <div className="mt-2">
+                          <input
+                            type="text"
+                            name="custom_organization_type"
+                            value={formData.organization_type}
+                            onChange={handleCustomOrgTypeChange}
+                            className="w-full text-sm p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Masukkan jenis instansi"
+                            required
+                          />
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -277,6 +335,26 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
                         rows="2"
                         className="w-full text-sm p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                       />
+                    </div>
+
+                    {/* KTP Information (Read-only) */}
+                    <div className="border-t pt-4">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Verifikasi KTP</h4>
+                      {user.ktp ? (
+                        <div>
+                          <p className="text-xs text-gray-600 mb-2">KTP telah diunggah dan tidak dapat diubah</p>
+                          <a
+                            href={user.ktp}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline text-sm"
+                          >
+                            Lihat KTP
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-sm">KTP belum diunggah</p>
+                      )}
                     </div>
                   </div>
                 </div>

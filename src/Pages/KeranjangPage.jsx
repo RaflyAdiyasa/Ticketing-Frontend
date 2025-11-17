@@ -1,19 +1,30 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
-import { cartAPI } from "../services/api";
+import { cartAPI, paymentAPI } from "../services/api";
 import useNotification from "../hooks/useNotification";
 import NotificationModal from "../components/NotificationModal";
-import { Trash2 } from "lucide-react";
+import { Trash2, ExternalLink, Copy, Check, X } from "lucide-react";
 
 export default function KeranjangPage() {
   const navigate = useNavigate();
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
   
-  // Integrasi useNotification hook
   const { notification, showNotification, hideNotification } = useNotification();
+
+  // State untuk modal checkout success
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [paymentData, setPaymentData] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  // State untuk modal konfirmasi hapus
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [showDecrementModal, setShowDecrementModal] = useState(false);
+  const [itemToDecrement, setItemToDecrement] = useState(null);
 
   const formatRupiah = (angka) => {
     return new Intl.NumberFormat("id-ID", {
@@ -28,10 +39,9 @@ export default function KeranjangPage() {
     try {
       setLoading(true);
       const response = await cartAPI.getCart();
-      console.log("Backend response:", response.data); // Debug log
+      console.log("Backend response:", response.data);
       
       if (response.data && response.data.carts) {
-        // Transform backend data to frontend format
         const transformedCart = transformCartData(response.data.carts);
         setCart(transformedCart);
       }
@@ -49,9 +59,8 @@ export default function KeranjangPage() {
     const eventMap = {};
     
     backendCarts.forEach(cartItem => {
-      console.log("Processing cart item:", cartItem); // Debug log
+      console.log("Processing cart item:", cartItem);
       
-      // Gunakan field names dengan underscore sesuai response backend
       const eventId = cartItem.event?.event_id || cartItem.event_id;
       const eventName = cartItem.event?.name || "Unknown Event";
       const eventImage = cartItem.event?.image || "https://picsum.photos/600/600?random=21";
@@ -65,7 +74,6 @@ export default function KeranjangPage() {
         };
       }
       
-      // Pastikan ticket_category ada
       if (cartItem.ticket_category) {
         eventMap[eventId].tickets.push({
           cartId: cartItem.cart_id,
@@ -88,6 +96,57 @@ export default function KeranjangPage() {
     fetchCart();
   }, []);
 
+  // Copy payment URL to clipboard
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  // Open payment URL in new tab
+  const openPaymentPage = () => {
+    if (paymentData?.payment_url) {
+      window.open(paymentData.payment_url, '_blank');
+      setShowCheckoutModal(false);
+    }
+  };
+
+  // === Modal handlers ===
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    
+    try {
+      await cartAPI.deleteCart({ cart_id: itemToDelete.cartId });
+      // Auto refresh cart data setelah hapus
+      showNotification(`Tiket "${itemToDelete.ticketName}" berhasil dihapus`, "Sukses", "success");
+      window.location.reload();
+    } catch (err) {
+      console.error("Error deleting cart item:", err);
+      showNotification("Gagal menghapus tiket dari keranjang", "Error", "error");
+    } finally {
+      setShowDeleteModal(false);
+      setItemToDelete(null);
+    }
+  };
+
+  const confirmDecrement = async () => {
+    if (!itemToDecrement) return;
+    
+    try {
+      await cartAPI.deleteCart({ cart_id: itemToDecrement.cartId });
+      // Auto refresh cart data setelah hapus
+      showNotification("Tiket berhasil dihapus dari keranjang", "Sukses", "success");
+      window.location.reload();
+    } catch (err) {
+      console.error("Error deleting cart item:", err);
+      showNotification("Gagal menghapus tiket dari keranjang", "Error", "error");
+    } finally {
+      setShowDecrementModal(false);
+      setItemToDecrement(null);
+    }
+  };
+
   // === Increment handler ===
   const incrementQty = async (eventId, ticketId, cartId, currentQty, stock) => {
     if (currentQty >= stock) {
@@ -102,7 +161,7 @@ export default function KeranjangPage() {
       };
 
       await cartAPI.updateCart(updateData);
-      // Refresh cart data after successful update
+      // Auto refresh cart data setelah update
       await fetchCart();
       showNotification("Jumlah tiket berhasil ditambah", "Sukses", "success");
     } catch (err) {
@@ -113,23 +172,14 @@ export default function KeranjangPage() {
   };
 
   // === Decrement handler ===
-  const decrementQty = async (eventId, ticketId, cartId, currentQty) => {
+  const decrementQty = async (eventId, ticketId, cartId, currentQty, ticketName) => {
     if (currentQty <= 1) {
-      const confirmDelete = window.confirm(
-        `Jumlah tiket akan menjadi 0.\nHapus tiket ini dari keranjang?`
-      );
-      
-      if (confirmDelete) {
-        try {
-          await cartAPI.deleteCart({ cart_id: cartId });
-          // Refresh cart data after successful deletion
-          await fetchCart();
-          showNotification("Tiket berhasil dihapus dari keranjang", "Sukses", "success");
-        } catch (err) {
-          console.error("Error deleting cart item:", err);
-          showNotification("Gagal menghapus tiket dari keranjang", "Error", "error");
-        }
-      }
+      // Show modal konfirmasi untuk hapus
+      setItemToDecrement({
+        cartId,
+        ticketName
+      });
+      setShowDecrementModal(true);
       return;
     }
 
@@ -140,7 +190,7 @@ export default function KeranjangPage() {
       };
 
       await cartAPI.updateCart(updateData);
-      // Refresh cart data after successful update
+      // Auto refresh cart data setelah update
       await fetchCart();
       showNotification("Jumlah tiket berhasil dikurangi", "Sukses", "success");
     } catch (err) {
@@ -152,20 +202,48 @@ export default function KeranjangPage() {
 
   // === Delete specific cart item ===
   const deleteCartItem = async (cartId, ticketName) => {
-    const confirmDelete = window.confirm(
-      `Hapus tiket "${ticketName}" dari keranjang?`
-    );
+    setItemToDelete({
+      cartId,
+      ticketName
+    });
+    setShowDeleteModal(true);
+  };
+
+  // === Checkout Handler - Tampilkan Modal ===
+  const handleCheckout = async () => {
+    if (cart.length === 0) {
+      showNotification("Keranjang kosong, tidak dapat checkout", "Peringatan", "warning");
+      return;
+    }
+
+    setCheckoutLoading(true);
     
-    if (confirmDelete) {
-      try {
-        await cartAPI.deleteCart({ cart_id: cartId });
-        // Refresh cart data after successful deletion
+    try {
+      const response = await paymentAPI.createPayment();
+      
+      if (response.data) {
+        setPaymentData(response.data);
+        
+        // Simpan transaction info untuk referensi
+        sessionStorage.setItem('last_transaction_id', response.data.transaction_id);
+        sessionStorage.setItem('last_transaction_total', response.data.total);
+        
+        // Tampilkan modal checkout success
+        setShowCheckoutModal(true);
+        
+        // Auto refresh cart setelah checkout berhasil - tanpa timeout
         await fetchCart();
-        showNotification(`Tiket "${ticketName}" berhasil dihapus`, "Sukses", "success");
-      } catch (err) {
-        console.error("Error deleting cart item:", err);
-        showNotification("Gagal menghapus tiket dari keranjang", "Error", "error");
+        
+      } else {
+        throw new Error("Data pembayaran tidak tersedia");
       }
+      
+    } catch (err) {
+      console.error("Error during checkout:", err);
+      const errorMessage = err.response?.data?.error || "Gagal memproses checkout";
+      showNotification(errorMessage, "Checkout Gagal", "error");
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -220,6 +298,161 @@ export default function KeranjangPage() {
         type={notification.type}
       />
 
+      {/* Modal Konfirmasi Hapus Tiket */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <Trash2 className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Hapus Tiket
+              </h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Hapus tiket "{itemToDelete?.ticketName}" dari keranjang?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setItemToDelete(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                >
+                  Hapus
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Decrement ke 0 */}
+      {showDecrementModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
+                <X className="h-6 w-6 text-yellow-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Hapus Tiket
+              </h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Jumlah tiket akan menjadi 0. Hapus tiket "{itemToDecrement?.ticketName}" dari keranjang?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowDecrementModal(false);
+                    setItemToDecrement(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmDecrement}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                >
+                  Hapus
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Checkout Success Modal */}
+      {showCheckoutModal && paymentData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-green-600">Checkout Berhasil!</h2>
+              <button 
+                onClick={() => setShowCheckoutModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-green-800 font-semibold text-center">
+                  Anda akan diarahkan ke halaman pembayaran...
+                </p>
+              </div>
+
+              {/* Detail Transaksi */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold mb-3">Detail Transaksi</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">ID Transaksi:</span>
+                    <span className="font-medium">{paymentData.transaction_id}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Pembayaran:</span>
+                    <span className="font-bold text-blue-600">{formatRupiah(paymentData.total)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Status:</span>
+                    <span className="font-medium text-yellow-600">Menunggu Pembayaran</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment URL */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold mb-2">Link Pembayaran</h3>
+                <p className="text-xs text-gray-600 mb-3">
+                  Jika tidak diarahkan otomatis, salin link berikut atau klik tombol di bawah:
+                </p>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={paymentData.payment_url} 
+                    readOnly 
+                    className="flex-1 border rounded-lg px-3 py-2 text-xs bg-gray-50"
+                  />
+                  <button 
+                    onClick={() => copyToClipboard(paymentData.payment_url)}
+                    className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+                  >
+                    {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button 
+                  onClick={() => setShowCheckoutModal(false)}
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Tutup
+                </button>
+                <button 
+                  onClick={openPaymentPage}
+                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Buka Pembayaran
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="min-h-screen bg-[#E5E7EB] flex items-start justify-center p-4 overflow-auto">
         <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-40 bg-white shadow-xl p-8 rounded-2xl">
           <h1 className="text-2xl font-bold mb-6">Keranjang</h1>
@@ -228,7 +461,7 @@ export default function KeranjangPage() {
             <div className="text-center py-8">
               <p className="text-gray-500 text-lg">Keranjang Anda kosong</p>
               <button 
-                onClick={() => navigate('/events')}
+                onClick={() => navigate('/cariEvent')}
                 className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Jelajahi Event
@@ -287,7 +520,7 @@ export default function KeranjangPage() {
                       {/* Increment Area */}
                       <div className="col-span-3 flex items-center justify-center gap-2">
                         <button
-                          onClick={() => decrementQty(event.eventId, ticket.ticketId, ticket.cartId, ticket.qty)}
+                          onClick={() => decrementQty(event.eventId, ticket.ticketId, ticket.cartId, ticket.qty, ticket.name)}
                           className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 transition"
                         >
                           -
@@ -323,13 +556,39 @@ export default function KeranjangPage() {
 
               {/* Total & Checkout */}
               <div className="border-t pt-4 mt-6">
-                <p className="text-xl font-bold mb-4">Total: {formatRupiah(totalHarga)}</p>
+                <div className="flex justify-between items-center mb-4">
+                  <p className="text-xl font-bold">Total: {formatRupiah(totalHarga)}</p>
+                  
+                  {/* Informasi Checkout */}
+                  <div className="text-sm text-gray-600 text-right">
+                    <p>Pembayaran aman via Midtrans</p>
+                    <p>Buka di tab baru</p>
+                  </div>
+                </div>
+                
                 <button 
-                  className="w-full bg-blue-600 text-white py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transition"
-                  onClick={() => navigate('/checkout')}
+                  className="w-full bg-blue-600 text-white py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transition disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  onClick={handleCheckout}
+                  disabled={checkoutLoading}
                 >
-                  Checkout
+                  {checkoutLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Memproses Pembayaran...
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink className="w-5 h-5" />
+                      Checkout & Bayar
+                    </>
+                  )}
                 </button>
+                
+                {/* Informasi tambahan */}
+                <div className="mt-3 text-xs text-gray-500 text-center">
+                  <p>Anda akan diarahkan ke halaman pembayaran Midtrans di tab baru</p>
+                  <p className="mt-1">Setelah pembayaran selesai, Anda bisa menutup tab pembayaran dan kembali ke halaman ini</p>
+                </div>
               </div>
             </>
           )}

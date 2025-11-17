@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://10.135.239.249:3000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -82,6 +82,10 @@ export const cartAPI = {
   getCart: () => api.get('/api/cart'),
   updateCart: (updateData) => api.patch('/api/cart', updateData),
   deleteCart: (deleteData) => api.delete('/api/cart', { data: deleteData }),
+};
+
+export const paymentAPI = {
+  createPayment: () => api.post('/api/payment/midtrans'),
 };
 
 export default api;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { authAPI } from "../services/api";
 import NotificationModal from "../components/NotificationModal";
 import useNotification from "../hooks/useNotification";
@@ -22,6 +22,7 @@ export default function DaftarEOForm() {
   const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showCustomOrgType, setShowCustomOrgType] = useState(false);
 
   const navigate = useNavigate();
   const { notification, showNotification, hideNotification } =
@@ -33,6 +34,33 @@ export default function DaftarEOForm() {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  // Fungsi untuk menangani perubahan jenis instansi
+  const handleOrgTypeChange = (e) => {
+    const value = e.target.value;
+    
+    if (value === "Lainnya") {
+      setShowCustomOrgType(true);
+      setFormData((prev) => ({
+        ...prev,
+        organization_type: "",
+      }));
+    } else {
+      setShowCustomOrgType(false);
+      setFormData((prev) => ({
+        ...prev,
+        organization_type: value,
+      }));
+    }
+  };
+
+  // Fungsi untuk menangani perubahan custom organization type
+  const handleCustomOrgTypeChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      organization_type: e.target.value,
     }));
   };
 
@@ -183,18 +211,40 @@ export default function DaftarEOForm() {
             <label className="block text-gray-700 mb-1">Jenis Instansi</label>
             <select
               name="organization_type"
-              value={formData.organization_type}
-              onChange={handleChange}
+              value={showCustomOrgType ? "Lainnya" : formData.organization_type}
+              onChange={handleOrgTypeChange}
               className="w-full border border-gray-500 rounded-xl px-4 py-2 cursor-pointer"
               required
             >
               <option value="">-- Pilih Jenis Instansi --</option>
               <option value="Perguruan Tinggi">Perguruan Tinggi</option>
               <option value="Sekolah">Sekolah</option>
-              <option value="Perusahaan">Perusahaan</option>
-              <option value="Organisasi">Organisasi</option>
+              <option value="Perusahaan Teknologi">Perusahaan Teknologi</option>
+              <option value="Perusahaan Manufaktur">Perusahaan Manufaktur</option>
+              <option value="Perusahaan Jasa">Perusahaan Jasa</option>
+              <option value="Perusahaan Retail">Perusahaan Retail</option>
+              <option value="Perusahaan Finansial">Perusahaan Finansial</option>
+              <option value="Perusahaan Startup">Perusahaan Startup</option>
+              <option value="Organisasi Nirlaba">Organisasi Nirlaba</option>
+              <option value="Organisasi Sosial">Organisasi Sosial</option>
+              <option value="Komunitas">Komunitas</option>
               <option value="Lainnya">Lainnya</option>
             </select>
+            
+            {/* Input custom untuk jenis instansi lainnya */}
+            {showCustomOrgType && (
+              <div className="mt-2">
+                <input
+                  type="text"
+                  name="custom_organization_type"
+                  value={formData.organization_type}
+                  onChange={handleCustomOrgTypeChange}
+                  className="w-full border border-gray-500 rounded-xl px-4 py-2"
+                  placeholder="Masukkan jenis instansi"
+                  required
+                />
+              </div>
+            )}
           </div>
 
           {/* Nama Pengurus */}
@@ -330,6 +380,17 @@ export default function DaftarEOForm() {
             {loading ? "Mendaftarkan..." : "Daftar"}
           </button>
         </form>
+
+        {/* ✅ TAMBAHKAN LINK NAVIGASI KE PENDAFTARAN BIASA */}
+        <p className="text-sm text-center mt-4">
+          Ingin mendaftar sebagai peserta biasa?{" "}
+          <Link
+            to="/daftar"
+            className="text-indigo-600 font-medium hover:underline"
+          >
+            Daftar Sebagai Peserta
+          </Link>
+        </p>
       </div>
 
       {/* ✅ Modal Preview Gambar KTP */}

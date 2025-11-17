@@ -1,5 +1,5 @@
 import Navbar from "../components/Navbar";
-import { Calendar, Folder, Plus, Pencil, Trash2 } from "lucide-react";
+import { Calendar, Folder, Plus, Pencil, Trash2, Eye, X } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { eventAPI } from "../services/api";
@@ -34,6 +34,13 @@ export default function EventRegister() {
   // State untuk kategori custom
   const [showCustomCategory, setShowCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState("");
+
+  // State untuk preview gambar
+  const [previewImage, setPreviewImage] = useState({
+    isOpen: false,
+    image: null,
+    type: "" // 'poster' or 'banner'
+  });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -74,6 +81,27 @@ export default function EventRegister() {
         setBannerFile(file);
       }
     }
+  };
+
+  // Fungsi untuk membuka preview gambar
+  const handlePreviewImage = (type) => {
+    const file = type === 'poster' ? posterFile : bannerFile;
+    if (file) {
+      setPreviewImage({
+        isOpen: true,
+        image: URL.createObjectURL(file),
+        type: type
+      });
+    }
+  };
+
+  // Fungsi untuk menutup preview gambar
+  const handleClosePreview = () => {
+    setPreviewImage({
+      isOpen: false,
+      image: null,
+      type: ""
+    });
   };
 
   // Fungsi untuk menambah tiket baru
@@ -177,10 +205,8 @@ export default function EventRegister() {
           price: parseFloat(ticket.price),
           quota: parseInt(ticket.quota),
           description: ticket.description,
-          date_time_start: new Date(
-            ticket.date_start + "T00:00:00Z"
-          ).toISOString(),
-          date_time_end: new Date(ticket.date_end + "T23:59:59Z").toISOString(),
+          date_time_start: new Date(ticket.date_start + "T" + ticket.time_start + ":00Z").toISOString(),
+          date_time_end: new Date(ticket.date_end + "T" + ticket.time_end + ":00Z").toISOString(),
         }));
         submitData.append(
           "ticket_categories",
@@ -194,8 +220,8 @@ export default function EventRegister() {
           name: t.name,
           price: t.price,
           quota: t.quota,
-          date_time_start: new Date(t.date_start + "T00:00:00Z").toISOString(),
-          date_time_end: new Date(t.date_end + "T23:59:59Z").toISOString(),
+          date_time_start: new Date(t.date_start + "T" + t.time_start + ":00Z").toISOString(),
+          date_time_end: new Date(t.date_end + "T" + t.time_end + ":00Z").toISOString(),
         })),
       });
 
@@ -266,6 +292,32 @@ export default function EventRegister() {
         type={notification.type}
       />
 
+      {/* Modal Preview Gambar */}
+      {previewImage.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-4xl max-h-[90vh] overflow-auto">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-bold">
+                Preview {previewImage.type === 'poster' ? 'Poster' : 'Banner'}
+              </h3>
+              <button
+                onClick={handleClosePreview}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-4">
+              <img 
+                src={previewImage.image} 
+                alt={`Preview ${previewImage.type}`}
+                className="max-w-full max-h-[70vh] object-contain mx-auto"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal untuk tambah/edit kategori tiket */}
       <TicketCategoryModal
         isOpen={isModalOpen}
@@ -273,6 +325,10 @@ export default function EventRegister() {
         onAddTicket={handleAddTicket}
         onUpdateTicket={handleUpdateTicket}
         editingTicket={editingTicket}
+        eventDates={{
+          start: formData.date_start,
+          end: formData.date_end
+        }}
       />
 
       <div className="min-h-screen bg-gray-200 flex items-start justify-center p-4 overflow-auto">
@@ -377,16 +433,28 @@ export default function EventRegister() {
                 <p className="font-medium mb-1">
                   Pilih poster event : (1x1)
                 </p>
-                <label className="flex items-center gap-2 border rounded-lg p-2 cursor-pointer">
-                  <Folder color="#0C8CE9"/>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange(e, "poster")}
-                  />
-                  <span>{getPosterFileName()}</span>
-                </label>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 border rounded-lg p-2 cursor-pointer flex-1">
+                    <Folder color="#0C8CE9"/>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, "poster")}
+                    />
+                    <span className="flex-1">{getPosterFileName()}</span>
+                  </label>
+                  {posterFile && (
+                    <button
+                      type="button"
+                      onClick={() => handlePreviewImage('poster')}
+                      className="flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-200"
+                    >
+                      <Eye size={16} />
+                      Preview
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Banner Event */}
@@ -394,16 +462,28 @@ export default function EventRegister() {
                 <p className="font-medium mb-1">
                   Pilih banner event : (16x6)
                 </p>
-                <label className="flex items-center gap-2 border rounded-lg p-2 cursor-pointer">
-                  <Folder color="#0C8CE9"/>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange(e, "banner")}
-                  />
-                  <span>{getBannerFileName()}</span>
-                </label>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 border rounded-lg p-2 cursor-pointer flex-1">
+                    <Folder color="#0C8CE9"/>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, "banner")}
+                    />
+                    <span className="flex-1">{getBannerFileName()}</span>
+                  </label>
+                  {bannerFile && (
+                    <button
+                      type="button"
+                      onClick={() => handlePreviewImage('banner')}
+                      className="flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-200"
+                    >
+                      <Eye size={16} />
+                      Preview
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Tanggal Mulai */}
@@ -507,7 +587,7 @@ export default function EventRegister() {
                     </p>
                     <p className="text-sm text-gray-600">Kuota: {t.quota}</p>
                     <p className="text-sm text-gray-600">
-                      {t.date_start} - {t.date_end}
+                      {t.date_start} {t.time_start} - {t.date_end} {t.time_end}
                     </p>
 
                     <div className="flex gap-4 mt-3">
