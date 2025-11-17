@@ -11,16 +11,13 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
     organization: user.organization || '',
     organization_type: user.organization_type || '',
     organization_description: user.organization_description || '',
-    ktp: null
   });
   const [previewImages, setPreviewImages] = useState({
     profile_pict: user.profile_pict || '',
-    ktp: user.ktp || ''
   });
   const [loading, setLoading] = useState(false);
   
   const profilePictRef = useRef(null);
-  const ktpRef = useRef(null);
 
   // Gunakan hook useNotification
   const { showNotification } = useNotification();
@@ -66,9 +63,6 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
     if (fieldName === 'profile_pict' && profilePictRef.current) {
       profilePictRef.current.value = '';
     }
-    if (fieldName === 'ktp' && ktpRef.current) {
-      ktpRef.current.value = '';
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -94,9 +88,6 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
         submitData.append('organization', formData.organization);
         submitData.append('organization_type', formData.organization_type);
         submitData.append('organization_description', formData.organization_description);
-        if (formData.ktp) {
-          submitData.append('ktp', formData.ktp);
-        }
       }
 
       if (user.role === 'admin' && formData.password) {

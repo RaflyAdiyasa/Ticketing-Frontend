@@ -5,17 +5,14 @@ import Navbar from "../components/Navbar";
 import { MapPin, CalendarDays, Grid3X3, Edit, Save, X, CheckCircle, XCircle, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api, { eventAPI } from "../services/api";
-import useNotification from "../hooks/useNotification"; // Import hook
-import NotificationModal from "../components/NotificationModal"; // Import modal
+import useNotification from "../hooks/useNotification";
+import NotificationModal from "../components/NotificationModal";
 
 export default function EventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  
-  // Gunakan hook notification
   const { notification, showNotification, hideNotification } = useNotification();
 
-  // Format Rupiah
   const formatRupiah = (angka) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -24,7 +21,6 @@ export default function EventDetail() {
     }).format(angka);
   };
 
-  // Format tanggal dari backend
   const formatDate = (dateStart, dateEnd) => {
     const start = new Date(dateStart);
     const end = new Date(dateEnd);
@@ -56,9 +52,9 @@ export default function EventDetail() {
   const [error, setError] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isEO, setIsEO] = useState(false); // State untuk EO
-  const [isRegularUser, setIsRegularUser] = useState(false); // State untuk user biasa
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // State untuk cek login
+  const [isEO, setIsEO] = useState(false);
+  const [isRegularUser, setIsRegularUser] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
@@ -85,7 +81,6 @@ export default function EventDetail() {
 
         setEvent(eventData);
         
-        // Set form data untuk editing
         setEditForm({
           name: eventData.name,
           description: eventData.description,
@@ -96,7 +91,6 @@ export default function EventDetail() {
           category: eventData.category
         });
 
-        // Format ticket categories untuk state tickets
         const formattedTickets = eventData.ticket_categories?.map((ticket) => ({
           ticket_category_id: ticket.ticket_category_id,
           type: ticket.name,
@@ -111,8 +105,6 @@ export default function EventDetail() {
         })) || [];
 
         setTickets(formattedTickets);
-
-        // Check user role and ownership
         checkUserRoleAndOwnership(eventData);
 
       } catch (err) {
@@ -137,7 +129,6 @@ export default function EventDetail() {
           setIsOwner(isEventOwner);
           setIsAdmin(isAdminUser);
           setIsEO(isEOUser);
-          // User biasa hanya jika bukan owner, bukan admin, dan bukan EO
           setIsRegularUser(payload.role === 'user' && !isEventOwner && !isAdminUser && !isEOUser);
         } else {
           setIsLoggedIn(false);
@@ -173,7 +164,6 @@ export default function EventDetail() {
 
   const handleAddToCart = async () => {
     try {
-      // Siapkan data untuk dikirim ke cart sesuai struktur backend
       const cartItems = tickets
         .filter((ticket) => ticket.qty > 0)
         .map((ticket) => ({
@@ -186,21 +176,13 @@ export default function EventDetail() {
         return;
       }
 
-      // Kirim setiap item cart secara individual
       const promises = cartItems.map((item) => api.post("/api/cart", item));
-
-      // Tunggu semua request selesai
       const results = await Promise.all(promises);
-
-      // Cek jika semua berhasil
       const allSuccess = results.every((result) => result.status === 201);
 
       if (allSuccess) {
         showNotification("Tiket berhasil dimasukkan ke keranjang!", "Sukses", "success");
-        // Reset quantity setelah berhasil ditambahkan
         setTickets((prev) => prev.map((t) => ({ ...t, qty: 0 })));
-        
-        // Navigate to cart page
         navigate("/keranjang");
       } else {
         throw new Error("Beberapa tiket gagal ditambahkan");
@@ -217,7 +199,6 @@ export default function EventDetail() {
 
   const handleEditToggle = () => {
     if (isEditing) {
-      // Reset form jika cancel edit
       setEditForm({
         name: event.name,
         description: event.description,
@@ -242,7 +223,6 @@ export default function EventDetail() {
     try {
       setSaving(true);
       
-      // Prepare data for update
       const updateData = {
         ...editForm,
         date_start: new Date(editForm.date_start).toISOString(),
@@ -252,7 +232,6 @@ export default function EventDetail() {
       const response = await api.put(`/api/events/${id}`, updateData);
       
       if (response.status === 200) {
-        // Update local state
         setEvent(prev => ({
           ...prev,
           ...editForm,
@@ -263,7 +242,6 @@ export default function EventDetail() {
         setIsEditing(false);
         showNotification("Event berhasil diperbarui!", "Sukses", "success");
         
-        // Refresh data
         const refreshedResponse = await api.get(`/api/event/${id}`);
         setEvent(refreshedResponse.data);
       }
@@ -299,7 +277,6 @@ export default function EventDetail() {
       setShowVerificationModal(false);
       setApprovalComment("");
       
-      // Refresh data
       const refreshedResponse = await api.get(`/api/event/${id}`);
       setEvent(refreshedResponse.data);
     } catch (error) {
@@ -319,17 +296,38 @@ export default function EventDetail() {
     setShowVerificationModal(true);
   };
 
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'approved':
+        return <CheckCircle className="w-5 h-5 text-green-600" />;
+      case 'rejected':
+        return <XCircle className="w-5 h-5 text-red-600" />;
+      case 'pending':
+        return <Clock className="w-5 h-5 text-yellow-600" />;
+      default:
+        return <Clock className="w-5 h-5 text-gray-600" />;
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'approved':
+        return 'Disetujui';
+      case 'rejected':
+        return 'Ditolak';
+      case 'pending':
+        return 'Menunggu Verifikasi';
+      default:
+        return status;
+    }
+  };
+
   const canEdit = isOwner && (event?.status === 'pending' || event?.status === 'rejected');
   const canVerify = isAdmin && event?.status === 'pending';
-  
-  // PERUBAHAN PENTING: Hanya user biasa (bukan owner, bukan admin, bukan EO) yang bisa membeli tiket
   const canPurchase = isLoggedIn && !isOwner && !isAdmin && !isEO && event?.status === 'approved';
-  
-  // PERUBAHAN PENTING: Hanya user biasa yang bisa mengontrol tiket
   const showTicketControls = canPurchase;
-
-  // PERUBAHAN PENTING: Tampilkan tiket untuk semua user (termasuk admin dan EO) tapi hanya user biasa yang bisa beli
-  const showTicketSection = !isEditing && event?.status === 'approved' && !isOwner;
+  const showTicketSection = !isEditing && !isOwner;
+  const showStatusInfo = (isOwner || isAdmin) && isLoggedIn;
 
   if (loading) {
     return (
@@ -367,37 +365,10 @@ export default function EventDetail() {
   const totalHarga = tickets.reduce((sum, t) => sum + t.price * t.qty, 0);
   const adaTiketDipilih = tickets.some((t) => t.qty > 0);
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'approved':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
-      case 'rejected':
-        return <XCircle className="w-5 h-5 text-red-600" />;
-      case 'pending':
-        return <Clock className="w-5 h-5 text-yellow-600" />;
-      default:
-        return <Clock className="w-5 h-5 text-gray-600" />;
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'approved':
-        return 'Disetujui';
-      case 'rejected':
-        return 'Ditolak';
-      case 'pending':
-        return 'Menunggu Verifikasi';
-      default:
-        return status;
-    }
-  };
-
   return (
     <div>
       <Navbar />
 
-      {/* Notification Modal */}
       <NotificationModal
         isOpen={notification.isOpen}
         onClose={hideNotification}
@@ -408,7 +379,6 @@ export default function EventDetail() {
 
       <div className="min-h-screen bg-[#E5E7EB] flex justify-center p-4 overflow-auto">
         <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-36 bg-white shadow-xl p-8">
-          {/* Header dengan tombol edit untuk owner */}
           <div className="flex justify-between items-start mb-6">
             <div className="flex-1">
               {isEditing ? (
@@ -458,8 +428,7 @@ export default function EventDetail() {
             )}
           </div>
 
-          {/* Status Info - Hanya ditampilkan jika user sudah login dan bukan user biasa */}
-          {isLoggedIn && !isRegularUser && (
+          {showStatusInfo && (
             <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
               event.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
               event.status === 'rejected' ? 'bg-red-100 text-red-800 border border-red-200' :
@@ -478,7 +447,6 @@ export default function EventDetail() {
             </div>
           )}
 
-          {/* Admin Verification Panel */}
           {canVerify && (
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h3 className="text-lg font-semibold text-blue-800 mb-3">Verifikasi Event</h3>
@@ -503,9 +471,7 @@ export default function EventDetail() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* === BAGIAN KIRI === */}
             <div className="lg:col-span-2">
-              {/* Info Event */}
               <div className="space-y-2 text-gray-700 text-sm mb-8">
                 <div className="flex items-start gap-2">
                   <MapPin className="w-5 h-5 text-[#0C8CE9] shrink-0 mt-0.5" />
@@ -576,7 +542,6 @@ export default function EventDetail() {
                 </div>
               </div>
 
-              {/* Tentang Event */}
               <div className="mt-8">
                 <h2 className="text-xl font-semibold mb-2">Tentang Event</h2>
                 {isEditing ? (
@@ -594,7 +559,6 @@ export default function EventDetail() {
                 )}
               </div>
 
-              {/* Pilihan Tiket - Ditampilkan untuk semua user (termasuk admin dan EO) tapi hanya user biasa yang bisa beli */}
               {showTicketSection && (
                 <div className="mt-8">
                   <h2 className="text-xl font-semibold mb-4">Pilihan Tiket</h2>
@@ -636,7 +600,6 @@ export default function EventDetail() {
                             </p>
                           </div>
 
-                          {/* PERUBAHAN PENTING: Hanya tampilkan tombol + dan - jika user bisa purchase (user biasa) */}
                           {showTicketControls ? (
                             <div className="flex items-center gap-3">
                               <div className="flex items-center gap-2">
@@ -668,11 +631,7 @@ export default function EventDetail() {
                               </div>
                             </div>
                           ) : (
-                            // Tampilkan info untuk admin/EO yang tidak bisa membeli
                             <div className="text-sm text-gray-500 italic">
-                              {isAdmin && "Admin tidak dapat membeli tiket"}
-                              {isEO && !isOwner && "EO tidak dapat membeli tiket event lain"}
-                              {isOwner && "Pemilik event tidak dapat membeli tiket"}
                               {!isLoggedIn && "Login untuk membeli tiket"}
                             </div>
                           )}
@@ -683,7 +642,6 @@ export default function EventDetail() {
                 </div>
               )}
 
-              {/* Ticket Management untuk Owner */}
               {isOwner && !isEditing && (
                 <div className="mt-8">
                   <h2 className="text-xl font-semibold mb-4">Manajemen Tiket</h2>
@@ -741,9 +699,7 @@ export default function EventDetail() {
               )}
             </div>
 
-            {/* === BAGIAN KANAN === */}
             <div className="lg:col-span-1 space-y-5">
-              {/* Gambar utama ratio 1:1 */}
               <div className="rounded-lg overflow-hidden shadow-md aspect-square border">
                 <img
                   src={
@@ -759,7 +715,6 @@ export default function EventDetail() {
                 />
               </div>
 
-              {/* Flyer jika ada */}
               {event.flyer && (
                 <div className="border rounded-lg p-4 shadow-sm bg-white">
                   <h3 className="text-base font-semibold mb-2">Banner Event</h3>
@@ -771,7 +726,6 @@ export default function EventDetail() {
                 </div>
               )}
 
-              {/* Penyelenggara */}
               <div className="border rounded-lg p-4 shadow-sm bg-white">
                 <p className="text-base font-semibold text-gray-700 mb-3">
                   Penyelenggara
@@ -816,7 +770,6 @@ export default function EventDetail() {
                 </div>
               </div>
 
-              {/* Total Harga & Tombol - hanya untuk user biasa yang bisa purchase */}
               <AnimatePresence>
                 {adaTiketDipilih && canPurchase && (
                   <motion.div
@@ -845,7 +798,6 @@ export default function EventDetail() {
                 )}
               </AnimatePresence>
 
-              {/* Info untuk owner yang sedang edit */}
               {isEditing && isOwner && (
                 <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-4">
                   <p className="text-sm text-yellow-800">
@@ -854,7 +806,6 @@ export default function EventDetail() {
                 </div>
               )}
 
-              {/* Info untuk admin */}
               {isAdmin && (
                 <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
                   <p className="text-sm text-blue-800">
@@ -868,7 +819,6 @@ export default function EventDetail() {
                 </div>
               )}
 
-              {/* Info untuk EO (bukan pemilik event) */}
               {isLoggedIn && isOwner === false && isAdmin === false && isEO && (
                 <div className="rounded-lg bg-purple-50 border border-purple-200 p-4">
                   <p className="text-sm text-purple-800">
@@ -880,7 +830,6 @@ export default function EventDetail() {
                 </div>
               )}
 
-              {/* Info untuk guest (belum login) */}
               {!isLoggedIn && (
                 <div className="rounded-lg bg-gray-50 border border-gray-200 p-4">
                   <p className="text-sm text-gray-800">
@@ -899,7 +848,6 @@ export default function EventDetail() {
         </div>
       </div>
 
-      {/* Verification Modal */}
       {showVerificationModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white max-w-md w-full p-6 rounded-xl shadow-xl">
