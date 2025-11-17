@@ -96,4 +96,10 @@ export const paymentAPI = {
   createPayment: () => api.post('/api/payment/midtrans'),
 };
 
+export const ticketAPI = {
+  getTickets: () => api.get('/api/tickets'),
+  getTicketCode: (ticketId) => api.get(`/api/tickets/${ticketId}/code`),
+  checkInTicket: (eventId, ticketId) => api.patch(`/api/tickets/${eventId}/${ticketId}/checkin`),
+};
+
 export default api;
