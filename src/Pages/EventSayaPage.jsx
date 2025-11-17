@@ -66,7 +66,7 @@ export default function EventSayaPage() {
   const handleScan = (eventId) => {
     // Navigate to scan page
     console.log("Buka scan untuk event:", eventId);
-    // navigate(`/scan/${eventId}`);
+     navigate(`/scan/${eventId}`);
   };
 
   if (loading) {
