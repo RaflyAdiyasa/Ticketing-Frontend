@@ -237,7 +237,7 @@ export default function TiketSaya() {
               <div className="text-center py-8">
                 <p className="text-gray-500">Anda belum memiliki tiket aktif.</p>
                 <button 
-                  onClick={() => navigate('/events')}
+                  onClick={() => navigate('/cariEvent')}
                   className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Jelajahi Event
@@ -296,14 +296,14 @@ export default function TiketSaya() {
                                   {/* Tampilkan ticket category date range di detail */}
                                   <span>Tanggal Tiket: {formatDateRange(detail.startDate, detail.endDate)}</span>
                                 </div>
-                                {/* {detail.timeRange && (
+                                {detail.timeRange && (
                                   <div className="flex items-center gap-1 text-gray-600 text-xs mt-1">
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                     <span>Waktu: {detail.timeRange}</span>
                                   </div>
-                                )} */}
+                                )}
                                 <div className="mt-1">
                                   <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
                                     Aktif
@@ -400,12 +400,12 @@ export default function TiketSaya() {
                     {formatDateRange(selectedTicket.detail.startDate, selectedTicket.detail.endDate)}
                   </span>
                 </div>
-                {/* {selectedTicket.detail.timeRange && (
+                {selectedTicket.detail.timeRange && (
                   <div className="flex justify-between">
                     <span className="text-gray-600 text-sm">Waktu:</span>
                     <span className="font-semibold text-sm">{selectedTicket.detail.timeRange}</span>
                   </div>
-                )} */}
+                )}
                 <div className="flex justify-between">
                   <span className="text-gray-600 text-sm">Alamat:</span>
                   <span className="font-semibold text-sm text-right max-w-[200px]">

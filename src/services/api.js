@@ -102,4 +102,9 @@ export const ticketAPI = {
   checkInTicket: (eventId, ticketId) => api.patch(`/api/tickets/${eventId}/${ticketId}/checkin`),
 };
 
+export const transactionAPI = {
+  getTransactionHistory: () => api.get('/api/transactions'),
+  getTransactionDetail: (transactionId) => api.get(`/api/transactions/${transactionId}`),
+};
+
 export default api;

@@ -1,12 +1,135 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
+import { transactionAPI } from "../services/api";
 
 export default function RiwayatTransaksi() {
   const navigate = useNavigate();
   const [expandedTransactions, setExpandedTransactions] = useState({});
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch data dari backend
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setLoading(true);
+        const response = await transactionAPI.getTransactionHistory();
+        console.log("Transaction response:", response.data);
+        
+        if (response.data && response.data.transactions) {
+          // Transform data dari backend ke format yang dibutuhkan frontend
+          const transformedTransactions = response.data.transactions.map(transaction => ({
+            transactionId: transaction.transaction_id,
+            transactionDate: new Date(transaction.transaction_time).toLocaleDateString('id-ID', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric'
+            }),
+            transactionTime: transaction.transaction_time,
+            totalAmount: transaction.price_total,
+            status: getStatusLabel(transaction.transaction_status),
+            statusRaw: transaction.transaction_status,
+            events: transaction.events.map(event => ({
+              id: event.event_id,
+              eventName: event.event_name,
+              address: event.location,
+              city: event.city,
+              startDate: new Date(event.date_start).toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+              }),
+              endDate: new Date(event.date_end).toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+              }),
+              image: event.image,
+              details: groupTicketsByCategory(event.ticket_details)
+            }))
+          }));
+          
+          setTransactions(transformedTransactions);
+        } else {
+          setTransactions([]);
+        }
+      } catch (err) {
+        console.error("Error fetching transactions:", err);
+        setError(err.response?.data?.error || "Gagal mengambil data transaksi");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, []);
+
+  // Function untuk mengelompokkan tiket berdasarkan kategori
+  const groupTicketsByCategory = (ticketDetails) => {
+    const grouped = {};
+    
+    ticketDetails.forEach(ticket => {
+      const key = ticket.ticket_category_id;
+      
+      if (!grouped[key]) {
+        grouped[key] = {
+          type: ticket.category_name,
+          description: ticket.description,
+          price: ticket.price,
+          startDate: new Date(ticket.date_time_start).toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+          }),
+          endDate: new Date(ticket.date_time_end).toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+          }),
+          ticketCategoryId: ticket.ticket_category_id,
+          quantity: 0,
+          tickets: []
+        };
+      }
+      
+      grouped[key].quantity += 1;
+      grouped[key].tickets.push({
+        ticketId: ticket.ticket_id,
+        code: ticket.code,
+        status: ticket.status
+      });
+    });
+    
+    return Object.values(grouped);
+  };
+
+  // Function untuk mengkonversi status
+  const getStatusLabel = (status) => {
+    const statusMap = {
+      'paid': 'Berhasil',
+      'pending': 'Menunggu Pembayaran',
+      'failed': 'Gagal',
+      'expired': 'Kadaluarsa',
+      'cancelled': 'Dibatalkan'
+    };
+    return statusMap[status] || status;
+  };
+
+  // Function untuk mendapatkan warna status badge
+  const getStatusColor = (status) => {
+    const colorMap = {
+      'paid': 'bg-green-100 text-green-800',
+      'pending': 'bg-yellow-100 text-yellow-800',
+      'failed': 'bg-red-100 text-red-800',
+      'expired': 'bg-gray-100 text-gray-800',
+      'cancelled': 'bg-red-100 text-red-800'
+    };
+    return colorMap[status] || 'bg-gray-100 text-gray-800';
+  };
 
   // Format tanggal untuk display
   const formatDateRange = (startDate, endDate) => {
@@ -24,120 +147,6 @@ export default function RiwayatTransaksi() {
       minimumFractionDigits: 0
     }).format(amount);
   };
-
-  // Data transaksi dummy dengan struktur yang sesuai
-  const transactions = [
-    {
-      transactionId: "TRX-001",
-      transactionDate: "25 Nov 2025",
-      totalAmount: 400000,
-      status: "Berhasil",
-      events: [
-        {
-          id: 1,
-          eventName: "Arima Kinen",
-          address: "Jalan Inkan Baya Blok I no.5, Pondok Timur Indah, Mustika Jaya, Kota Bekasi, Jawa Barat",
-          startDate: "29 Nov 2025",
-          endDate: "30 Nov 2025",
-          details: [
-            { 
-              type: "Dewasa", 
-              description: "Untuk usia 20 ke atas", 
-              price: 100000,
-              startDate: "29 Nov 2025",
-              endDate: "29 Nov 2025",
-              ticketId: "TKT-DEW-001",
-              qrCode: "QR-DEWASA-001",
-              quantity: 2
-            },
-            { 
-              type: "Anak-Anak", 
-              description: "Untuk usia 5-12 tahun", 
-              price: 50000,
-              startDate: "30 Nov 2025",
-              endDate: "30 Nov 2025",
-              ticketId: "TKT-ANK-001",
-              qrCode: "QR-ANAK-001",
-              quantity: 1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      transactionId: "TRX-002",
-      transactionDate: "26 Nov 2025",
-      totalAmount: 200000,
-      status: "Berhasil",
-      events: [
-        {
-          id: 2,
-          eventName: "NHK Mile",
-          address: "Jalan Inkan Baya Blok I no.5, Pondok Timur Indah, Mustika Jaya, Kota Bekasi, Jawa Barat",
-          startDate: "15 Des 2025",
-          endDate: "15 Des 2025",
-          details: [
-            { 
-              type: "VIP", 
-              description: "Tempat duduk VIP dengan fasilitas lengkap", 
-              price: 200000,
-              startDate: "15 Des 2025",
-              endDate: "15 Des 2025",
-              ticketId: "TKT-VIP-002",
-              qrCode: "QR-VIP-002",
-              quantity: 1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      transactionId: "TRX-003",
-      transactionDate: "27 Nov 2025",
-      totalAmount: 430000,
-      status: "Berhasil",
-      events: [
-        {
-          id: 1,
-          eventName: "Arima Kinen",
-          address: "Jalan Inkan Baya Blok I no.5, Pondok Timur Indah, Mustika Jaya, Kota Bekasi, Jawa Barat",
-          startDate: "29 Nov 2025",
-          endDate: "30 Nov 2025",
-          details: [
-            { 
-              type: "3 Days Pass", 
-              description: "Akses 3 hari penuh", 
-              price: 250000,
-              startDate: "29 Nov 2025",
-              endDate: "01 Des 2025",
-              ticketId: "TKT-3DP-001",
-              qrCode: "QR-3DAYS-001",
-              quantity: 1
-            }
-          ]
-        },
-        {
-          id: 3,
-          eventName: "Breeder Cup",
-          address: "Jalan Inkan Baya Blok I no.5, Pondok Timur Indah, Mustika Jaya, Kota Bekasi, Jawa Barat",
-          startDate: "20 Jan 2026",
-          endDate: "22 Jan 2026",
-          details: [
-            { 
-              type: "Weekend Pass", 
-              description: "Akses weekend saja", 
-              price: 180000,
-              startDate: "21 Jan 2026",
-              endDate: "22 Jan 2026",
-              ticketId: "TKT-WKP-003",
-              qrCode: "QR-WKP-003",
-              quantity: 1
-            }
-          ]
-        }
-      ]
-    }
-  ];
 
   // Fungsi untuk toggle dropdown transaksi
   const toggleDropdown = (transactionId) => {
@@ -168,6 +177,69 @@ export default function RiwayatTransaksi() {
     return event.details.reduce((total, detail) => total + (detail.price * detail.quantity), 0);
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div>
+        <Navbar />
+        <div className="min-h-screen bg-[#E5E7EB] flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p className="mt-4 text-gray-600">Memuat riwayat transaksi...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div>
+        <Navbar />
+        <div className="min-h-screen bg-[#E5E7EB] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+            <svg className="mx-auto h-12 w-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="mt-4 text-lg font-semibold text-gray-900">Terjadi Kesalahan</h3>
+            <p className="mt-2 text-gray-600">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (transactions.length === 0) {
+    return (
+      <div>
+        <Navbar />
+        <div className="min-h-screen bg-[#E5E7EB] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+            <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 className="mt-4 text-lg font-semibold text-gray-900">Belum Ada Transaksi</h3>
+            <p className="mt-2 text-gray-600">Anda belum memiliki riwayat pembelian tiket</p>
+            <button
+              onClick={() => navigate('/')}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Jelajahi Event
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <Navbar />
@@ -184,31 +256,29 @@ export default function RiwayatTransaksi() {
           {/* Daftar Transaksi */}
           <div className="space-y-6 pb-8">
             {transactions.map((transaction, index) => (
-              <div key={transaction.transactionId} className="border border-gray-300 rounded-lg p-6 bg-white shadow-sm">
-                
+              <div key={index} className="bg-white border border-gray-200 rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                 {/* Header Transaksi */}
-                <div className="flex justify-between items-start mb-4">
+                <div className="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-4 mb-2">
-                      <h2 className="text-lg font-bold text-gray-900">Transaksi #{transaction.transactionId}</h2>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        transaction.status === 'Berhasil' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h2 className="text-lg font-bold text-gray-900">
+                        {transaction.transactionId}
+                      </h2>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(transaction.statusRaw)}`}>
                         {transaction.status}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        <span>Tanggal Transaksi: {transaction.transactionDate}</span>
+                        <span>{transaction.transactionDate}</span>
                       </div>
+                      <span className="hidden sm:inline">•</span>
                       <div className="flex items-center gap-1">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span>Total: {formatCurrency(transaction.totalAmount)}</span>
                       </div>
@@ -234,7 +304,7 @@ export default function RiwayatTransaksi() {
 
                 {/* Dropdown Content - Detail Events dalam Transaksi */}
                 {expandedTransactions[transaction.transactionId] && (
-                  <div className="mt-4 border-t border-gray-200 pt-4">
+                  <div className="mt-4 border-t border-gray-200 pt-4 px-6 pb-6">
                     <h3 className="font-semibold text-gray-900 mb-3">Detail Event dalam Transaksi:</h3>
                     
                     {/* List Events */}
@@ -285,7 +355,7 @@ export default function RiwayatTransaksi() {
                                       {detail.description}
                                     </p>
                                     <p className="text-gray-500 text-xs">
-                                      Ticket ID: {detail.ticketId}
+                                      {detail.quantity} tiket
                                     </p>
                                   </div>
                                   <div className="text-right">
@@ -330,7 +400,7 @@ export default function RiwayatTransaksi() {
       {/* Dialog Detail Tiket */}
       {showDetailDialog && selectedTicket && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="text-center">
               <h3 className="text-lg font-bold text-gray-900 mb-2">
                 {selectedTicket.event.eventName}
@@ -344,11 +414,11 @@ export default function RiwayatTransaksi() {
                   <span className="font-semibold text-sm">{selectedTicket.transaction.transactionId}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 text-sm">Ticket ID:</span>
-                  <span className="font-semibold text-sm">{selectedTicket.detail.ticketId}</span>
+                  <span className="text-gray-600 text-sm">Kategori Tiket:</span>
+                  <span className="font-semibold text-sm">{selectedTicket.detail.type}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 text-sm">Harga:</span>
+                  <span className="text-gray-600 text-sm">Harga per Tiket:</span>
                   <span className="font-semibold text-sm">{formatCurrency(selectedTicket.detail.price)}</span>
                 </div>
                 <div className="flex justify-between">
@@ -379,6 +449,33 @@ export default function RiwayatTransaksi() {
                     {selectedTicket.detail.description}
                   </span>
                 </div>
+
+                {/* List Ticket IDs */}
+                {selectedTicket.detail.tickets && selectedTicket.detail.tickets.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-gray-600 text-sm mb-2">Daftar Tiket:</p>
+                    <div className="space-y-2">
+                      {selectedTicket.detail.tickets.map((ticket, idx) => (
+                        <div key={idx} className="bg-gray-50 p-2 rounded text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Ticket #{idx + 1}:</span>
+                            <span className="font-mono font-semibold">{ticket.ticketId}</span>
+                          </div>
+                          <div className="flex justify-between mt-1">
+                            <span className="text-gray-600">Code:</span>
+                            <span className="font-mono font-semibold">{ticket.code}</span>
+                          </div>
+                          <div className="flex justify-between mt-1">
+                            <span className="text-gray-600">Status:</span>
+                            <span className={`font-semibold ${ticket.status === 'active' ? 'text-green-600' : 'text-blue-600'}`}>
+                              {ticket.status === 'active' ? 'Aktif' : ticket.status === 'checked_in' ? 'Sudah Check-in' : ticket.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               
               <button
