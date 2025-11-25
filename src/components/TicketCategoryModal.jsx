@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Calendar, X, Clock } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Calendar, X, Clock, ChevronDown, Search } from "lucide-react";
 import useNotification from "../hooks/useNotification"; 
 
 export default function TicketCategoryModal({ 
@@ -21,8 +21,32 @@ export default function TicketCategoryModal({
     description: ""
   });
 
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef(null);
+
   // Gunakan hook useNotification
   const { showNotification } = useNotification();
+
+  // Daftar kategori bawaan
+  const predefinedCategories = [
+    "Regular",
+    "VIP", 
+    "VVIP",
+    "Anak-anak",
+    "Remaja",
+    "Dewasa",
+    "Early Bird",
+    "Presale",
+    "General Admission",
+    "Student",
+    "Senior"
+  ];
+
+  // Filter kategori berdasarkan pencarian
+  const filteredCategories = predefinedCategories.filter(category =>
+    category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // Reset form ketika modal dibuka atau ticket yang diedit berubah
   useEffect(() => {
@@ -38,6 +62,7 @@ export default function TicketCategoryModal({
           time_end: editingTicket.time_end || "23:59",
           description: editingTicket.description || ""
         });
+        setSearchQuery(editingTicket.name || "");
       } else {
         // Set default dates from event dates if available
         setFormData({
@@ -50,9 +75,24 @@ export default function TicketCategoryModal({
           time_end: "23:59",
           description: ""
         });
+        setSearchQuery("");
       }
     }
   }, [isOpen, editingTicket, eventDates]);
+
+  // Handle click outside untuk menutup dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -60,6 +100,42 @@ export default function TicketCategoryModal({
       ...prev,
       [name]: value
     }));
+
+    // Jika mengubah field name, update juga search query
+    if (name === "name") {
+      setSearchQuery(value);
+    }
+  };
+
+  const handleCategorySelect = (category) => {
+    setFormData(prev => ({
+      ...prev,
+      name: category
+    }));
+    setSearchQuery(category);
+    setShowDropdown(false);
+  };
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setFormData(prev => ({
+      ...prev,
+      name: value
+    }));
+    
+    // Tampilkan dropdown jika ada input
+    if (value.length > 0) {
+      setShowDropdown(true);
+    } else {
+      setShowDropdown(false);
+    }
+  };
+
+  const handleSearchFocus = () => {
+    if (searchQuery.length > 0 || filteredCategories.length > 0) {
+      setShowDropdown(true);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -138,17 +214,54 @@ export default function TicketCategoryModal({
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6">
           {/* Nama Kategori */}
-          <div className="mb-6">
+          <div className="mb-6 relative" ref={dropdownRef}>
             <p className="font-medium mb-1">Nama Kategori *</p>
-            <input
-              type="text"
-              name="name"
-              className="w-full border rounded-lg p-2"
-              placeholder="Contoh: VIP, Reguler, dll"
-              value={formData.name}
-              onChange={handleInputChange}
-              required
-            />
+            <div className="relative">
+              <div className="flex items-center border rounded-lg p-2 bg-white">
+                <Search size={18} className="text-gray-400 mr-2" />
+                <input
+                  type="text"
+                  name="name"
+                  className="w-full outline-none"
+                  placeholder="Ketik atau pilih kategori..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  onFocus={handleSearchFocus}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <ChevronDown size={18} className="text-gray-400" />
+                </button>
+              </div>
+              
+              {/* Dropdown Suggestions */}
+              {showDropdown && (
+                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto mt-1">
+                  {filteredCategories.length > 0 ? (
+                    filteredCategories.map((category, index) => (
+                      <div
+                        key={index}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        onClick={() => handleCategorySelect(category)}
+                      >
+                        {category}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-gray-500 text-center">
+                      Tidak ada kategori yang cocok
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Pilih dari kategori umum atau ketik nama kategori custom
+            </p>
           </div>
 
           {/* Grid Kuota & Harga */}

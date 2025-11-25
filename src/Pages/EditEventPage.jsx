@@ -1,3 +1,4 @@
+// EditEventPage.jsx
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -7,6 +8,61 @@ import TicketCategoryModal from "../components/TicketCategoryModal";
 import NotificationModal from "../components/NotificationModal";
 import useNotification from "../hooks/useNotification";
 
+// Category and Child Category mappings
+const CATEGORIES = {
+  "Hiburan": ["Musik", "Festival", "Konser", "Film & Teater"],
+  "Teknologi": ["Teknologi", "Startup", "Workshop IT", "Gaming"],
+  "Edukasi": ["Seminar", "Workshop", "Pelatihan", "Webinar"],
+  "Olahraga": ["Olah Raga", "Marathon", "Esport", "Horse Race"],
+  "Bisnis & Profesional": ["Bisnis", "Networking", "Karir"],
+  "Seni & Budaya": ["Pameran Seni", "Budaya", "Fotografi"],
+  "Komunitas": ["Komunitas", "Relawan", "Sosial"],
+  "Kuliner": ["Kuliner", "Food Festival"]
+};
+
+// District options
+const DISTRICTS = [
+  "Tegalrejo", "Jetis", "Gondokusuman", "Danurejan", "Gedongtengen", "Ngampilan", "Wirobrajan", "Mantrijeron",
+  "Kraton", "Gondomanan", "Pakualaman", "Mergangsan", "Umbulharjo", "Kotagede"
+];
+
+// Venue options for Yogyakarta
+const YOGYAKARTA_VENUES = [
+  { name: "Jogja Expo Center (JEC)", district: "Mantrijeron", address: "Jl. Raya Janti, Jaranan, Banguntapan, Bantul" },
+  { name: "Benteng Vredeburg", district: "Gondomanan", address: "Jl. Margo Mulyo No.6, Ngupasan, Gondomanan" },
+  { name: "Taman Pintar Yogyakarta", district: "Gondomanan", address: "Jl. Panembahan Senopati No.1-3, Ngupasan, Gondomanan" },
+  { name: "Keraton Ngayogyakarta Hadiningrat", district: "Kraton", address: "Jl. Rotowijayan Blok No. 1, Panembahan, Kraton" },
+  { name: "Alun-Alun Utara Yogyakarta", district: "Kraton", address: "Jl. Suryatmajan, Panembahan, Kraton" },
+  { name: "Alun-Alun Selatan Yogyakarta", district: "Kraton", address: "Jl. Sultan Agung, Patehan, Kraton" },
+  { name: "Taman Sari Yogyakarta", district: "Kraton", address: "Jl. Taman, Patehan, Kraton" },
+  { name: "Malioboro Street", district: "Gedongtengen", address: "Jl. Malioboro, Suryatmajan, Danurejan" },
+  { name: "Pasar Beringharjo", district: "Gedongtengen", address: "Jl. Margo Mulyo No.16, Ngupasan, Gondomanan" },
+  { name: "Universitas Gadjah Mada (UGM)", district: "Sleman", address: "Jl. Bulaksumur, Caturtunggal, Depok, Sleman" },
+  { name: "Ambarukmo Plaza", district: "Sleman", address: "Jl. Laksda Adisucipto No.208, Caturtunggal, Sleman" },
+  { name: "Hartono Mall Yogyakarta", district: "Sleman", address: "Jl. Ring Road Utara, Mlangi, Nogotirto, Gamping, Sleman" },
+  { name: "Jogja City Mall", district: "Sleman", address: "Jl. Magelang Km. 6 No.18, Sinduadi, Mlati, Sleman" },
+  { name: "Plaza Ambarrukmo", district: "Sleman", address: "Jl. Laksda Adisucipto No.208, Caturtunggal, Sleman" },
+  { name: "Saphir Square Mall", district: "Sleman", address: "Jl. Laksda Adisucipto No.208, Demangan, Gondokusuman" },
+  { name: "Titik Nol Kilometer Yogyakarta", district: "Gondomanan", address: "Jl. Pangurakan, Ngupasan, Gondomanan" },
+  { name: "Museum Sonobudoyo", district: "Gondomanan", address: "Jl. Pangurakan No.6, Ngupasan, Gondomanan" },
+  { name: "Candi Prambanan", district: "Sleman", address: "Jl. Raya Solo - Yogyakarta No.16, Kranggan, Bokoharjo, Prambanan, Sleman" },
+  { name: "Candi Borobudur", district: "Magelang", address: "Jl. Badrawati, Borobudur, Magelang" },
+  { name: "Taman Budaya Yogyakarta", district: "Gondokusuman", address: "Jl. Sri Wedari No.1, Baciro, Gondokusuman" },
+  { name: "Auditorium UGM", district: "Sleman", address: "Jl. Olahraga, Caturtunggal, Depok, Sleman" },
+  { name: "Gedung Societet Militer", district: "Gondomanan", address: "Jl. Malioboro No.60, Suryatmajan, Danurejan" },
+  { name: "Gedung PKKH UGM", district: "Sleman", address: "Jl. Olahraga, Bulaksumur, Caturtunggal, Sleman" },
+  { name: "Convention Hall UGM", district: "Sleman", address: "Jl. Pancasila, Bulaksumur, Caturtunggal, Sleman" },
+  { name: "Gedung Serba Guna UIN Sunan Kalijaga", district: "Sleman", address: "Jl. Marsda Adisucipto, Caturtunggal, Depok, Sleman" },
+  { name: "GOR Among Raga", district: "Sleman", address: "Jl. Ring Road Utara, Maguwoharjo, Depok, Sleman" },
+  { name: "GOR Tri Dharma", district: "Sleman", address: "Jl. Colombo No.1, Caturtunggal, Depok, Sleman" },
+  { name: "Stadion Mandala Krida", district: "Gondokusuman", address: "Jl. Bintaran Kulon No.14, Bintaran, Gondokusuman" },
+  { name: "Lapangan Kridosono", district: "Gedongtengen", address: "Jl. Kridosono, Suryatmajan, Danurejan" },
+  { name: "Taman Kuliner UGM", district: "Sleman", address: "Jl. Olahraga, Bulaksumur, Caturtunggal, Sleman" },
+  { name: "Food Festival Jogja", district: "Sleman", address: "Jl. Ring Road Utara, Mlangi, Nogotirto, Gamping, Sleman" },
+  { name: "Piazza Food Court", district: "Sleman", address: "Jl. Laksda Adisucipto No.208, Demangan, Gondokusuman" },
+  { name: "Lainnya", district: "", address: "" }
+];
+
 export default function EditEventPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -15,11 +71,14 @@ export default function EditEventPage() {
   const [formData, setFormData] = useState({
     name: "",
     category: "",
+    child_category: "",
     date_start: "",
     date_end: "",
     location: "",
-    city: "",
+    venue: "",
+    district: "",
     description: "",
+    rules: "",
   });
 
   const [posterFile, setPosterFile] = useState(null);
@@ -30,21 +89,14 @@ export default function EditEventPage() {
   const [loading, setLoading] = useState(false);
   const [event, setEvent] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
-
-  // State untuk modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTicket, setEditingTicket] = useState(null);
-
-  // State untuk kategori custom
-  const [showCustomCategory, setShowCustomCategory] = useState(false);
-  const [customCategory, setCustomCategory] = useState("");
-
-  // State untuk preview gambar
   const [previewImage, setPreviewImage] = useState({
     isOpen: false,
     image: null,
-    type: "" // 'poster' or 'banner'
+    type: ""
   });
+  const [isCustomVenue, setIsCustomVenue] = useState(false);
 
   useEffect(() => {
     const fetchEventData = async () => {
@@ -75,15 +127,22 @@ export default function EditEventPage() {
 
         setEvent(eventData);
         
+        // Check if venue is custom (not in predefined list)
+        const isVenueCustom = !YOGYAKARTA_VENUES.some(venue => venue.name === eventData.venue);
+        setIsCustomVenue(isVenueCustom);
+        
         // Set form data
         setFormData({
           name: eventData.name,
           category: eventData.category,
+          child_category: eventData.child_category || "",
           date_start: eventData.date_start ? new Date(eventData.date_start).toISOString().split('T')[0] : "",
           date_end: eventData.date_end ? new Date(eventData.date_end).toISOString().split('T')[0] : "",
           location: eventData.location,
-          city: eventData.city,
+          venue: eventData.venue || "",
+          district: eventData.district || "",
           description: eventData.description,
+          rules: eventData.rules || "",
         });
 
         // Set current images
@@ -105,20 +164,6 @@ export default function EditEventPage() {
 
         setTicketList(formattedTickets);
 
-        // Check if category is custom
-        const predefinedCategories = [
-          "Musik", "Festival", "Konser", "Film & Teater", "Teknologi", "Startup", 
-          "Workshop IT", "Gaming", "Seminar", "Workshop", "Pelatihan", "Webinar",
-          "Olah Raga", "Marathon", "Esport", "Horse Race", "Bisnis", "Networking",
-          "Karir", "Pameran Seni", "Budaya", "Fotografi", "Komunitas", "Relawan",
-          "Sosial", "Kuliner", "Food Festival", "Lainnya"
-        ];
-
-        if (!predefinedCategories.includes(eventData.category)) {
-          setShowCustomCategory(true);
-          setCustomCategory(eventData.category);
-        }
-
       } catch (error) {
         console.error("Error fetching event data:", error);
         showNotification("Gagal memuat data event", "Error", "error");
@@ -138,36 +183,52 @@ export default function EditEventPage() {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+      ...(name === "category" && { child_category: "" })
     }));
+  };
 
-    if (name === "category") {
-      if (value === "Lainnya") {
-        setShowCustomCategory(true);
-        setCustomCategory("");
-      } else {
-        setShowCustomCategory(false);
-        setCustomCategory("");
+  const handleVenueChange = (e) => {
+    const selectedVenue = e.target.value;
+    
+    if (selectedVenue === "Lainnya") {
+      setIsCustomVenue(true);
+      setFormData(prev => ({
+        ...prev,
+        venue: "",
+        district: "",
+        location: ""
+      }));
+    } else {
+      setIsCustomVenue(false);
+      const venueData = YOGYAKARTA_VENUES.find(venue => venue.name === selectedVenue);
+      if (venueData) {
+        setFormData(prev => ({
+          ...prev,
+          venue: venueData.name,
+          district: venueData.district,
+          location: venueData.address
+        }));
       }
     }
   };
 
-  const handleCustomCategoryChange = (e) => {
-    const value = e.target.value;
-    setCustomCategory(value);
-    setFormData((prev) => ({
+  const handleCustomVenueChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
       ...prev,
-      category: value,
+      [name]: value
     }));
+  };
+
+  const handleTextareaChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleFileChange = (e, type) => {
     const file = e.target.files[0];
     if (file) {
-      if (type === "poster") {
-        setPosterFile(file);
-      } else if (type === "banner") {
-        setBannerFile(file);
-      }
+      type === "poster" ? setPosterFile(file) : setBannerFile(file);
     }
   };
 
@@ -189,11 +250,7 @@ export default function EditEventPage() {
   };
 
   const handleClosePreview = () => {
-    setPreviewImage({
-      isOpen: false,
-      image: null,
-      type: ""
-    });
+    setPreviewImage({ isOpen: false, image: null, type: "" });
   };
 
   const handleAddTicket = (ticket) => {
@@ -241,12 +298,6 @@ export default function EditEventPage() {
       return;
     }
 
-    if (showCustomCategory && !customCategory.trim()) {
-      showNotification("Harap isi kategori event custom!", "Peringatan", "warning");
-      setLoading(false);
-      return;
-    }
-
     try {
       const submitData = new FormData();
 
@@ -263,12 +314,8 @@ export default function EditEventPage() {
       });
 
       // Append files if changed
-      if (posterFile) {
-        submitData.append("image", posterFile);
-      }
-      if (bannerFile) {
-        submitData.append("flyer", bannerFile);
-      }
+      if (posterFile) submitData.append("image", posterFile);
+      if (bannerFile) submitData.append("flyer", bannerFile);
 
       // Append ticket categories
       if (ticketList.length > 0) {
@@ -287,10 +334,7 @@ export default function EditEventPage() {
 
       if (response.data) {
         showNotification("Event berhasil diperbarui!", "Sukses", "success");
-
-        setTimeout(() => {
-          navigate(`/detailEvent/${id}`);
-        }, 2000);
+        setTimeout(() => navigate(`/detailEvent/${id}`), 2000);
       }
     } catch (error) {
       console.error("Error updating event:", error);
@@ -312,14 +356,28 @@ export default function EditEventPage() {
     return bannerFile ? bannerFile.name : (currentBanner ? "Banner saat ini" : "Pilih file");
   };
 
+  const getChildCategories = () => CATEGORIES[formData.category] || [];
+
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      'pending': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
+      'rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Ditolak' },
+      'approved': { bg: 'bg-green-100', text: 'text-green-800', label: 'Disetujui' },
+      'published': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Dipublikasi' }
+    };
+    
+    const config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-800', label: status };
+    return `${config.bg} ${config.text} px-3 py-1 rounded-full text-sm font-medium`;
+  };
+
   if (loading && !event) {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen bg-[#E5E7EB] flex items-center justify-center pt-36">
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center pt-36">
           <div className="flex flex-col items-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-            <div className="text-lg">Memuat data event...</div>
+            <div className="text-lg text-gray-600">Memuat data event...</div>
           </div>
         </div>
       </div>
@@ -330,8 +388,11 @@ export default function EditEventPage() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen bg-[#E5E7EB] flex items-center justify-center pt-36">
-          <div className="text-lg text-red-600">Anda tidak memiliki akses untuk mengedit event ini</div>
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center pt-36">
+          <div className="text-center">
+            <div className="text-red-600 text-lg font-semibold mb-2">Akses Ditolak</div>
+            <div className="text-gray-600">Anda tidak memiliki akses untuk mengedit event ini</div>
+          </div>
         </div>
       </div>
     );
@@ -356,10 +417,7 @@ export default function EditEventPage() {
               <h3 className="text-lg font-bold">
                 Preview {previewImage.type === 'poster' ? 'Poster' : 'Banner'}
               </h3>
-              <button
-                onClick={handleClosePreview}
-                className="p-1 hover:bg-gray-100 rounded-full"
-              >
+              <button onClick={handleClosePreview} className="p-1 hover:bg-gray-100 rounded-full">
                 <X size={24} />
               </button>
             </div>
@@ -380,299 +438,387 @@ export default function EditEventPage() {
         onAddTicket={handleAddTicket}
         onUpdateTicket={handleUpdateTicket}
         editingTicket={editingTicket}
-        eventDates={{
-          start: formData.date_start,
-          end: formData.date_end
-        }}
+        eventDates={{ start: formData.date_start, end: formData.date_end }}
       />
 
-      <div className="min-h-screen bg-gray-200 flex items-start justify-center p-4 overflow-auto">
-        <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-40 bg-white shadow-xl p-8 rounded-2xl">
-          {/* Header dengan tombol kembali */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate(`/detailEvent/${id}`)}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
-              >
-                <ArrowLeft size={20} />
-                Kembali ke Detail Event
-              </button>
-              <h1 className="text-2xl font-bold">Edit Event</h1>
-            </div>
-            {event && (
-              <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                event.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                event.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                Status: {event.status === 'pending' ? 'Pending' : 'Ditolak'}
-              </div>
-            )}
-          </div>
-
-          <form onSubmit={handleSubmit}>
-            {/* FORM GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Nama Event */}
-              <div>
-                <p className="font-medium mb-1">Nama Event :</p>
-                <input
-                  type="text"
-                  name="name"
-                  className="w-full border rounded-lg p-2"
-                  placeholder="Masukkan nama event"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              {/* Kategori Event */}
-              <div>
-                <p className="font-medium mb-1">Kategori Event :</p>
-                <select
-                  name="category"
-                  className="w-full border rounded-lg p-2"
-                  value={showCustomCategory ? "Lainnya" : formData.category}
-                  onChange={handleInputChange}
-                  required
+      <div className="min-h-screen bg-gray-100 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 mt-32">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => navigate(`/detailEvent/${id}`)}
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors p-2 rounded-lg hover:bg-gray-100"
                 >
-                  <option value="">Pilih kategori event</option>
-                  <option value="Musik">Musik</option>
-                  <option value="Festival">Festival</option>
-                  <option value="Konser">Konser</option>
-                  <option value="Film & Teater">Film & Teater</option>
-                  <option value="Teknologi">Teknologi</option>
-                  <option value="Startup">Startup</option>
-                  <option value="Workshop IT">Workshop IT</option>
-                  <option value="Gaming">Gaming</option>
-                  <option value="Seminar">Seminar</option>
-                  <option value="Workshop">Workshop</option>
-                  <option value="Pelatihan">Pelatihan</option>
-                  <option value="Webinar">Webinar</option>
-                  <option value="Olah Raga">Olah Raga</option>
-                  <option value="Marathon">Marathon</option>
-                  <option value="Esport">Esport</option>
-                  <option value="Horse Race">Horse Race</option>
-                  <option value="Bisnis">Bisnis</option>
-                  <option value="Networking">Networking</option>
-                  <option value="Karir">Karir</option>
-                  <option value="Pameran Seni">Pameran Seni</option>
-                  <option value="Budaya">Budaya</option>
-                  <option value="Fotografi">Fotografi</option>
-                  <option value="Komunitas">Komunitas</option>
-                  <option value="Relawan">Relawan</option>
-                  <option value="Sosial">Sosial</option>
-                  <option value="Kuliner">Kuliner</option>
-                  <option value="Food Festival">Food Festival</option>
-                  <option value="Lainnya">Lainnya</option>
-                </select>
-
-                {showCustomCategory && (
-                  <div className="mt-2">
-                    <p className="font-medium mb-1">Kategori Custom :</p>
-                    <input
-                      type="text"
-                      className="w-full border rounded-lg p-2"
-                      placeholder="Masukkan kategori event custom"
-                      value={customCategory}
-                      onChange={handleCustomCategoryChange}
-                      required
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Poster Event */}
-              <div>
-                <p className="font-medium mb-1">Pilih poster event : (1x1)</p>
-                <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-2 border rounded-lg p-2 cursor-pointer flex-1">
-                    <Folder color="#0C8CE9"/>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange(e, "poster")}
-                    />
-                    <span className="flex-1">{getPosterFileName()}</span>
-                  </label>
-                  {(posterFile || currentPoster) && (
-                    <button
-                      type="button"
-                      onClick={() => handlePreviewImage('poster')}
-                      className="flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-200"
-                    >
-                      <Eye size={16} />
-                      Preview
-                    </button>
-                  )}
+                  <ArrowLeft size={20} />
+                  <span className="font-medium">Kembali</span>
+                </button>
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Edit Event</h1>
+                  <p className="text-gray-600 mt-1">Perbarui informasi event Anda</p>
                 </div>
               </div>
-
-              {/* Banner Event */}
-              <div>
-                <p className="font-medium mb-1">Pilih banner event : (16x6)</p>
-                <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-2 border rounded-lg p-2 cursor-pointer flex-1">
-                    <Folder color="#0C8CE9"/>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange(e, "banner")}
-                    />
-                    <span className="flex-1">{getBannerFileName()}</span>
-                  </label>
-                  {(bannerFile || currentBanner) && (
-                    <button
-                      type="button"
-                      onClick={() => handlePreviewImage('banner')}
-                      className="flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-200"
-                    >
-                      <Eye size={16} />
-                      Preview
-                    </button>
-                  )}
+              
+              {event && (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-500 font-medium">Status:</span>
+                  <span className={getStatusBadge(event.status)}>
+                    {event.status === 'pending' ? 'Pending' : 
+                     event.status === 'rejected' ? 'Ditolak' : 
+                     event.status === 'approved' ? 'Disetujui' : 
+                     event.status === 'published' ? 'Dipublikasi' : event.status}
+                  </span>
                 </div>
-              </div>
-
-              {/* Tanggal Mulai */}
-              <div>
-                <p className="font-medium mb-1">Tanggal event :</p>
-                <label className="flex items-center gap-2 border rounded-lg p-2">
-                  <Calendar color="#0C8CE9"/>
-                  <input
-                    type="date"
-                    name="date_start"
-                    className="w-full outline-none"
-                    value={formData.date_start}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </label>
-              </div>
-
-              {/* Tanggal Selesai */}
-              <div>
-                <p className="font-medium mb-1">Tanggal event berakhir :</p>
-                <label className="flex items-center gap-2 border rounded-lg p-2">
-                  <Calendar color="#0C8CE9"/>
-                  <input
-                    type="date"
-                    name="date_end"
-                    className="w-full outline-none"
-                    value={formData.date_end}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </label>
-              </div>
-
-              {/* Lokasi */}
-              <div>
-                <p className="font-medium mb-1">Lokasi Event :</p>
-                <input
-                  type="text"
-                  name="location"
-                  className="w-full border rounded-lg p-2"
-                  placeholder="Masukkan lokasi event"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              {/* Kota */}
-              <div>
-                <p className="font-medium mb-1">Kota :</p>
-                <input
-                  type="text"
-                  name="city"
-                  className="w-full border rounded-lg p-2"
-                  placeholder="Masukkan kota"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Deskripsi */}
-            <div className="mt-6">
-              <p className="font-medium mb-1">Deskripsi event :</p>
-              <textarea
-                rows={4}
-                name="description"
-                className="w-full border rounded-lg p-2"
-                placeholder="Masukkan deskripsi event"
-                value={formData.description}
-                onChange={handleInputChange}
-                required
-              ></textarea>
-            </div>
-
-            {/* Tombol Tambah Kategori Tiket */}
-            <button
-              type="button"
-              onClick={handleAddTicketClick}
-              className="mt-6 flex items-center gap-2 bg-[#044888] text-white px-4 py-2 rounded-lg hover:bg-[#0C8CE9]"
-            >
-              <Plus />
-              Tambah Kategori Tiket
-            </button>
-
-            {/* LIST KATEGORI TIKET */}
-            <div className="mt-6 space-y-4">
-              {ticketList.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">
-                  Belum ada kategori tiket. Klik tombol di atas untuk menambah.
-                </p>
-              ) : (
-                ticketList.map((t) => (
-                  <div key={t.id} className="border rounded-lg p-4 shadow-sm">
-                    <p className="font-semibold">{t.name}</p>
-                    <p className="text-sm text-gray-600">{t.description}</p>
-                    <p className="text-lg font-bold mt-1">
-                      Rp {parseFloat(t.price).toLocaleString("id-ID")}
-                    </p>
-                    <p className="text-sm text-gray-600">Kuota: {t.quota}</p>
-                    <p className="text-sm text-gray-600">
-                      {t.date_start} {t.time_start} - {t.date_end} {t.time_end}
-                    </p>
-
-                    <div className="flex gap-4 mt-3">
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
-                        onClick={() => handleEditTicket(t)}
-                      >
-                        <Pencil size={18} /> Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 text-red-700 hover:text-red-900"
-                        onClick={() => removeTicketCategory(t.id)}
-                      >
-                        <Trash2 size={18} /> Hapus
-                      </button>
-                    </div>
-                  </div>
-                ))
               )}
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="mt-8 w-full bg-[#044888] text-white py-3 rounded-lg hover:bg-[#0C8CE9] text-lg font-semibold disabled:bg-gray-400 flex items-center justify-center gap-2"
-            >
-              <Save size={20} />
-              {loading ? "Menyimpan Perubahan..." : "Simpan Perubahan"}
-            </button>
-          </form>
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Informasi Dasar Event */}
+              <div className="bg-gray-50 rounded-xl p-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-6">Informasi Dasar Event</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Nama Event *</label>
+                    <input
+                      type="text"
+                      name="name"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      placeholder="Masukkan nama event"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Kategori Event *</label>
+                    <select
+                      name="category"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      value={formData.category}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="">Pilih kategori event</option>
+                      {Object.keys(CATEGORIES).map((category) => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Sub Kategori Event *</label>
+                    <select
+                      name="child_category"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100"
+                      value={formData.child_category}
+                      onChange={handleInputChange}
+                      required
+                      disabled={!formData.category}
+                    >
+                      <option value="">Pilih sub kategori</option>
+                      {getChildCategories().map((childCategory) => (
+                        <option key={childCategory} value={childCategory}>{childCategory}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Kecamatan *</label>
+                    <select
+                      name="district"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      value={formData.district}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="">Pilih kecamatan</option>
+                      {DISTRICTS.map((district) => (
+                        <option key={district} value={district}>{district}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Media Event */}
+              <div className="bg-gray-50 rounded-xl p-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-6">Media Event</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-gray-700">Poster Event (1:1) *</label>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-3 border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-blue-400 transition-colors flex-1">
+                        <Folder className="text-blue-500" size={24} />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-700">{getPosterFileName()}</p>
+                          <p className="text-xs text-gray-500">
+                            {posterFile ? "File baru dipilih" : currentPoster ? "Gunakan file saat ini" : "Klik untuk memilih file"}
+                          </p>
+                        </div>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(e, "poster")}
+                        />
+                      </label>
+                      {(posterFile || currentPoster) && (
+                        <button
+                          type="button"
+                          onClick={() => handlePreviewImage('poster')}
+                          className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-3 rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                          <Eye size={18} />
+                          Preview
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-gray-700">Banner Event (16:6) *</label>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-3 border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-blue-400 transition-colors flex-1">
+                        <Folder className="text-blue-500" size={24} />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-700">{getBannerFileName()}</p>
+                          <p className="text-xs text-gray-500">
+                            {bannerFile ? "File baru dipilih" : currentBanner ? "Gunakan file saat ini" : "Klik untuk memilih file"}
+                          </p>
+                        </div>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(e, "banner")}
+                        />
+                      </label>
+                      {(bannerFile || currentBanner) && (
+                        <button
+                          type="button"
+                          onClick={() => handlePreviewImage('banner')}
+                          className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-3 rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                          <Eye size={18} />
+                          Preview
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Waktu & Lokasi */}
+              <div className="bg-gray-50 rounded-xl p-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-6">Waktu & Lokasi</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Tanggal Mulai *</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-colors">
+                      <Calendar className="text-blue-500 mr-3" size={20} />
+                      <input
+                        type="date"
+                        name="date_start"
+                        className="w-full outline-none bg-transparent"
+                        value={formData.date_start}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Tanggal Selesai *</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-colors">
+                      <Calendar className="text-blue-500 mr-3" size={20} />
+                      <input
+                        type="date"
+                        name="date_end"
+                        className="w-full outline-none bg-transparent"
+                        value={formData.date_end}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Venue *</label>
+                    {!isCustomVenue ? (
+                      <select
+                        name="venue"
+                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        value={formData.venue}
+                        onChange={handleVenueChange}
+                        required
+                      >
+                        <option value="">Pilih venue</option>
+                        {YOGYAKARTA_VENUES.map((venue) => (
+                          <option key={venue.name} value={venue.name}>
+                            {venue.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        name="venue"
+                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        placeholder="Masukkan nama venue"
+                        value={formData.venue}
+                        onChange={handleCustomVenueChange}
+                        required
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomVenue(!isCustomVenue)}
+                      className="text-sm text-blue-600 hover:text-blue-800 mt-1"
+                    >
+                      {isCustomVenue ? "Pilih dari daftar venue" : "Venue tidak ada di daftar? Klik di sini"}
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Alamat Lengkap *</label>
+                    <textarea
+                      name="location"
+                      rows={3}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-vertical"
+                      placeholder="Masukkan alamat lengkap venue"
+                      value={formData.location}
+                      onChange={handleCustomVenueChange}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Deskripsi & Peraturan */}
+              <div className="bg-gray-50 rounded-xl p-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-6">Informasi Tambahan</h2>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Deskripsi Event *</label>
+                    <textarea
+                      rows={4}
+                      name="description"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-vertical"
+                      placeholder="Jelaskan detail event Anda (tekan Enter untuk baris baru)"
+                      value={formData.description}
+                      onChange={handleTextareaChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Peraturan Event</label>
+                    <textarea
+                      rows={4}
+                      name="rules"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-vertical"
+                      placeholder="Masukkan peraturan event (tekan Enter untuk baris baru)"
+                      value={formData.rules}
+                      onChange={handleTextareaChange}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Kategori Tiket */}
+              <div className="bg-gray-50 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-800">Kategori Tiket</h2>
+                  <button
+                    type="button"
+                    onClick={handleAddTicketClick}
+                    className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus size={20} />
+                    Tambah Kategori Tiket
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {ticketList.length === 0 ? (
+                    <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-xl">
+                      <Folder className="mx-auto text-gray-400 mb-3" size={48} />
+                      <p className="text-gray-500 font-medium">Belum ada kategori tiket</p>
+                      <p className="text-gray-400 text-sm mt-1">Klik tombol di atas untuk menambahkan kategori tiket pertama</p>
+                    </div>
+                  ) : (
+                    ticketList.map((t) => (
+                      <div key={t.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="font-semibold text-lg text-gray-900">{t.name}</h3>
+                              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                Rp {parseFloat(t.price).toLocaleString("id-ID")}
+                              </span>
+                            </div>
+                            {t.description && (
+                              <p className="text-gray-600 text-sm mb-3">{t.description}</p>
+                            )}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-500">
+                              <div>
+                                <span className="font-medium">Kuota:</span> {t.quota} tiket
+                              </div>
+                              <div>
+                                <span className="font-medium">Mulai:</span> {t.date_start} {t.time_start}
+                              </div>
+                              <div>
+                                <span className="font-medium">Selesai:</span> {t.date_end} {t.time_end}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <button
+                              type="button"
+                              onClick={() => handleEditTicket(t)}
+                              className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-100 transition-colors"
+                            >
+                              <Pencil size={16} />
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeTicketCategory(t.id)}
+                              className="flex items-center gap-2 bg-red-50 text-red-700 px-3 py-2 rounded-lg hover:bg-red-100 transition-colors"
+                            >
+                              <Trash2 size={16} />
+                              Hapus
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/detailEvent/${id}`)}
+                  className="flex-1 border border-gray-300 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <Save size={20} />
+                  {loading ? "Menyimpan Perubahan..." : "Simpan Perubahan"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>
