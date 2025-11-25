@@ -49,6 +49,7 @@ export default function RiwayatTransaksi() {
                 year: 'numeric'
               }),
               image: event.image,
+              eventSubtotal: event.event_subtotal, // Tambahkan event_subtotal dari backend
               details: groupTicketsByCategory(event.ticket_details)
             }))
           }));
@@ -70,6 +71,11 @@ export default function RiwayatTransaksi() {
 
   // Function untuk mengelompokkan tiket berdasarkan kategori
   const groupTicketsByCategory = (ticketDetails) => {
+    // Jika tidak ada ticket details, kembalikan array kosong
+    if (!ticketDetails || ticketDetails.length === 0) {
+      return [];
+    }
+    
     const grouped = {};
     
     ticketDetails.forEach(ticket => {
@@ -172,8 +178,14 @@ export default function RiwayatTransaksi() {
     setSelectedTicket(null);
   };
 
-  // Hitung total per event
+  // Hitung total per event - dengan fallback ke eventSubtotal dari backend
   const calculateEventTotal = (event) => {
+    // Jika event memiliki event_subtotal dari backend, gunakan itu
+    if (event.eventSubtotal !== undefined && event.eventSubtotal !== null) {
+      return event.eventSubtotal;
+    }
+    
+    // Fallback: hitung manual dari details
     return event.details.reduce((total, detail) => total + (detail.price * detail.quantity), 0);
   };
 
@@ -326,49 +338,57 @@ export default function RiwayatTransaksi() {
 
                           {/* Detail Tiket per Event */}
                           <div className="space-y-3">
-                            {event.details.map((detail, detailIndex) => (
-                              <div key={detailIndex} className="p-3 bg-white rounded-lg border border-gray-300">
-                                <div className="flex justify-between items-start mb-2">
-                                  <div className="flex-1">
-                                    <h5 className="font-semibold text-gray-900 text-sm">{detail.type}</h5>
-                                    <div className="flex items-center gap-2 text-gray-600 text-xs mt-1">
-                                      <div className="flex items-center gap-1">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                        <span>{formatDateRange(detail.startDate, detail.endDate)}</span>
+                            {event.details.length > 0 ? (
+                              event.details.map((detail, detailIndex) => (
+                                <div key={detailIndex} className="p-3 bg-white rounded-lg border border-gray-300">
+                                  <div className="flex justify-between items-start mb-2">
+                                    <div className="flex-1">
+                                      <h5 className="font-semibold text-gray-900 text-sm">{detail.type}</h5>
+                                      <div className="flex items-center gap-2 text-gray-600 text-xs mt-1">
+                                        <div className="flex items-center gap-1">
+                                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                          </svg>
+                                          <span>{formatDateRange(detail.startDate, detail.endDate)}</span>
+                                        </div>
+                                        <span>•</span>
+                                        <span>Qty: {detail.quantity}</span>
                                       </div>
-                                      <span>•</span>
-                                      <span>Qty: {detail.quantity}</span>
+                                    </div>
+                                    {detail.tickets && detail.tickets.length > 0 && (
+                                      <button
+                                        onClick={() => handleShowDetail(transaction, event, detail)}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm whitespace-nowrap ml-4"
+                                      >
+                                        Rincian Tiket
+                                      </button>
+                                    )}
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <p className="text-gray-600 text-xs mb-1">
+                                        {detail.description}
+                                      </p>
+                                      <p className="text-gray-500 text-xs">
+                                        {detail.quantity} tiket
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="font-bold text-gray-900 text-sm">
+                                        {formatCurrency(detail.price)} × {detail.quantity}
+                                      </p>
+                                      <p className="font-bold text-gray-900">
+                                        {formatCurrency(detail.price * detail.quantity)}
+                                      </p>
                                     </div>
                                   </div>
-                                  <button
-                                    onClick={() => handleShowDetail(transaction, event, detail)}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm whitespace-nowrap ml-4"
-                                  >
-                                    Rincian Tiket
-                                  </button>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                  <div>
-                                    <p className="text-gray-600 text-xs mb-1">
-                                      {detail.description}
-                                    </p>
-                                    <p className="text-gray-500 text-xs">
-                                      {detail.quantity} tiket
-                                    </p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="font-bold text-gray-900 text-sm">
-                                      {formatCurrency(detail.price)} × {detail.quantity}
-                                    </p>
-                                    <p className="font-bold text-gray-900">
-                                      {formatCurrency(detail.price * detail.quantity)}
-                                    </p>
-                                  </div>
-                                </div>
+                              ))
+                            ) : (
+                              <div className="p-3 bg-white rounded-lg border border-gray-300 text-center">
+                                <p className="text-gray-500 text-sm">Detail tiket tidak tersedia</p>
                               </div>
-                            ))}
+                            )}
                           </div>
 
                           {/* Total per Event */}
@@ -467,7 +487,7 @@ export default function RiwayatTransaksi() {
                           </div>
                           <div className="flex justify-between mt-1">
                             <span className="text-gray-600">Status:</span>
-                            <span className={`font-semibold ${ticket.status === 'active' ? 'text-green-600' : 'text-blue-600'}`}>
+                            <span className={`font-semibold ${ticket.status === 'active' ? 'text-green-600' : ticket.status === 'checked_in' ? 'text-blue-600' : 'text-gray-600'}`}>
                               {ticket.status === 'active' ? 'Aktif' : ticket.status === 'checked_in' ? 'Sudah Check-in' : ticket.status}
                             </span>
                           </div>
