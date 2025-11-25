@@ -63,6 +63,17 @@ const YOGYAKARTA_VENUES = [
   { name: "Lainnya", district: "", address: "" }
 ];
 
+// Komponen untuk menampilkan deskripsi dengan newline
+const DescriptionWithNewlines = ({ text }) => {
+  if (!text) return null;
+  
+  return (
+    <div className="text-gray-600 text-sm mb-3 whitespace-pre-line">
+      {text}
+    </div>
+  );
+};
+
 export default function EditEventPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -760,7 +771,7 @@ export default function EditEventPage() {
                               </span>
                             </div>
                             {t.description && (
-                              <p className="text-gray-600 text-sm mb-3">{t.description}</p>
+                              <DescriptionWithNewlines text={t.description} />
                             )}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-500">
                               <div>
