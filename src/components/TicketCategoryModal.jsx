@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Calendar, X, Clock } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Calendar, X, Clock, ChevronDown, Search } from "lucide-react";
 import useNotification from "../hooks/useNotification"; 
 
 export default function TicketCategoryModal({ 
@@ -21,8 +21,32 @@ export default function TicketCategoryModal({
     description: ""
   });
 
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef(null);
+
   // Gunakan hook useNotification
   const { showNotification } = useNotification();
+
+  // Daftar kategori bawaan
+  const predefinedCategories = [
+    "Regular",
+    "VIP", 
+    "VVIP",
+    "Anak-anak",
+    "Remaja",
+    "Dewasa",
+    "Early Bird",
+    "Presale",
+    "General Admission",
+    "Student",
+    "Senior"
+  ];
+
+  // Filter kategori berdasarkan pencarian
+  const filteredCategories = predefinedCategories.filter(category =>
+    category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // Reset form ketika modal dibuka atau ticket yang diedit berubah
   useEffect(() => {
@@ -38,6 +62,7 @@ export default function TicketCategoryModal({
           time_end: editingTicket.time_end || "23:59",
           description: editingTicket.description || ""
         });
+        setSearchQuery(editingTicket.name || "");
       } else {
         // Set default dates from event dates if available
         setFormData({
@@ -50,9 +75,24 @@ export default function TicketCategoryModal({
           time_end: "23:59",
           description: ""
         });
+        setSearchQuery("");
       }
     }
   }, [isOpen, editingTicket, eventDates]);
+
+  // Handle click outside untuk menutup dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -60,6 +100,48 @@ export default function TicketCategoryModal({
       ...prev,
       [name]: value
     }));
+
+    // Jika mengubah field name, update juga search query
+    if (name === "name") {
+      setSearchQuery(value);
+    }
+  };
+
+  const handleTextareaChange = (e) => {
+    const { name, value } = e.target;
+    // Tidak perlu memproses value, biarkan newline characters tetap ada
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCategorySelect = (category) => {
+    setFormData(prev => ({
+      ...prev,
+      name: category
+    }));
+    setSearchQuery(category);
+    setShowDropdown(false);
+  };
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setFormData(prev => ({
+      ...prev,
+      name: value
+    }));
+    
+    // Tampilkan dropdown jika ada input
+    if (value.length > 0) {
+      setShowDropdown(true);
+    } else {
+      setShowDropdown(false);
+    }
+  };
+
+  const handleSearchFocus = () => {
+    if (searchQuery.length > 0 || filteredCategories.length > 0) {
+      setShowDropdown(true);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -86,6 +168,9 @@ export default function TicketCategoryModal({
       quota: parseInt(formData.quota),
       id: editingTicket ? editingTicket.id : Date.now()
     };
+
+    // Pastikan description dengan newline tersimpan dengan benar
+    // Tidak perlu processing karena React sudah menjaga newline characters
 
     if (editingTicket) {
       onUpdateTicket(ticketData);
@@ -123,47 +208,79 @@ export default function TicketCategoryModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-xl font-bold">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-gray-900">
             {editingTicket ? "Edit Kategori Tiket" : "Tambah Kategori Tiket"}
           </h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-full"
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
           >
-            <X size={24} />
+            <X size={24} className="text-gray-600" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Nama Kategori */}
-          <div className="mb-6">
-            <p className="font-medium mb-1">Nama Kategori *</p>
-            <input
-              type="text"
-              name="name"
-              className="w-full border rounded-lg p-2"
-              placeholder="Contoh: VIP, Reguler, dll"
-              value={formData.name}
-              onChange={handleInputChange}
-              required
-            />
+          <div className="space-y-2 relative" ref={dropdownRef}>
+            <label className="block text-sm font-medium text-gray-700">Nama Kategori *</label>
+            <div className="relative">
+              <div className="flex items-center border border-gray-300 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-colors">
+                <Search size={18} className="text-gray-400 mr-3" />
+                <input
+                  type="text"
+                  name="name"
+                  className="w-full outline-none bg-transparent"
+                  placeholder="Ketik atau pilih kategori..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  onFocus={handleSearchFocus}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="p-1 hover:bg-gray-100 rounded transition-colors"
+                >
+                  <ChevronDown size={18} className="text-gray-400" />
+                </button>
+              </div>
+              
+              {/* Dropdown Suggestions */}
+              {showDropdown && (
+                <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto mt-1">
+                  {filteredCategories.length > 0 ? (
+                    filteredCategories.map((category, index) => (
+                      <div
+                        key={index}
+                        className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                        onClick={() => handleCategorySelect(category)}
+                      >
+                        {category}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-gray-500 text-center">
+                      Tidak ada kategori yang cocok
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-500">
+              Pilih dari kategori umum atau ketik nama kategori custom
+            </p>
           </div>
 
           {/* Grid Kuota & Harga */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <p className="font-medium mb-1">Kuota pengunjung *</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Kuota Tiket *</label>
               <input 
                 type="number" 
                 name="quota"
-                className="w-full border rounded-lg p-2
-             [&::-webkit-outer-spin-button]:bg-white
-             [&::-webkit-outer-spin-button]:rounded-r-md
-             [&::-webkit-inner-spin-button]:bg-black 
-             [&::-webkit-inner-spin-button]:rounded-r-md
-             [&::-webkit-inner-spin-button]:mr-1" 
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 placeholder="0"
                 min="1"
                 value={formData.quota}
@@ -172,17 +289,12 @@ export default function TicketCategoryModal({
               />
             </div>
 
-            <div>
-              <p className="font-medium mb-1">Harga tiket *</p>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Harga Tiket (Rp) *</label>
               <input 
                 type="number" 
                 name="price"
-                className="w-full border rounded-lg p-2
-                         [&::-webkit-outer-spin-button]:bg-white
-                         [&::-webkit-outer-spin-button]:rounded-r-md
-                         [&::-webkit-inner-spin-button]:bg-black 
-                         [&::-webkit-inner-spin-button]:rounded-r-md
-                         [&::-webkit-inner-spin-button]:mr-1" 
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 placeholder="0"
                 min="0"
                 step="1000"
@@ -194,28 +306,28 @@ export default function TicketCategoryModal({
           </div>
 
           {/* Tanggal & Waktu Tiket */}
-          <div className="space-y-4 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="font-medium mb-1">Tanggal mulai *</p>
-                <div className="flex gap-2">
-                  <label className="flex items-center gap-2 border rounded-lg p-2 flex-1">
-                    <Calendar size={18} color="#0C8CE9" />
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Tanggal Mulai *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center border border-gray-300 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-colors">
+                    <Calendar className="text-blue-500 mr-3" size={20} />
                     <input 
                       type="date" 
                       name="date_start"
-                      className="w-full outline-none" 
+                      className="w-full outline-none bg-transparent" 
                       value={formData.date_start}
                       onChange={handleInputChange}
                       required
                       min={eventDates?.start || undefined}
                     />
-                  </label>
-                  <label className="flex items-center gap-2 border rounded-lg p-2 flex-1">
-                    <Clock size={18} color="#0C8CE9" />
+                  </div>
+                  <div className="flex items-center border border-gray-300 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-colors">
+                    <Clock className="text-blue-500 mr-3" size={20} />
                     <select
                       name="time_start"
-                      className="w-full outline-none bg-white"
+                      className="w-full outline-none bg-transparent"
                       value={formData.time_start}
                       onChange={handleInputChange}
                       required
@@ -226,30 +338,30 @@ export default function TicketCategoryModal({
                         </option>
                       ))}
                     </select>
-                  </label>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <p className="font-medium mb-1">Tanggal selesai *</p>
-                <div className="flex gap-2">
-                  <label className="flex items-center gap-2 border rounded-lg p-2 flex-1">
-                    <Calendar size={18} color="#0C8CE9"/>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Tanggal Selesai *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center border border-gray-300 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-colors">
+                    <Calendar className="text-blue-500 mr-3" size={20} />
                     <input 
                       type="date" 
                       name="date_end"
-                      className="w-full outline-none" 
+                      className="w-full outline-none bg-transparent" 
                       value={formData.date_end}
                       onChange={handleInputChange}
                       required
                       min={formData.date_start || eventDates?.start || undefined}
                     />
-                  </label>
-                  <label className="flex items-center gap-2 border rounded-lg p-2 flex-1">
-                    <Clock size={18} color="#0C8CE9"/>
+                  </div>
+                  <div className="flex items-center border border-gray-300 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-colors">
+                    <Clock className="text-blue-500 mr-3" size={20} />
                     <select
                       name="time_end"
-                      className="w-full outline-none bg-white"
+                      className="w-full outline-none bg-transparent"
                       value={formData.time_end}
                       onChange={handleInputChange}
                       required
@@ -260,46 +372,49 @@ export default function TicketCategoryModal({
                         </option>
                       ))}
                     </select>
-                  </label>
+                  </div>
                 </div>
               </div>
             </div>
             
             {/* Info tanggal event */}
             {eventDates?.start && eventDates?.end && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-800">
-                  <strong>Info:</strong> Tanggal event utama: {eventDates.start} hingga {eventDates.end}
+                  <strong>Info:</strong> Tanggal event utama: {new Date(eventDates.start).toLocaleDateString('id-ID')} hingga {new Date(eventDates.end).toLocaleDateString('id-ID')}
                 </p>
               </div>
             )}
           </div>
 
-          {/* Keterangan */}
-          <div className="mb-8">
-            <p className="font-medium mb-1">Keterangan Tiket</p>
+          {/* Deskripsi */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">Deskripsi Tiket</label>
             <textarea
               rows={4}
               name="description"
-              className="w-full border rounded-lg p-2"
-              placeholder="Tambahkan detail atau syarat untuk kategori tiket ini"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-vertical whitespace-pre-wrap"
+              placeholder="Tambahkan detail atau syarat untuk kategori tiket ini (tekan Enter untuk baris baru)"
               value={formData.description}
-              onChange={handleInputChange}
-            ></textarea>
+              onChange={handleTextareaChange}
+            />
+            <p className="text-xs text-gray-500">
+              Tekan Enter untuk membuat baris baru. Baris baru akan tetap tersimpan dan ditampilkan.
+            </p>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-4">
+          <div className="flex gap-4 pt-4 border-t border-gray-200">
             <button
               type="button"
               onClick={handleCancel}
-              className="flex-1 bg-red-500 text-white py-3 rounded-lg hover:bg-red-400 text-lg font-semibold"
+              className="flex-1 border border-gray-300 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-50 transition-colors font-medium"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="flex-1 bg-[#044888] text-white py-3 rounded-lg hover:bg-[#0C8CE9] text-lg font-semibold"
+              className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
               {editingTicket ? "Update Kategori Tiket" : "Tambah Kategori Tiket"}
             </button>
