@@ -411,9 +411,6 @@ export default function VerifikasiEventPage() {
                   rows="3"
                   placeholder="Berikan komentar atau alasan verifikasi..."
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Tekan Enter untuk membuat baris baru
-                </p>
               </div>
             </div>
 

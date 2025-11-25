@@ -1,8 +1,8 @@
 // EditEventPage.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { Calendar, Folder, Plus, Pencil, Trash2, Eye, X, Save, ArrowLeft } from "lucide-react";
+import { Calendar, Folder, Plus, Pencil, Trash2, Eye, X, Save, ArrowLeft, Search } from "lucide-react";
 import { eventAPI } from "../services/api";
 import TicketCategoryModal from "../components/TicketCategoryModal";
 import NotificationModal from "../components/NotificationModal";
@@ -10,56 +10,121 @@ import useNotification from "../hooks/useNotification";
 
 // Category and Child Category mappings
 const CATEGORIES = {
-  "Hiburan": ["Musik", "Festival", "Konser", "Film & Teater"],
-  "Teknologi": ["Teknologi", "Startup", "Workshop IT", "Gaming"],
-  "Edukasi": ["Seminar", "Workshop", "Pelatihan", "Webinar"],
-  "Olahraga": ["Olah Raga", "Marathon", "Esport", "Horse Race"],
-  "Bisnis & Profesional": ["Bisnis", "Networking", "Karir"],
-  "Seni & Budaya": ["Pameran Seni", "Budaya", "Fotografi"],
-  "Komunitas": ["Komunitas", "Relawan", "Sosial"],
-  "Kuliner": ["Kuliner", "Food Festival"]
+  "Hiburan": [
+    "Musik", "Konser", "Festival", "Stand Up Comedy",
+    "Film", "Teater", "K-Pop", "Dance Performance"
+  ],
+  "Teknologi": [
+    "Konferensi Teknologi", "Workshop IT", "Startup",
+    "Software Development", "Artificial Intelligence",
+    "Data Science", "Cybersecurity", "Gaming & Esports"
+  ],
+  "Edukasi": [
+    "Seminar", "Workshop", "Pelatihan", "Webinar",
+    "Bootcamp", "Kelas Online", "Literasi Digital", "Kelas Bisnis"
+  ],
+  "Olahraga": [
+    "Marathon", "Fun Run", "Sepak Bola", "Badminton",
+    "Gym & Fitness", "Yoga", "Esport", "Cycling Event"
+  ],
+  "Bisnis & Profesional": [
+    "Konferensi Bisnis", "Networking", "Karir",
+    "Entrepreneurship", "Leadership", "Startup Meetup",
+    "Investor & Pitching"
+  ],
+  "Seni & Budaya": [
+    "Pameran Seni", "Pentas Budaya", "Fotografi",
+    "Seni Rupa", "Crafting", "Pameran Museum",
+    "Fashion Show"
+  ],
+  "Komunitas": [
+    "Kegiatan Relawan", "Kegiatan Sosial", "Gathering Komunitas",
+    "Komunitas Hobi", "Meetup", "Charity Event"
+  ],
+  "Kuliner": [
+    "Festival Kuliner", "Food Tasting", "Workshop Memasak",
+    "Street Food Event"
+  ],
+  "Kesehatan": [
+    "Seminar Kesehatan", "Medical Check Event",
+    "Workshop Kesehatan Mental", "Donor Darah"
+  ],
+  "Agama & Spiritual": [
+    "Kajian", "Retreat", "Pengajian", "Event Keagamaan",
+    "Meditasi"
+  ],
+  "Travel & Outdoor": [
+    "Camping", "Hiking", "Trip Wisata", "Outdoor Gathering",
+    "Photography Trip"
+  ],
+  "Keluarga & Anak": [
+    "Family Gathering", "Event Anak", "Workshop Parenting",
+    "Pentas Anak"
+  ],
+  "Fashion & Beauty": [
+    "Fashion Expo", "Beauty Class", "Makeup Workshop",
+    "Brand Launching"
+  ]
 };
 
 // District options
 const DISTRICTS = [
-  "Tegalrejo", "Jetis", "Gondokusuman", "Danurejan", "Gedongtengen", "Ngampilan", "Wirobrajan", "Mantrijeron",
-  "Kraton", "Gondomanan", "Pakualaman", "Mergangsan", "Umbulharjo", "Kotagede"
+  // Kota Yogyakarta
+  "Tegalrejo", "Jetis", "Gondokusuman", "Danurejan", "Gedongtengen",
+  "Ngampilan", "Wirobrajan", "Mantrijeron", "Kraton", "Gondomanan",
+  "Pakualaman", "Mergangsan", "Umbulharjo", "Kotagede",
+  // Bantul
+  "Banguntapan", "Sewon", "Kasihan", "Pandak", "Pleret",
+  "Bantul", "Imogiri", "Sanden", "Pundong", "Kretek"
 ];
 
 // Venue options for Yogyakarta
 const YOGYAKARTA_VENUES = [
-  { name: "Jogja Expo Center (JEC)", district: "Mantrijeron", address: "Jl. Raya Janti, Jaranan, Banguntapan, Bantul" },
+  // *YOGYAKARTA KOTA* VENUES
+  // Gondomanan
   { name: "Benteng Vredeburg", district: "Gondomanan", address: "Jl. Margo Mulyo No.6, Ngupasan, Gondomanan" },
   { name: "Taman Pintar Yogyakarta", district: "Gondomanan", address: "Jl. Panembahan Senopati No.1-3, Ngupasan, Gondomanan" },
-  { name: "Keraton Ngayogyakarta Hadiningrat", district: "Kraton", address: "Jl. Rotowijayan Blok No. 1, Panembahan, Kraton" },
-  { name: "Alun-Alun Utara Yogyakarta", district: "Kraton", address: "Jl. Suryatmajan, Panembahan, Kraton" },
-  { name: "Alun-Alun Selatan Yogyakarta", district: "Kraton", address: "Jl. Sultan Agung, Patehan, Kraton" },
-  { name: "Taman Sari Yogyakarta", district: "Kraton", address: "Jl. Taman, Patehan, Kraton" },
-  { name: "Malioboro Street", district: "Gedongtengen", address: "Jl. Malioboro, Suryatmajan, Danurejan" },
-  { name: "Pasar Beringharjo", district: "Gedongtengen", address: "Jl. Margo Mulyo No.16, Ngupasan, Gondomanan" },
-  { name: "Universitas Gadjah Mada (UGM)", district: "Sleman", address: "Jl. Bulaksumur, Caturtunggal, Depok, Sleman" },
-  { name: "Ambarukmo Plaza", district: "Sleman", address: "Jl. Laksda Adisucipto No.208, Caturtunggal, Sleman" },
-  { name: "Hartono Mall Yogyakarta", district: "Sleman", address: "Jl. Ring Road Utara, Mlangi, Nogotirto, Gamping, Sleman" },
-  { name: "Jogja City Mall", district: "Sleman", address: "Jl. Magelang Km. 6 No.18, Sinduadi, Mlati, Sleman" },
-  { name: "Plaza Ambarrukmo", district: "Sleman", address: "Jl. Laksda Adisucipto No.208, Caturtunggal, Sleman" },
-  { name: "Saphir Square Mall", district: "Sleman", address: "Jl. Laksda Adisucipto No.208, Demangan, Gondokusuman" },
   { name: "Titik Nol Kilometer Yogyakarta", district: "Gondomanan", address: "Jl. Pangurakan, Ngupasan, Gondomanan" },
   { name: "Museum Sonobudoyo", district: "Gondomanan", address: "Jl. Pangurakan No.6, Ngupasan, Gondomanan" },
-  { name: "Candi Prambanan", district: "Sleman", address: "Jl. Raya Solo - Yogyakarta No.16, Kranggan, Bokoharjo, Prambanan, Sleman" },
-  { name: "Candi Borobudur", district: "Magelang", address: "Jl. Badrawati, Borobudur, Magelang" },
-  { name: "Taman Budaya Yogyakarta", district: "Gondokusuman", address: "Jl. Sri Wedari No.1, Baciro, Gondokusuman" },
-  { name: "Auditorium UGM", district: "Sleman", address: "Jl. Olahraga, Caturtunggal, Depok, Sleman" },
-  { name: "Gedung Societet Militer", district: "Gondomanan", address: "Jl. Malioboro No.60, Suryatmajan, Danurejan" },
-  { name: "Gedung PKKH UGM", district: "Sleman", address: "Jl. Olahraga, Bulaksumur, Caturtunggal, Sleman" },
-  { name: "Convention Hall UGM", district: "Sleman", address: "Jl. Pancasila, Bulaksumur, Caturtunggal, Sleman" },
-  { name: "Gedung Serba Guna UIN Sunan Kalijaga", district: "Sleman", address: "Jl. Marsda Adisucipto, Caturtunggal, Depok, Sleman" },
-  { name: "GOR Among Raga", district: "Sleman", address: "Jl. Ring Road Utara, Maguwoharjo, Depok, Sleman" },
-  { name: "GOR Tri Dharma", district: "Sleman", address: "Jl. Colombo No.1, Caturtunggal, Depok, Sleman" },
-  { name: "Stadion Mandala Krida", district: "Gondokusuman", address: "Jl. Bintaran Kulon No.14, Bintaran, Gondokusuman" },
-  { name: "Lapangan Kridosono", district: "Gedongtengen", address: "Jl. Kridosono, Suryatmajan, Danurejan" },
-  { name: "Taman Kuliner UGM", district: "Sleman", address: "Jl. Olahraga, Bulaksumur, Caturtunggal, Sleman" },
-  { name: "Food Festival Jogja", district: "Sleman", address: "Jl. Ring Road Utara, Mlangi, Nogotirto, Gamping, Sleman" },
-  { name: "Piazza Food Court", district: "Sleman", address: "Jl. Laksda Adisucipto No.208, Demangan, Gondokusuman" },
+  // Kraton
+  { name: "Keraton Ngayogyakarta Hadiningrat", district: "Kraton", address: "Jl. Rotowijayan Blok No. 1, Panembahan, Kraton" },
+  { name: "Alun-Alun Utara", district: "Kraton", address: "Jl. Alun-Alun Utara, Panembahan, Kraton" },
+  { name: "Alun-Alun Selatan", district: "Kraton", address: "Jl. Sultan Agung, Patehan, Kraton" },
+  { name: "Taman Sari", district: "Kraton", address: "Jl. Taman, Patehan, Kraton" },
+  // Jetis
+  { name: "Museum Diponegoro (Sasana Wiratama)", district: "Jetis", address: "Jl. HOS Cokroaminoto No.67, Jetis" },
+  // Tegalrejo
+  { name: "Hotel Tentrem Ballroom", district: "Tegalrejo", address: "Jl. P. Mangkubumi No.72A, Gowongan, Tegalrejo" },
+  // Umbulharjo
+  { name: "GOR Amongrogo", district: "Umbulharjo", address: "Jl. Kenari, Semaki, Umbulharjo" },
+  { name: "Balai Kota Yogyakarta", district: "Umbulharjo", address: "Jl. Kenari No.56, Semaki, Umbulharjo" },
+  // Kotagede
+  { name: "Pusat Kerajinan Perak Kotagede", district: "Kotagede", address: "Jl. Kemasan, Kotagede" },
+
+  // *BANTUL* VENUES
+  // Banguntapan
+  { name: "Jogja Expo Center (JEC)", district: "Banguntapan", address: "Jl. Wonocatur No.1, Banguntapan, Bantul" },
+  { name: "Balai Desa Banguntapan Hall", district: "Banguntapan", address: "Jl. Wiyoro Lor, Banguntapan, Bantul" },
+  // Sewon
+  { name: "ISI Yogyakarta Concert Hall", district: "Sewon", address: "Jl. Parangtritis Km 6, Sewon, Bantul" },
+  { name: "Taman Gabusan Art Center", district: "Sewon", address: "Jl. Parangtritis Km 5, Timbulharjo, Sewon, Bantul" },
+  // Kasihan
+  { name: "Gedung Serbaguna Kasihan", district: "Kasihan", address: "Kasihan, Bantul" },
+  { name: "Cinéma Café & Creative Space", district: "Kasihan", address: "Jl. Bibis Raya, Tirtonirmolo, Kasihan" },
+  // Pleret
+  { name: "Balai Budaya Pleret", district: "Pleret", address: "Pleret, Bantul" },
+  // Pandak
+  { name: "Gedung Serbaguna Pandak", district: "Pandak", address: "Pandak, Bantul" },
+  // Bantul (Kecamatan Ibu Kota)
+  { name: "GMB (Gedung Muda Budaya Bantul)", district: "Bantul", address: "Jl. Jend Sudirman, Bantul" },
+  { name: "GRHA 'Wijaya Kusuma' Pemkab Bantul", district: "Bantul", address: "Jl. Lingkar Timur, Bantul" },
+  // Imogiri
+  { name: "Aula Balai Desa Imogiri", district: "Imogiri", address: "Imogiri, Bantul" },
+  // Pandansimo / Sanden
+  { name: "Pantai Goa Cemara Event Area", district: "Sanden", address: "Patihan, Gadingsari, Sanden, Bantul" },
+  // Kretek
+  { name: "Pantai Parangtritis Event Ground", district: "Kretek", address: "Parangtritis, Kretek, Bantul" },
+  // Fallback
   { name: "Lainnya", district: "", address: "" }
 ];
 
@@ -70,6 +135,176 @@ const DescriptionWithNewlines = ({ text }) => {
   return (
     <div className="text-gray-600 text-sm mb-3 whitespace-pre-line">
       {text}
+    </div>
+  );
+};
+
+// Komponen Dropdown Venue dengan Search
+const VenueDropdown = ({ value, onChange, onCustomVenueToggle, isCustomVenue }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const filteredVenues = useMemo(() => {
+    if (!searchTerm) return YOGYAKARTA_VENUES;
+    return YOGYAKARTA_VENUES.filter(venue =>
+      venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      venue.district.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      venue.address.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm]);
+
+  const handleSelectVenue = (venue) => {
+    if (venue.name === "Lainnya") {
+      onCustomVenueToggle(true);
+      onChange({
+        target: {
+          name: "venue",
+          value: ""
+        }
+      });
+      setSearchTerm(""); // Reset search term
+    } else {
+      onCustomVenueToggle(false);
+      onChange({
+        target: {
+          name: "venue",
+          value: venue.name
+        }
+      });
+      setSearchTerm(venue.name); // Set search term to selected venue
+      // Auto-fill district and address
+      if (venue.district) {
+        onChange({
+          target: {
+            name: "district",
+            value: venue.district
+          }
+        });
+      }
+      if (venue.address) {
+        onChange({
+          target: {
+            name: "location",
+            value: venue.address
+          }
+        });
+      }
+    }
+    setIsOpen(false);
+  };
+
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    setIsOpen(true);
+    
+    // Jika dalam mode custom venue atau user mengetik manual
+    if (isCustomVenue || value !== "") {
+      onChange({
+        target: {
+          name: "venue",
+          value: value
+        }
+      });
+    }
+  };
+
+  const handleInputFocus = () => {
+    setIsOpen(true);
+  };
+
+  const handleInputBlur = (e) => {
+    // Delay closing to allow for click selection
+    setTimeout(() => setIsOpen(false), 200);
+  };
+
+  const handleCustomVenueToggle = (custom) => {
+    onCustomVenueToggle(custom);
+    if (custom) {
+      // Reset venue value when switching to custom mode
+      onChange({
+        target: {
+          name: "venue",
+          value: ""
+        }
+      });
+      setSearchTerm(""); // Clear search term
+    } else {
+      // When switching back to dropdown mode, clear the venue
+      onChange({
+        target: {
+          name: "venue",
+          value: ""
+        }
+      });
+      setSearchTerm(""); // Clear search term
+    }
+  };
+
+  // Tampilkan nilai venue yang dipilih atau search term
+  const displayValue = isCustomVenue ? value : searchTerm;
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+        <input
+          type="text"
+          className="w-full border border-gray-300 rounded-lg px-10 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+          placeholder={isCustomVenue ? "Masukkan nama venue custom..." : "Cari venue..."}
+          value={displayValue}
+          onChange={handleInputChange}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
+        />
+        {/* Clear button when there's text */}
+        {(searchTerm || value) && !isCustomVenue && (
+          <button
+            type="button"
+            onClick={() => {
+              setSearchTerm("");
+              onChange({
+                target: {
+                  name: "venue",
+                  value: ""
+                }
+              });
+            }}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X size={20} />
+          </button>
+        )}
+      </div>
+      
+      {!isCustomVenue && isOpen && filteredVenues.length > 0 && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          {filteredVenues.map((venue) => (
+            <button
+              key={venue.name}
+              type="button"
+              className="w-full text-left px-4 py-3 hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
+              onClick={() => handleSelectVenue(venue)}
+            >
+              <div className="font-medium text-gray-900">{venue.name}</div>
+              <div className="text-sm text-gray-600 mt-1">
+                <span className="font-medium">Kecamatan:</span> {venue.district}
+              </div>
+              <div className="text-sm text-gray-600 truncate">
+                <span className="font-medium">Alamat:</span> {venue.address}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+      
+      <button
+        type="button"
+        onClick={() => handleCustomVenueToggle(!isCustomVenue)}
+        className="text-sm text-blue-600 hover:text-blue-800 mt-2 block"
+      >
+        {isCustomVenue ? "Pilih dari daftar venue" : "Venue tidak ada di daftar? Klik di sini"}
+      </button>
     </div>
   );
 };
@@ -199,36 +434,19 @@ export default function EditEventPage() {
   };
 
   const handleVenueChange = (e) => {
-    const selectedVenue = e.target.value;
-    
-    if (selectedVenue === "Lainnya") {
-      setIsCustomVenue(true);
+    handleInputChange(e);
+  };
+
+  const handleCustomVenueToggle = (custom) => {
+    setIsCustomVenue(custom);
+    if (custom) {
       setFormData(prev => ({
         ...prev,
         venue: "",
         district: "",
         location: ""
       }));
-    } else {
-      setIsCustomVenue(false);
-      const venueData = YOGYAKARTA_VENUES.find(venue => venue.name === selectedVenue);
-      if (venueData) {
-        setFormData(prev => ({
-          ...prev,
-          venue: venueData.name,
-          district: venueData.district,
-          location: venueData.address
-        }));
-      }
     }
-  };
-
-  const handleCustomVenueChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
   };
 
   const handleTextareaChange = (e) => {
@@ -657,39 +875,12 @@ export default function EditEventPage() {
 
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Venue *</label>
-                    {!isCustomVenue ? (
-                      <select
-                        name="venue"
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                        value={formData.venue}
-                        onChange={handleVenueChange}
-                        required
-                      >
-                        <option value="">Pilih venue</option>
-                        {YOGYAKARTA_VENUES.map((venue) => (
-                          <option key={venue.name} value={venue.name}>
-                            {venue.name}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        name="venue"
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                        placeholder="Masukkan nama venue"
-                        value={formData.venue}
-                        onChange={handleCustomVenueChange}
-                        required
-                      />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setIsCustomVenue(!isCustomVenue)}
-                      className="text-sm text-blue-600 hover:text-blue-800 mt-1"
-                    >
-                      {isCustomVenue ? "Pilih dari daftar venue" : "Venue tidak ada di daftar? Klik di sini"}
-                    </button>
+                    <VenueDropdown
+                      value={formData.venue}
+                      onChange={handleVenueChange}
+                      onCustomVenueToggle={handleCustomVenueToggle}
+                      isCustomVenue={isCustomVenue}
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -700,7 +891,7 @@ export default function EditEventPage() {
                       className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-vertical"
                       placeholder="Masukkan alamat lengkap venue"
                       value={formData.location}
-                      onChange={handleCustomVenueChange}
+                      onChange={handleInputChange}
                       required
                     />
                   </div>

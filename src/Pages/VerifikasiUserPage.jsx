@@ -141,7 +141,7 @@ export default function VerifikasiUserPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Manajemen Pengguna Organizer</h1>
+                <h1 className="text-3xl font-bold text-gray-900">Manajemen Pengguna</h1>
                 <p className="text-gray-600 mt-2">
                   {activeTab === "pending" 
                     ? `Total: ${pendingUsers.length} menunggu verifikasi • Ditampilkan: ${filteredUsers.length} user`

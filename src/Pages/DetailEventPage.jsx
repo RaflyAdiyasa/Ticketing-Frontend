@@ -3,7 +3,7 @@ import { useParams } from "react-router";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { MapPin, CalendarDays, Grid3X3, CheckCircle, XCircle, Clock, Users, Building, FileText } from "lucide-react";
+import { MapPin, CalendarDays, Shapes, CheckCircle, XCircle, Clock, Scale, Building, FileText, ArrowLeft, ShoppingCart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api, { eventAPI } from "../services/api";
 import useNotification from "../hooks/useNotification";
@@ -47,7 +47,6 @@ export default function EventDetail() {
     });
   };
 
-  // Fungsi untuk menampilkan teks dengan newline
   const formatDescriptionWithNewlines = (text) => {
     if (!text) return "";
     return text.split('\n').map((line, index) => (
@@ -291,10 +290,10 @@ export default function EventDetail() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen bg-[#E5E7EB] flex items-center justify-center pt-36">
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center pt-40">
           <div className="flex flex-col items-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-            <div className="text-lg">Memuat detail event...</div>
+            <div className="text-lg text-gray-600">Memuat detail event...</div>
           </div>
         </div>
       </div>
@@ -305,13 +304,13 @@ export default function EventDetail() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen bg-[#E5E7EB] flex flex-col items-center justify-center pt-36">
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center pt-40">
           <div className="text-lg text-red-600 mb-4">
             {error || "Event tidak ditemukan"}
           </div>
           <button
             onClick={() => navigate("/cariEvent")}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
             Kembali ke Cari Event
           </button>
@@ -335,443 +334,476 @@ export default function EventDetail() {
         type={notification.type}
       />
 
-      <div className="min-h-screen bg-[#E5E7EB] flex justify-center p-4 overflow-auto">
-        <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-36 bg-white shadow-xl p-8">
-          {/* Header Section */}
-          <div className="flex flex-col lg:flex-row justify-between items-start gap-6 mb-8">
-            <div className="flex-1">
-              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">{event.name}</h1>
-              
-              {/* Event Info Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                <div className="flex items-center gap-3 text-gray-700">
-                  <MapPin className="w-5 h-5 text-blue-600 shrink-0" />
-                  <div>
-                    <p className="font-medium text-sm">Lokasi</p>
-                    <p className="text-sm">{event.venue}, {event.district}</p>
-                    <p className="text-xs text-gray-500">{event.location}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 text-gray-700">
-                  <CalendarDays className="w-5 h-5 text-blue-600" />
-                  <div>
-                    <p className="font-medium text-sm">Tanggal</p>
-                    <p className="text-sm">{formatDate(event.date_start, event.date_end)}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 text-gray-700">
-                  <Grid3X3 className="w-5 h-5 text-blue-600" />
-                  <div>
-                    <p className="font-medium text-sm">Kategori</p>
-                    <p className="text-sm">{event.category} {event.child_category && `- ${event.child_category}`}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {canEdit && (
-              <div className="flex gap-2 shrink-0">
-                <button
-                  onClick={() => navigate(`/edit-event/${id}`)}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Edit Event
-                </button>
-              </div>
-            )}
+      <div className="min-h-screen bg-gray-100 pt-40 pb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header dengan Back Button */}
+          <div className="mb-6">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium transition-colors"
+            >
+              <ArrowLeft size={20} />
+              Kembali
+            </button>
           </div>
 
-          {/* Status Info */}
-          {showStatusInfo && (
-            <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
-              event.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
-              event.status === 'rejected' ? 'bg-red-100 text-red-800 border border-red-200' :
-              event.status === 'approved' ? 'bg-green-100 text-green-800 border border-green-200' :
-              'bg-gray-100 text-gray-800 border border-gray-200'
-            }`}>
-              {getStatusIcon(event.status)}
-              <div>
-                <p className="font-semibold">
-                  Status: {getStatusText(event.status)}
-                </p>
-                {event.approval_comment && (
-                  <p className="text-sm mt-1">Komentar: {event.approval_comment}</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Admin Verification Section */}
-          {canVerify && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="text-lg font-semibold text-blue-800 mb-3">Verifikasi Event</h3>
-              <p className="text-blue-700 mb-3">Sebagai admin, Anda dapat menyetujui atau menolak event ini.</p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => openVerificationModal('reject')}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 transition-colors"
-                >
-                  <XCircle size={18} />
-                  Tolak Event
-                </button>
-                <button
-                  onClick={() => openVerificationModal('approve')}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors"
-                >
-                  <CheckCircle size={18} />
-                  Setujui Event
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-8">
-              {/* Event Images */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="rounded-lg overflow-hidden shadow-lg aspect-square border">
-                  <img
-                    src={event.image || "https://cdn2.steamgriddb.com/icon_thumb/63872edc3fa52d645b3d48f6d98caf2c.png"}
-                    alt={event.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.src = "https://cdn2.steamgriddb.com/icon_thumb/63872edc3fa52d645b3d48f6d98caf2c.png";
-                    }}
-                  />
-                </div>
-
-                {event.flyer && (
-                  <div className="rounded-lg overflow-hidden shadow-lg aspect-video border">
-                    <img
-                      src={event.flyer}
-                      alt={`Flyer ${event.name}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* About Event */}
-              <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <FileText className="w-6 h-6 text-blue-600" />
-                  Tentang Event
-                </h2>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                  {event.description}
-                </p>
-              </div>
-
-              {/* Event Rules */}
-              {event.rules && (
-                <div className="bg-white rounded-lg p-6 border border-gray-200">
-                  <h2 className="text-2xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Users className="w-6 h-6 text-blue-600" />
-                    Peraturan Event
-                  </h2>
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                    {event.rules}
-                  </p>
-                </div>
-              )}
-
-              {/* Ticket Section */}
-              {!isOwner && (
-                <div className="bg-white rounded-lg p-6 border border-gray-200">
-                  <h2 className="text-2xl font-semibold text-gray-900 mb-6">Pilihan Tiket</h2>
-
-                  {tickets.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
-                      <p className="text-lg">Belum ada tiket tersedia untuk event ini</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {tickets.map((ticket, index) => (
-                        <div
-                          key={ticket.ticket_category_id}
-                          className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all bg-white"
-                        >
-                          <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
-                            <div className="flex-1">
-                              <div className="flex flex-wrap items-center gap-3 mb-3">
-                                <p className="font-semibold text-xl text-gray-900">{ticket.type}</p>
-                                {ticket.stock === 0 && (
-                                  <span className="bg-red-100 text-red-800 text-xs px-3 py-1 rounded-full font-semibold">
-                                    HABIS
-                                  </span>
-                                )}
-                              </div>
-                              
-                              {/* PERBAIKAN: Gunakan fungsi formatDescriptionWithNewlines untuk deskripsi */}
-                              <div className="text-gray-600 mb-4 whitespace-pre-line">
-                                {formatDescriptionWithNewlines(ticket.desc)}
-                              </div>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-500 mb-4">
-                                <div>
-                                  <p className="font-medium">Stok Tersedia</p>
-                                  <p>{ticket.stock} / {ticket.quota}</p>
-                                </div>
-                                <div>
-                                  <p className="font-medium">Terjual</p>
-                                  <p>{ticket.sold}</p>
-                                </div>
-                                {ticket.date_time_start && (
-                                  <div>
-                                    <p className="font-medium">Periode Tiket</p>
-                                    <p className="text-xs">
-                                      {formatDateTime(ticket.date_time_start)} - {formatDateTime(ticket.date_time_end)}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              <p className="text-2xl font-bold text-red-900">
-                                {formatRupiah(ticket.price)}
-                              </p>
-                            </div>
-
-                            {showTicketControls && (
-                              <div className="flex items-center gap-4 shrink-0">
-                                <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-2">
-                                  <button
-                                    onClick={() => updateQty(index, -1)}
-                                    disabled={ticket.qty === 0}
-                                    className={`w-10 h-10 flex items-center justify-center border rounded-lg text-lg font-bold ${
-                                      ticket.qty === 0
-                                        ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400"
-                                        : "hover:bg-gray-200 bg-white text-gray-700"
-                                    }`}
-                                  >
-                                    −
-                                  </button>
-                                  <span className="w-12 text-center font-bold text-lg">{ticket.qty}</span>
-                                  <button
-                                    onClick={() => updateQty(index, 1)}
-                                    className={`w-10 h-10 flex items-center justify-center border rounded-lg text-lg font-bold ${
-                                      ticket.qty >= ticket.stock || ticket.stock === 0
-                                        ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400"
-                                        : "hover:bg-gray-200 bg-white text-gray-700"
-                                    }`}
-                                    disabled={ticket.qty >= ticket.stock || ticket.stock === 0}
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Owner Ticket Management */}
-              {isOwner && (
-                <div className="bg-white rounded-lg p-6 border border-gray-200">
-                  <h2 className="text-2xl font-semibold text-gray-900 mb-6">Manajemen Tiket</h2>
-                  {tickets.length === 0 ? (
-                    <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                      <p className="text-lg mb-4">Belum ada tiket yang dibuat untuk event ini</p>
-                      <button 
-                        onClick={() => navigate(`/edit-event/${id}`)}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        Tambah Tiket
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {tickets.map((ticket) => (
-                        <div
-                          key={ticket.ticket_category_id}
-                          className="border border-gray-200 rounded-xl p-6 bg-gray-50 hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-3">
-                                <p className="font-semibold text-xl text-gray-900">{ticket.type}</p>
-                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                  ticket.stock === 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                                }`}>
-                                  {ticket.stock === 0 ? 'HABIS' : 'TERSEDIA'}
-                                </span>
-                              </div>
-                              
-                              {/* PERBAIKAN: Gunakan fungsi formatDescriptionWithNewlines untuk deskripsi */}
-                              <div className="text-gray-600 mb-4 whitespace-pre-line">
-                                {formatDescriptionWithNewlines(ticket.desc)}
-                              </div>
-                              
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-4">
-                                <div>
-                                  <p className="text-sm text-gray-500">Harga</p>
-                                  <p className="font-semibold text-lg">{formatRupiah(ticket.price)}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-gray-500">Kuota</p>
-                                  <p className="font-semibold text-lg">{ticket.quota}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-gray-500">Terjual</p>
-                                  <p className="font-semibold text-lg text-green-600">{ticket.sold}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-gray-500">Sisa</p>
-                                  <p className="font-semibold text-lg">{ticket.stock}</p>
-                                </div>
-                              </div>
-                              
-                              {ticket.date_time_start && (
-                                <div className="bg-white rounded-lg p-4 border">
-                                  <p className="text-sm text-gray-500 mb-1">Periode Tiket:</p>
-                                  <p className="text-sm">
-                                    {formatDateTime(ticket.date_time_start)} - {formatDateTime(ticket.date_time_end)}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Sidebar */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Organizer Info */}
-              <div className="border border-gray-200 rounded-xl p-6 shadow-sm bg-white">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <Building className="w-5 h-5 text-blue-600" />
-                  Penyelenggara
-                </h3>
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full overflow-hidden shrink-0 border-2 border-gray-300 bg-gray-200 flex items-center justify-center">
-                    {event.owner?.profile_pict ? (
-                      <img
-                        src={event.owner.profile_pict}
-                        alt={event.owner.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.style.display = "none";
-                          e.target.nextSibling.style.display = "flex";
-                        }}
-                      />
-                    ) : null}
-                    <div
-                      className="w-full h-full flex items-center justify-center bg-blue-500 text-white font-semibold text-xl"
-                      style={{
-                        display: event.owner?.profile_pict ? "none" : "flex",
-                      }}
-                    >
-                      {event.owner?.name?.charAt(0)?.toUpperCase() || "O"}
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-lg font-medium text-gray-900">
-                      {event.owner?.name || "Organizer"}
-                    </p>
-                    {event.owner?.organization && (
-                      <p className="text-sm text-gray-600">
-                        {event.owner.organization}
-                      </p>
-                    )}
-                    {event.owner?.email && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        {event.owner.email}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Cart Summary */}
-              <AnimatePresence>
-                {adaTiketDipilih && canPurchase && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    transition={{ duration: 0.3 }}
-                    className="rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 shadow-lg p-6 sticky top-4"
-                  >
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Ringkasan Pembelian</h3>
-                    
-                    <div className="space-y-3 mb-4">
-                      {tickets.filter(t => t.qty > 0).map((ticket) => (
-                        <div key={ticket.ticket_category_id} className="flex justify-between items-center text-sm">
-                          <span className="text-gray-700">{ticket.type} × {ticket.qty}</span>
-                          <span className="font-medium">{formatRupiah(ticket.price * ticket.qty)}</span>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    <div className="border-t border-blue-200 pt-4 mb-4">
-                      <div className="flex justify-between items-center text-lg font-bold">
-                        <span>Total</span>
-                        <span className="text-blue-700">{formatRupiah(totalHarga)}</span>
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            {/* Header Section */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-8">
+              <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
+                <div className="flex-1">
+                  <h1 className="text-3xl lg:text-4xl font-bold mb-4">{event.name}</h1>
+                  
+                  {/* Event Info Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-white/20 p-2 rounded-lg">
+                        <MapPin className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm text-blue-100">Lokasi</p>
+                        <p className="text-white font-semibold">{event.venue}, {event.district}</p>
+                        <p className="text-xs text-blue-100">{event.location}</p>
                       </div>
                     </div>
                     
+                    <div className="flex items-center gap-3">
+                      <div className="bg-white/20 p-2 rounded-lg">
+                        <CalendarDays className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm text-blue-100">Tanggal</p>
+                        <p className="text-white font-semibold">{formatDate(event.date_start, event.date_end)}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <div className="bg-white/20 p-2 rounded-lg">
+                        <Shapes className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm text-blue-100">Kategori</p>
+                        <p className="text-white font-semibold">{event.category} {event.child_category && `- ${event.child_category}`}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {canEdit && (
+                  <div className="flex gap-3 shrink-0">
                     <button
-                      className="w-full bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 shadow-md transition-all text-lg"
-                      onClick={handleAddToCart}
+                      onClick={() => navigate(`/edit-event/${id}`)}
+                      className="flex items-center gap-2 bg-white text-blue-600 px-6 py-3 rounded-lg hover:bg-blue-50 transition-colors font-semibold"
                     >
-                      Masukkan ke Keranjang
+                      Edit Event
                     </button>
-                    <p className="text-xs text-gray-500 mt-3 text-center">
-                      Tiket akan ditambahkan ke keranjang belanja Anda
-                    </p>
-                  </motion.div>
+                  </div>
                 )}
-              </AnimatePresence>
+              </div>
+            </div>
 
-              {/* User Role Info Cards */}
-              {isAdmin && (
-                <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
-                  <p className="text-sm text-blue-800 font-medium">
-                    View Admin: Anda melihat halaman ini sebagai administrator.
-                  </p>
-                  {event.status === 'pending' && (
-                    <p className="text-sm text-blue-800 mt-2">
-                      Gunakan tombol verifikasi di atas untuk menyetujui atau menolak event ini.
+            {/* Main Content */}
+            <div className="p-8">
+              {/* Status Info */}
+              {showStatusInfo && (
+                <div className={`mb-8 p-6 rounded-xl flex items-center gap-4 ${
+                  event.status === 'pending' ? 'bg-yellow-50 border border-yellow-200' :
+                  event.status === 'rejected' ? 'bg-red-50 border border-red-200' :
+                  event.status === 'approved' ? 'bg-green-50 border border-green-200' :
+                  'bg-gray-50 border border-gray-200'
+                }`}>
+                  {getStatusIcon(event.status)}
+                  <div className="flex-1">
+                    <p className="font-semibold text-lg">
+                      Status: {getStatusText(event.status)}
                     </p>
+                    {event.approval_comment && (
+                      <p className="text-gray-600 mt-1">Komentar: {event.approval_comment}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Admin Verification Section */}
+              {canVerify && (
+                <div className="mb-8 p-6 bg-blue-50 border border-blue-200 rounded-xl">
+                  <h3 className="text-xl font-semibold text-blue-800 mb-3">Verifikasi Event</h3>
+                  <p className="text-blue-700 mb-4">Sebagai admin, Anda dapat menyetujui atau menolak event ini.</p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => openVerificationModal('reject')}
+                      className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                    >
+                      <XCircle size={18} />
+                      Tolak Event
+                    </button>
+                    <button
+                      onClick={() => openVerificationModal('approve')}
+                      className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                    >
+                      <CheckCircle size={18} />
+                      Setujui Event
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Main Content */}
+                <div className="lg:col-span-2 space-y-8">
+                  {/* Event Images */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="rounded-xl overflow-hidden shadow-lg aspect-square border border-gray-200">
+                      <img
+                        src={event.image || "https://cdn2.steamgriddb.com/icon_thumb/63872edc3fa52d645b3d48f6d98caf2c.png"}
+                        alt={event.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = "https://cdn2.steamgriddb.com/icon_thumb/63872edc3fa52d645b3d48f6d98caf2c.png";
+                        }}
+                      />
+                    </div>
+
+                    {event.flyer && (
+                      <div className="rounded-xl overflow-hidden shadow-lg aspect-video border border-gray-200">
+                        <img
+                          src={event.flyer}
+                          alt={`Flyer ${event.name}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* About Event */}
+                  <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <h2 className="text-2xl font-semibold text-gray-900 mb-4 flex items-center gap-3">
+                      <div className="bg-blue-100 p-2 rounded-lg">
+                        <FileText className="w-6 h-6 text-blue-600" />
+                      </div>
+                      Tentang Event
+                    </h2>
+                    <div className="text-gray-700 leading-relaxed whitespace-pre-line bg-white p-6 rounded-lg border">
+                      {event.description}
+                    </div>
+                  </div>
+
+                  {/* Event Rules */}
+                  {event.rules && (
+                    <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                      <h2 className="text-2xl font-semibold text-gray-900 mb-4 flex items-center gap-3">
+                        <div className="bg-blue-100 p-2 rounded-lg">
+                          <Scale className="w-6 h-6 text-blue-600" />
+                        </div>
+                        Peraturan Event
+                      </h2>
+                      <div className="text-gray-700 leading-relaxed whitespace-pre-line bg-white p-6 rounded-lg border">
+                        {event.rules}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Ticket Section */}
+                  {!isOwner && (
+                    <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                      <h2 className="text-2xl font-semibold text-gray-900 mb-6">Pilihan Tiket</h2>
+
+                      {tickets.length === 0 ? (
+                        <div className="text-center py-12 text-gray-500 bg-white rounded-xl border-2 border-dashed border-gray-300">
+                          <p className="text-lg font-medium mb-2">Belum ada tiket tersedia</p>
+                          <p className="text-gray-400">Tiket untuk event ini belum tersedia</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {tickets.map((ticket, index) => (
+                            <div
+                              key={ticket.ticket_category_id}
+                              className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all"
+                            >
+                              <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
+                                <div className="flex-1">
+                                  <div className="flex flex-wrap items-center gap-3 mb-3">
+                                    <p className="font-semibold text-xl text-gray-900">{ticket.type}</p>
+                                    {ticket.stock === 0 && (
+                                      <span className="bg-red-100 text-red-800 text-sm px-3 py-1 rounded-full font-semibold">
+                                        HABIS
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="text-gray-600 mb-4 whitespace-pre-line">
+                                    {formatDescriptionWithNewlines(ticket.desc)}
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-500 mb-4">
+                                    <div>
+                                      <p className="font-medium text-gray-700">Stok Tersedia</p>
+                                      <p className="font-semibold text-gray-900">{ticket.stock} / {ticket.quota}</p>
+                                    </div>
+                                    <div>
+                                      <p className="font-medium text-gray-700">Terjual</p>
+                                      <p className="font-semibold text-green-600">{ticket.sold}</p>
+                                    </div>
+                                    {ticket.date_time_start && (
+                                      <div>
+                                        <p className="font-medium text-gray-700">Periode Tiket</p>
+                                        <p className="text-xs text-gray-600">
+                                          {formatDateTime(ticket.date_time_start)} - {formatDateTime(ticket.date_time_end)}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  <p className="text-2xl font-bold text-red-900">
+                                    {formatRupiah(ticket.price)}
+                                  </p>
+                                </div>
+
+                                {showTicketControls && (
+                                  <div className="flex items-center gap-4 shrink-0">
+                                    <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-2 border">
+                                      <button
+                                        onClick={() => updateQty(index, -1)}
+                                        disabled={ticket.qty === 0}
+                                        className={`w-10 h-10 flex items-center justify-center border rounded-lg text-lg font-bold transition-colors ${
+                                          ticket.qty === 0
+                                            ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400"
+                                            : "hover:bg-gray-200 bg-white text-gray-700"
+                                        }`}
+                                      >
+                                        −
+                                      </button>
+                                      <span className="w-12 text-center font-bold text-lg text-gray-900">{ticket.qty}</span>
+                                      <button
+                                        onClick={() => updateQty(index, 1)}
+                                        className={`w-10 h-10 flex items-center justify-center border rounded-lg text-lg font-bold transition-colors ${
+                                          ticket.qty >= ticket.stock || ticket.stock === 0
+                                            ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400"
+                                            : "hover:bg-gray-200 bg-white text-gray-700"
+                                        }`}
+                                        disabled={ticket.qty >= ticket.stock || ticket.stock === 0}
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Owner Ticket Management */}
+                  {isOwner && (
+                    <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                      <h2 className="text-2xl font-semibold text-gray-900 mb-6">Manajemen Tiket</h2>
+                      {tickets.length === 0 ? (
+                        <div className="text-center py-12 text-gray-500 bg-white rounded-xl border-2 border-dashed border-gray-300">
+                          <p className="text-lg font-medium mb-4">Belum ada tiket yang dibuat</p>
+                          <button 
+                            onClick={() => navigate(`/edit-event/${id}`)}
+                            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                          >
+                            Tambah Tiket
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          {tickets.map((ticket) => (
+                            <div
+                              key={ticket.ticket_category_id}
+                              className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <p className="font-semibold text-xl text-gray-900">{ticket.type}</p>
+                                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                                      ticket.stock === 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                                    }`}>
+                                      {ticket.stock === 0 ? 'HABIS' : 'TERSEDIA'}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="text-gray-600 mb-4 whitespace-pre-line">
+                                    {formatDescriptionWithNewlines(ticket.desc)}
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-4">
+                                    <div>
+                                      <p className="text-sm text-gray-500">Harga</p>
+                                      <p className="font-semibold text-lg">{formatRupiah(ticket.price)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-gray-500">Kuota</p>
+                                      <p className="font-semibold text-lg">{ticket.quota}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-gray-500">Terjual</p>
+                                      <p className="font-semibold text-lg text-green-600">{ticket.sold}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-gray-500">Sisa</p>
+                                      <p className="font-semibold text-lg">{ticket.stock}</p>
+                                    </div>
+                                  </div>
+                                  
+                                  {ticket.date_time_start && (
+                                    <div className="bg-gray-50 rounded-lg p-4 border">
+                                      <p className="text-sm text-gray-500 mb-1">Periode Tiket:</p>
+                                      <p className="text-sm text-gray-700">
+                                        {formatDateTime(ticket.date_time_start)} - {formatDateTime(ticket.date_time_end)}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
 
-              {isLoggedIn && isOwner === false && isAdmin === false && isEO && (
-                <div className="rounded-lg bg-purple-50 border border-purple-200 p-4">
-                  <p className="text-sm text-purple-800 font-medium">
-                    View EO: Anda melihat event ini sebagai Event Organizer lain.
-                  </p>
-                  <p className="text-sm text-purple-800 mt-1">
-                    Anda dapat melihat detail tiket tetapi tidak dapat membelinya.
-                  </p>
-                </div>
-              )}
+                {/* Sidebar */}
+                <div className="lg:col-span-1 space-y-6">
+                  {/* Organizer Info */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                    <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-3">
+                      <div className="bg-blue-100 p-2 rounded-lg">
+                        <Building className="w-5 h-5 text-blue-600" />
+                      </div>
+                      Penyelenggara
+                    </h3>
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded-full overflow-hidden shrink-0 border-2 border-gray-300 bg-gray-200 flex items-center justify-center">
+                        {event.owner?.profile_pict ? (
+                          <img
+                            src={event.owner.profile_pict}
+                            alt={event.owner.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                              e.target.nextSibling.style.display = "flex";
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className="w-full h-full flex items-center justify-center bg-blue-500 text-white font-semibold text-xl"
+                          style={{
+                            display: event.owner?.profile_pict ? "none" : "flex",
+                          }}
+                        >
+                          {event.owner?.name?.charAt(0)?.toUpperCase() || "O"}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-lg font-medium text-gray-900">
+                          {event.owner?.name || "Organizer"}
+                        </p>
+                        {event.owner?.organization && (
+                          <p className="text-sm text-gray-600">
+                            {event.owner.organization}
+                          </p>
+                        )}
+                        {event.owner?.email && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {event.owner.email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
-              {!isLoggedIn && (
-                <div className="rounded-lg bg-gray-50 border border-gray-200 p-4">
-                  <p className="text-sm text-gray-800 font-medium mb-3">
-                    Anda belum login. Silakan login untuk dapat membeli tiket event ini.
-                  </p>
-                  <button
-                    onClick={() => navigate("/login")}
-                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Login Sekarang
-                  </button>
+                  {/* Cart Summary */}
+                  <AnimatePresence>
+                    {adaTiketDipilih && canPurchase && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ duration: 0.3 }}
+                        className="rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 shadow-lg p-6 sticky top-4"
+                      >
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <ShoppingCart className="w-5 h-5 text-blue-600" />
+                          Ringkasan Pembelian
+                        </h3>
+                        
+                        <div className="space-y-3 mb-4">
+                          {tickets.filter(t => t.qty > 0).map((ticket) => (
+                            <div key={ticket.ticket_category_id} className="flex justify-between items-center text-sm">
+                              <span className="text-gray-700">{ticket.type} × {ticket.qty}</span>
+                              <span className="font-medium">{formatRupiah(ticket.price * ticket.qty)}</span>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <div className="border-t border-blue-200 pt-4 mb-4">
+                          <div className="flex justify-between items-center text-lg font-bold">
+                            <span>Total</span>
+                            <span className="text-blue-700">{formatRupiah(totalHarga)}</span>
+                          </div>
+                        </div>
+                        
+                        <button
+                          className="w-full bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 shadow-md transition-all text-lg flex items-center justify-center gap-2"
+                          onClick={handleAddToCart}
+                        >
+                          <ShoppingCart size={20} />
+                          Masukkan ke Keranjang
+                        </button>
+                        <p className="text-xs text-gray-500 mt-3 text-center">
+                          Tiket akan ditambahkan ke keranjang belanja Anda
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* User Role Info Cards */}
+                  {isAdmin && (
+                    <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+                      <p className="text-sm text-blue-800 font-medium">
+                        View Admin: Anda melihat halaman ini sebagai administrator.
+                      </p>
+                      {event.status === 'pending' && (
+                        <p className="text-sm text-blue-800 mt-2">
+                          Gunakan tombol verifikasi di atas untuk menyetujui atau menolak event ini.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {isLoggedIn && isOwner === false && isAdmin === false && isEO && (
+                    <div className="rounded-lg bg-purple-50 border border-purple-200 p-4">
+                      <p className="text-sm text-purple-800 font-medium">
+                        View EO: Anda melihat event ini sebagai Event Organizer lain.
+                      </p>
+                      <p className="text-sm text-purple-800 mt-1">
+                        Anda dapat melihat detail tiket tetapi tidak dapat membelinya.
+                      </p>
+                    </div>
+                  )}
+
+                  {!isLoggedIn && (
+                    <div className="rounded-lg bg-gray-50 border border-gray-200 p-4">
+                      <p className="text-sm text-gray-800 font-medium mb-3">
+                        Anda belum login. Silakan login untuk dapat membeli tiket event ini.
+                      </p>
+                      <button
+                        onClick={() => navigate("/login")}
+                        className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                      >
+                        Login Sekarang
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
@@ -812,14 +844,14 @@ export default function EventDetail() {
                   setShowVerificationModal(false);
                   setApprovalComment("");
                 }}
-                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors font-medium"
                 disabled={verifying}
               >
                 Batal
               </button>
               <button 
                 onClick={() => handleVerifyEvent(verificationAction === 'approve' ? 'approve' : 'reject')}
-                className={`px-4 py-2 rounded-lg text-white transition-colors ${
+                className={`px-4 py-2 rounded-lg text-white transition-colors font-medium ${
                   verificationAction === 'approve' 
                     ? 'bg-green-600 hover:bg-green-700' 
                     : 'bg-red-600 hover:bg-red-700'
