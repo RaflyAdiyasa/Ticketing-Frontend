@@ -65,7 +65,13 @@ export default function LaporanEventPage() {
     }
   };
 
-  const COLORS = ["#0C8CE9", "#36A2EB", "#A5B4FC", "#C7D2FE", "#93C5FD", "#60A5FA"];
+  // Warna yang lebih kontras untuk kategori banyak
+  const CONTRAST_COLORS = [
+    "#0C8CE9", "#FF6B6B", "#4ECDC4", "#FFA726", "#9966CC", 
+    "#42A5F5", "#66BB6A", "#FF7043", "#AB47BC", "#26C6DA",
+    "#D4E157", "#FFCA28", "#8D6E63", "#78909C", "#7E57C2",
+    "#EC407A", "#5C6BC0", "#26A69A", "#FFA000", "#607D8B"
+  ];
 
   const formatRupiah = (angka) => {
     return new Intl.NumberFormat("id-ID", {
@@ -75,11 +81,27 @@ export default function LaporanEventPage() {
     }).format(angka);
   };
 
+  // Fungsi untuk mendapatkan warna berdasarkan data
+  const getChartColors = (data) => {
+    if (!data || data.length === 0) {
+      return ['#FF6B6B']; // Warna merah untuk data kosong
+    }
+
+    // Cek jika semua data value = 0
+    const allZero = data.every(item => item.value === 0);
+    if (allZero) {
+      return ['#FF6B6B']; // Warna merah untuk semua data 0
+    }
+
+    return CONTRAST_COLORS;
+  };
+
   // Custom label untuk pie chart
   const renderCustomizedLabel = ({
-    cx, cy, midAngle, innerRadius, outerRadius, percent, name
+    cx, cy, midAngle, innerRadius, outerRadius, percent, name, value
   }) => {
-    if (percent === 0) return null;
+    // Jangan tampilkan label jika value = 0 atau percent = 0
+    if (percent === 0 || value === 0) return null;
     
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -98,6 +120,89 @@ export default function LaporanEventPage() {
       >
         {`${(percent * 100).toFixed(0)}%`}
       </text>
+    );
+  };
+
+  // Fungsi untuk render pie chart yang reusable
+  const renderPieChart = (data, title, tooltipFormatter) => {
+    const colors = getChartColors(data);
+    const hasData = data && data.length > 0 && !data.every(item => item.value === 0);
+
+    return (
+      <div className="w-full md:w-1/2 h-80">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={hasData ? data : [{ name: 'Tidak ada data', value: 1 }]}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius={60}
+              outerRadius={100}
+              paddingAngle={hasData ? 2 : 0}
+              label={hasData ? renderCustomizedLabel : false}
+              labelLine={false}
+            >
+              {(hasData ? data : [{ name: 'Tidak ada data', value: 1 }]).map((_, index) => (
+                <Cell 
+                  key={index} 
+                  fill={colors[index % colors.length]} 
+                  stroke={hasData ? "#fff" : "none"}
+                  strokeWidth={hasData ? 2 : 0}
+                />
+              ))}
+            </Pie>
+            <Tooltip 
+              formatter={hasData ? tooltipFormatter : (value) => ['Tidak ada data', '']}
+            />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  };
+
+  // Fungsi untuk render legend yang reusable
+  const renderLegend = (data, title) => {
+    const colors = getChartColors(data);
+    const hasData = data && data.length > 0 && !data.every(item => item.value === 0);
+
+    return (
+      <div className="w-full md:w-1/2">
+        <div className="grid grid-cols-1 gap-3">
+          {(hasData ? data : [{ name: 'Tidak ada data', value: 0 }]).map((item, i) => (
+            <div
+              key={i}
+              className="p-3 bg-gray-50 rounded-lg shadow-sm border border-gray-200"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div 
+                    className="w-4 h-4 rounded-full mr-3"
+                    style={{ backgroundColor: colors[i % colors.length] }}
+                  ></div>
+                  <span className="font-medium">{item.name}</span>
+                </div>
+                <div className="text-right">
+                  <div className={`font-bold ${
+                    hasData ? (title.includes('Pembelian') ? 'text-blue-600' : 'text-green-600') : 'text-red-600'
+                  }`}>
+                    {hasData ? `${item.value} ${title.includes('Pembelian') ? 'tiket' : 'check-in'}` : '0'}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {hasData && reportData.total_tickets_sold > 0 && title.includes('Pembelian') 
+                      ? `${((item.value / reportData.total_tickets_sold) * 100).toFixed(1)}%` 
+                      : hasData && reportData.total_checkins > 0 && title.includes('Check-in')
+                      ? `${((item.value / reportData.total_checkins) * 100).toFixed(1)}%`
+                      : '0%'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     );
   };
 
@@ -159,7 +264,7 @@ export default function LaporanEventPage() {
           </div>
 
           {/* STATISTICS SUMMARY */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
             <div className="bg-blue-50 p-4 rounded-lg">
               <h3 className="font-semibold text-blue-800">Total Tiket Terjual</h3>
               <p className="text-2xl font-bold text-blue-600">{reportData.total_tickets_sold || 0}</p>
@@ -178,6 +283,10 @@ export default function LaporanEventPage() {
                 {metrics?.attendance_rate || "0%"}
               </p>
             </div>
+            <div className="bg-pink-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-pink-800">Total Likes</h3>
+              <p className="text-2xl font-bold text-pink-600">{reportData.total_likes || 0}</p>
+            </div>
           </div>
 
           {/* PRESENTASE PEMBELIAN TIKET */}
@@ -186,60 +295,14 @@ export default function LaporanEventPage() {
 
             <div className="flex flex-col md:flex-row items-center justify-between">
               {/* PIE CHART */}
-              <div className="w-full md:w-1/2 h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={reportData.purchase_data || []}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={2}
-                      label={renderCustomizedLabel}
-                      labelLine={false}
-                    >
-                      {(reportData.purchase_data || []).map((_, index) => (
-                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value} tiket`, 'Terjual']} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+              {renderPieChart(
+                reportData.purchase_data, 
+                'Pembelian',
+                (value) => [`${value} tiket`, 'Terjual']
+              )}
 
               {/* LEGEND & DETAILS */}
-              <div className="w-full md:w-1/2">
-                <div className="grid grid-cols-1 gap-3">
-                  {(reportData.purchase_data || []).map((item, i) => (
-                    <div
-                      key={i}
-                      className="p-3 bg-gray-50 rounded-lg shadow-sm border border-gray-200"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div 
-                            className="w-4 h-4 rounded-full mr-3"
-                            style={{ backgroundColor: COLORS[i % COLORS.length] }}
-                          ></div>
-                          <span className="font-medium">{item.name}</span>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold text-blue-600">{item.value} tiket</div>
-                          <div className="text-sm text-gray-500">
-                            {reportData.total_tickets_sold > 0 
-                              ? `${((item.value / reportData.total_tickets_sold) * 100).toFixed(1)}%` 
-                              : '0%'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {renderLegend(reportData.purchase_data, 'Pembelian')}
             </div>
           </div>
 
@@ -249,66 +312,20 @@ export default function LaporanEventPage() {
 
             <div className="flex flex-col md:flex-row items-center justify-between">
               {/* PIE CHART */}
-              <div className="w-full md:w-1/2 h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={reportData.checkin_data || []}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={2}
-                      label={renderCustomizedLabel}
-                      labelLine={false}
-                    >
-                      {(reportData.checkin_data || []).map((_, index) => (
-                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value} check-in`, 'Hadir']} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+              {renderPieChart(
+                reportData.checkin_data, 
+                'Check-in',
+                (value) => [`${value} check-in`, 'Hadir']
+              )}
 
               {/* LEGEND & DETAILS */}
-              <div className="w-full md:w-1/2">
-                <div className="grid grid-cols-1 gap-3">
-                  {(reportData.checkin_data || []).map((item, i) => (
-                    <div
-                      key={i}
-                      className="p-3 bg-gray-50 rounded-lg shadow-sm border border-gray-200"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div 
-                            className="w-4 h-4 rounded-full mr-3"
-                            style={{ backgroundColor: COLORS[i % COLORS.length] }}
-                          ></div>
-                          <span className="font-medium">{item.name}</span>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold text-green-600">{item.value} check-in</div>
-                          <div className="text-sm text-gray-500">
-                            {reportData.total_checkins > 0 
-                              ? `${((item.value / reportData.total_checkins) * 100).toFixed(1)}%` 
-                              : '0%'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {renderLegend(reportData.checkin_data, 'Check-in')}
             </div>
           </div>
 
           {/* METRICS TAMBAHAN */}
           {metrics && (
-            <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <h3 className="font-semibold text-gray-800">Persentase Tiket Terjual</h3>
                 <p className="text-xl font-bold text-gray-700">
@@ -322,6 +339,13 @@ export default function LaporanEventPage() {
                   {metrics.attendance_rate || "0%"}
                 </p>
                 <p className="text-sm text-gray-500">Dari total tiket terjual</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 className="font-semibold text-gray-800">Total Likes</h3>
+                <p className="text-xl font-bold text-gray-700">
+                  {reportData.total_likes || 0}
+                </p>
+                <p className="text-sm text-gray-500">Jumlah like yang diterima</p>
               </div>
             </div>
           )}
