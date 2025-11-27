@@ -28,8 +28,6 @@ import {
   Shield,
   TicketCheck,
   Users,
-  Receipt,
-  Sparkles,
   Info
 } from "lucide-react";
 

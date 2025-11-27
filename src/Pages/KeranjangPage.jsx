@@ -15,13 +15,10 @@ import {
   Plus,
   Minus,
   AlertCircle,
-  CreditCard,
   ShoppingCart,
-  ArrowRight,
   Loader2,
   RefreshCw,
   Sparkles,
-  Receipt
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -624,7 +621,7 @@ export default function KeranjangPage() {
                 className="text-center py-12"
               >
                 <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Receipt className="w-12 h-12 text-gray-600" />
+                  <ShoppingCart className="w-12 h-12 text-gray-600" />
                 </div>
                 <h3 className="text-2xl font-bold text-slate-900 mb-3">Keranjang Kosong</h3>
                 <p className="text-slate-600 mb-8">Belum ada tiket di keranjang belanja Anda</p>

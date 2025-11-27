@@ -7,131 +7,64 @@ import { eventAPI } from "../services/api";
 import TicketCategoryModal from "../components/TicketCategoryModal";
 import NotificationModal from "../components/NotificationModal";
 import useNotification from "../hooks/useNotification";
+import { motion } from "framer-motion";
 
-// Category and Child Category mappings
 const CATEGORIES = {
-  "Hiburan": [
-    "Musik", "Konser", "Festival", "Stand Up Comedy",
-    "Film", "Teater", "K-Pop", "Dance Performance"
-  ],
-  "Teknologi": [
-    "Konferensi Teknologi", "Workshop IT", "Startup",
-    "Software Development", "Artificial Intelligence",
-    "Data Science", "Cybersecurity", "Gaming & Esports"
-  ],
-  "Edukasi": [
-    "Seminar", "Workshop", "Pelatihan", "Webinar",
-    "Bootcamp", "Kelas Online", "Literasi Digital", "Kelas Bisnis"
-  ],
-  "Olahraga": [
-    "Marathon", "Fun Run", "Sepak Bola", "Badminton",
-    "Gym & Fitness", "Yoga", "Esport", "Cycling Event"
-  ],
-  "Bisnis & Profesional": [
-    "Konferensi Bisnis", "Networking", "Karir",
-    "Entrepreneurship", "Leadership", "Startup Meetup",
-    "Investor & Pitching"
-  ],
-  "Seni & Budaya": [
-    "Pameran Seni", "Pentas Budaya", "Fotografi",
-    "Seni Rupa", "Crafting", "Pameran Museum",
-    "Fashion Show"
-  ],
-  "Komunitas": [
-    "Kegiatan Relawan", "Kegiatan Sosial", "Gathering Komunitas",
-    "Komunitas Hobi", "Meetup", "Charity Event"
-  ],
-  "Kuliner": [
-    "Festival Kuliner", "Food Tasting", "Workshop Memasak",
-    "Street Food Event"
-  ],
-  "Kesehatan": [
-    "Seminar Kesehatan", "Medical Check Event",
-    "Workshop Kesehatan Mental", "Donor Darah"
-  ],
-  "Agama & Spiritual": [
-    "Kajian", "Retreat", "Pengajian", "Event Keagamaan",
-    "Meditasi"
-  ],
-  "Travel & Outdoor": [
-    "Camping", "Hiking", "Trip Wisata", "Outdoor Gathering",
-    "Photography Trip"
-  ],
-  "Keluarga & Anak": [
-    "Family Gathering", "Event Anak", "Workshop Parenting",
-    "Pentas Anak"
-  ],
-  "Fashion & Beauty": [
-    "Fashion Expo", "Beauty Class", "Makeup Workshop",
-    "Brand Launching"
-  ]
+  "Hiburan": ["Musik", "Konser", "Festival", "Stand Up Comedy", "Film", "Teater", "K-Pop", "Dance Performance"],
+  "Teknologi": ["Konferensi Teknologi", "Workshop IT", "Startup", "Software Development", "Artificial Intelligence", "Data Science", "Cybersecurity", "Gaming & Esports"],
+  "Edukasi": ["Seminar", "Workshop", "Pelatihan", "Webinar", "Bootcamp", "Kelas Online", "Literasi Digital", "Kelas Bisnis"],
+  "Olahraga": ["Marathon", "Fun Run", "Sepak Bola", "Badminton", "Gym & Fitness", "Yoga", "Esport", "Cycling Event"],
+  "Bisnis & Profesional": ["Konferensi Bisnis", "Networking", "Karir", "Entrepreneurship", "Leadership", "Startup Meetup", "Investor & Pitching"],
+  "Seni & Budaya": ["Pameran Seni", "Pentas Budaya", "Fotografi", "Seni Rupa", "Crafting", "Pameran Museum", "Fashion Show"],
+  "Komunitas": ["Kegiatan Relawan", "Kegiatan Sosial", "Gathering Komunitas", "Komunitas Hobi", "Meetup", "Charity Event"],
+  "Kuliner": ["Festival Kuliner", "Food Tasting", "Workshop Memasak", "Street Food Event"],
+  "Kesehatan": ["Seminar Kesehatan", "Medical Check Event", "Workshop Kesehatan Mental", "Donor Darah"],
+  "Agama & Spiritual": ["Kajian", "Retreat", "Pengajian", "Event Keagamaan", "Meditasi"],
+  "Travel & Outdoor": ["Camping", "Hiking", "Trip Wisata", "Outdoor Gathering", "Photography Trip"],
+  "Keluarga & Anak": ["Family Gathering", "Event Anak", "Workshop Parenting", "Pentas Anak"],
+  "Fashion & Beauty": ["Fashion Expo", "Beauty Class", "Makeup Workshop", "Brand Launching"]
 };
 
-// District options
 const DISTRICTS = [
-  // Kota Yogyakarta
   "Tegalrejo", "Jetis", "Gondokusuman", "Danurejan", "Gedongtengen",
   "Ngampilan", "Wirobrajan", "Mantrijeron", "Kraton", "Gondomanan",
   "Pakualaman", "Mergangsan", "Umbulharjo", "Kotagede",
-  // Bantul
   "Banguntapan", "Sewon", "Kasihan", "Pandak", "Pleret",
   "Bantul", "Imogiri", "Sanden", "Pundong", "Kretek"
 ];
 
-// Venue options for Yogyakarta
 const YOGYAKARTA_VENUES = [
-  // *YOGYAKARTA KOTA* VENUES
-  // Gondomanan
   { name: "Benteng Vredeburg", district: "Gondomanan", address: "Jl. Margo Mulyo No.6, Ngupasan, Gondomanan" },
   { name: "Taman Pintar Yogyakarta", district: "Gondomanan", address: "Jl. Panembahan Senopati No.1-3, Ngupasan, Gondomanan" },
   { name: "Titik Nol Kilometer Yogyakarta", district: "Gondomanan", address: "Jl. Pangurakan, Ngupasan, Gondomanan" },
   { name: "Museum Sonobudoyo", district: "Gondomanan", address: "Jl. Pangurakan No.6, Ngupasan, Gondomanan" },
-  // Kraton
   { name: "Keraton Ngayogyakarta Hadiningrat", district: "Kraton", address: "Jl. Rotowijayan Blok No. 1, Panembahan, Kraton" },
   { name: "Alun-Alun Utara", district: "Kraton", address: "Jl. Alun-Alun Utara, Panembahan, Kraton" },
   { name: "Alun-Alun Selatan", district: "Kraton", address: "Jl. Sultan Agung, Patehan, Kraton" },
   { name: "Taman Sari", district: "Kraton", address: "Jl. Taman, Patehan, Kraton" },
-  // Jetis
-  { name: "Museum Diponegoro (Sasana Wiratama)", district: "Jetis", address: "Jl. HOS Cokroaminoto No.67, Jetis" },
-  // Tegalrejo
+  { name: "Museum Diponegoro", district: "Jetis", address: "Jl. HOS Cokroaminoto No.67, Jetis" },
   { name: "Hotel Tentrem Ballroom", district: "Tegalrejo", address: "Jl. P. Mangkubumi No.72A, Gowongan, Tegalrejo" },
-  // Umbulharjo
   { name: "GOR Amongrogo", district: "Umbulharjo", address: "Jl. Kenari, Semaki, Umbulharjo" },
   { name: "Balai Kota Yogyakarta", district: "Umbulharjo", address: "Jl. Kenari No.56, Semaki, Umbulharjo" },
-  // Kotagede
   { name: "Pusat Kerajinan Perak Kotagede", district: "Kotagede", address: "Jl. Kemasan, Kotagede" },
-
-  // *BANTUL* VENUES
-  // Banguntapan
-  { name: "Jogja Expo Center (JEC)", district: "Banguntapan", address: "Jl. Wonocatur No.1, Banguntapan, Bantul" },
+  { name: "Jogja Expo Center", district: "Banguntapan", address: "Jl. Wonocatur No.1, Banguntapan, Bantul" },
   { name: "Balai Desa Banguntapan Hall", district: "Banguntapan", address: "Jl. Wiyoro Lor, Banguntapan, Bantul" },
-  // Sewon
   { name: "ISI Yogyakarta Concert Hall", district: "Sewon", address: "Jl. Parangtritis Km 6, Sewon, Bantul" },
   { name: "Taman Gabusan Art Center", district: "Sewon", address: "Jl. Parangtritis Km 5, Timbulharjo, Sewon, Bantul" },
-  // Kasihan
   { name: "Gedung Serbaguna Kasihan", district: "Kasihan", address: "Kasihan, Bantul" },
   { name: "Cinéma Café & Creative Space", district: "Kasihan", address: "Jl. Bibis Raya, Tirtonirmolo, Kasihan" },
-  // Pleret
   { name: "Balai Budaya Pleret", district: "Pleret", address: "Pleret, Bantul" },
-  // Pandak
   { name: "Gedung Serbaguna Pandak", district: "Pandak", address: "Pandak, Bantul" },
-  // Bantul (Kecamatan Ibu Kota)
-  { name: "GMB (Gedung Muda Budaya Bantul)", district: "Bantul", address: "Jl. Jend Sudirman, Bantul" },
+  { name: "Gedung Muda Budaya Bantul", district: "Bantul", address: "Jl. Jend Sudirman, Bantul" },
   { name: "GRHA 'Wijaya Kusuma' Pemkab Bantul", district: "Bantul", address: "Jl. Lingkar Timur, Bantul" },
-  // Imogiri
   { name: "Aula Balai Desa Imogiri", district: "Imogiri", address: "Imogiri, Bantul" },
-  // Pandansimo / Sanden
   { name: "Pantai Goa Cemara Event Area", district: "Sanden", address: "Patihan, Gadingsari, Sanden, Bantul" },
-  // Kretek
   { name: "Pantai Parangtritis Event Ground", district: "Kretek", address: "Parangtritis, Kretek, Bantul" },
-  // Fallback
   { name: "Lainnya", district: "", address: "" }
 ];
 
-// Komponen untuk menampilkan deskripsi dengan newline
 const DescriptionWithNewlines = ({ text }) => {
   if (!text) return null;
-  
   return (
     <div className="text-gray-600 text-sm mb-3 whitespace-pre-line">
       {text}
@@ -139,7 +72,6 @@ const DescriptionWithNewlines = ({ text }) => {
   );
 };
 
-// Komponen Dropdown Venue dengan Search
 const VenueDropdown = ({ value, onChange, onCustomVenueToggle, isCustomVenue }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -156,38 +88,17 @@ const VenueDropdown = ({ value, onChange, onCustomVenueToggle, isCustomVenue }) 
   const handleSelectVenue = (venue) => {
     if (venue.name === "Lainnya") {
       onCustomVenueToggle(true);
-      onChange({
-        target: {
-          name: "venue",
-          value: ""
-        }
-      });
-      setSearchTerm(""); // Reset search term
+      onChange({ target: { name: "venue", value: "" } });
+      setSearchTerm("");
     } else {
       onCustomVenueToggle(false);
-      onChange({
-        target: {
-          name: "venue",
-          value: venue.name
-        }
-      });
-      setSearchTerm(venue.name); // Set search term to selected venue
-      // Auto-fill district and address
+      onChange({ target: { name: "venue", value: venue.name } });
+      setSearchTerm(venue.name);
       if (venue.district) {
-        onChange({
-          target: {
-            name: "district",
-            value: venue.district
-          }
-        });
+        onChange({ target: { name: "district", value: venue.district } });
       }
       if (venue.address) {
-        onChange({
-          target: {
-            name: "location",
-            value: venue.address
-          }
-        });
+        onChange({ target: { name: "location", value: venue.address } });
       }
     }
     setIsOpen(false);
@@ -198,14 +109,8 @@ const VenueDropdown = ({ value, onChange, onCustomVenueToggle, isCustomVenue }) 
     setSearchTerm(value);
     setIsOpen(true);
     
-    // Jika dalam mode custom venue atau user mengetik manual
     if (isCustomVenue || value !== "") {
-      onChange({
-        target: {
-          name: "venue",
-          value: value
-        }
-      });
+      onChange({ target: { name: "venue", value: value } });
     }
   };
 
@@ -214,34 +119,20 @@ const VenueDropdown = ({ value, onChange, onCustomVenueToggle, isCustomVenue }) 
   };
 
   const handleInputBlur = (e) => {
-    // Delay closing to allow for click selection
     setTimeout(() => setIsOpen(false), 200);
   };
 
   const handleCustomVenueToggle = (custom) => {
     onCustomVenueToggle(custom);
     if (custom) {
-      // Reset venue value when switching to custom mode
-      onChange({
-        target: {
-          name: "venue",
-          value: ""
-        }
-      });
-      setSearchTerm(""); // Clear search term
+      onChange({ target: { name: "venue", value: "" } });
+      setSearchTerm("");
     } else {
-      // When switching back to dropdown mode, clear the venue
-      onChange({
-        target: {
-          name: "venue",
-          value: ""
-        }
-      });
-      setSearchTerm(""); // Clear search term
+      onChange({ target: { name: "venue", value: "" } });
+      setSearchTerm("");
     }
   };
 
-  // Tampilkan nilai venue yang dipilih atau search term
   const displayValue = isCustomVenue ? value : searchTerm;
 
   return (
@@ -257,18 +148,12 @@ const VenueDropdown = ({ value, onChange, onCustomVenueToggle, isCustomVenue }) 
           onFocus={handleInputFocus}
           onBlur={handleInputBlur}
         />
-        {/* Clear button when there's text */}
         {(searchTerm || value) && !isCustomVenue && (
           <button
             type="button"
             onClick={() => {
               setSearchTerm("");
-              onChange({
-                target: {
-                  name: "venue",
-                  value: ""
-                }
-              });
+              onChange({ target: { name: "venue", value: "" } });
             }}
             className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
           >
@@ -351,7 +236,6 @@ export default function EditEventPage() {
         const response = await eventAPI.getEvent(id);
         const eventData = response.data;
 
-        // Check if user is owner and event can be edited
         const token = sessionStorage.getItem('token');
         if (token) {
           const payload = JSON.parse(atob(token.split('.')[1]));
@@ -373,11 +257,9 @@ export default function EditEventPage() {
 
         setEvent(eventData);
         
-        // Check if venue is custom (not in predefined list)
         const isVenueCustom = !YOGYAKARTA_VENUES.some(venue => venue.name === eventData.venue);
         setIsCustomVenue(isVenueCustom);
         
-        // Set form data
         setFormData({
           name: eventData.name,
           category: eventData.category,
@@ -391,11 +273,9 @@ export default function EditEventPage() {
           rules: eventData.rules || "",
         });
 
-        // Set current images
         setCurrentPoster(eventData.image || "");
         setCurrentBanner(eventData.flyer || "");
 
-        // Set ticket categories
         const formattedTickets = eventData.ticket_categories?.map((ticket, index) => ({
           id: ticket.ticket_category_id || `existing-${index}`,
           name: ticket.name,
@@ -530,7 +410,6 @@ export default function EditEventPage() {
     try {
       const submitData = new FormData();
 
-      // Append basic form data
       Object.keys(formData).forEach((key) => {
         if (formData[key]) {
           if (key === "date_start" || key === "date_end") {
@@ -542,11 +421,9 @@ export default function EditEventPage() {
         }
       });
 
-      // Append files if changed
       if (posterFile) submitData.append("image", posterFile);
       if (bannerFile) submitData.append("flyer", bannerFile);
 
-      // Append ticket categories
       if (ticketList.length > 0) {
         const ticketCategories = ticketList.map((ticket) => ({
           name: ticket.name,
@@ -599,15 +476,40 @@ export default function EditEventPage() {
     return `${config.bg} ${config.text} px-3 py-1 rounded-full text-sm font-medium`;
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5
+      }
+    }
+  };
+
   if (loading && !event) {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center pt-36">
-          <div className="flex flex-col items-center">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center pt-36">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center"
+          >
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
             <div className="text-lg text-gray-600">Memuat data event...</div>
-          </div>
+          </motion.div>
         </div>
       </div>
     );
@@ -617,11 +519,15 @@ export default function EditEventPage() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center pt-36">
-          <div className="text-center">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center pt-36">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center"
+          >
             <div className="text-red-600 text-lg font-semibold mb-2">Akses Ditolak</div>
             <div className="text-gray-600">Anda tidak memiliki akses untuk mengedit event ini</div>
-          </div>
+          </motion.div>
         </div>
       </div>
     );
@@ -670,41 +576,56 @@ export default function EditEventPage() {
         eventDates={{ start: formData.date_start, end: formData.date_end }}
       />
 
-      <div className="min-h-screen bg-gray-100 py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 mt-32">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => navigate(`/detailEvent/${id}`)}
-                  className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors p-2 rounded-lg hover:bg-gray-100"
-                >
-                  <ArrowLeft size={20} />
-                  <span className="font-medium">Kembali</span>
-                </button>
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Edit Event</h1>
-                  <p className="text-gray-600 mt-1">Perbarui informasi event Anda</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-32">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="bg-white rounded-2xl shadow-xl overflow-hidden"
+          >
+            {/* Header dengan Gradient */}
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex items-center gap-4">
+                  <motion.button
+                    onClick={() => navigate(`/detailEvent/${id}`)}
+                    className="flex items-center gap-2 text-white hover:text-blue-100 transition-colors p-2 rounded-lg hover:bg-blue-400"
+                    whileHover={{ scale: 1.05, x: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <ArrowLeft size={20} />
+                    <span className="font-medium">Kembali</span>
+                  </motion.button>
+                  <div>
+                    <h1 className="text-2xl md:text-3xl font-bold">Edit Event</h1>
+                    <p className="text-blue-100 mt-1">Perbarui informasi event Anda</p>
+                  </div>
                 </div>
+                
+                {event && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-blue-100 font-medium">Status:</span>
+                    <span className={getStatusBadge(event.status)}>
+                      {event.status === 'pending' ? 'Pending' : 
+                       event.status === 'rejected' ? 'Ditolak' : 
+                       event.status === 'approved' ? 'Disetujui' : 
+                       event.status === 'published' ? 'Dipublikasi' : event.status}
+                    </span>
+                  </div>
+                )}
               </div>
-              
-              {event && (
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-500 font-medium">Status:</span>
-                  <span className={getStatusBadge(event.status)}>
-                    {event.status === 'pending' ? 'Pending' : 
-                     event.status === 'rejected' ? 'Ditolak' : 
-                     event.status === 'approved' ? 'Disetujui' : 
-                     event.status === 'published' ? 'Dipublikasi' : event.status}
-                  </span>
-                </div>
-              )}
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
+            <motion.form 
+              onSubmit={handleSubmit} 
+              className="space-y-8 p-6 md:p-8"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
               {/* Informasi Dasar Event */}
-              <div className="bg-gray-50 rounded-xl p-6">
+              <motion.div variants={itemVariants} className="bg-gray-50 rounded-xl p-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Informasi Dasar Event</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -769,10 +690,10 @@ export default function EditEventPage() {
                     </select>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Media Event */}
-              <div className="bg-gray-50 rounded-xl p-6">
+              <motion.div variants={itemVariants} className="bg-gray-50 rounded-xl p-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Media Event</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
@@ -794,14 +715,16 @@ export default function EditEventPage() {
                         />
                       </label>
                       {(posterFile || currentPoster) && (
-                        <button
+                        <motion.button
                           type="button"
                           onClick={() => handlePreviewImage('poster')}
                           className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-3 rounded-lg hover:bg-blue-100 transition-colors"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                         >
                           <Eye size={18} />
                           Preview
-                        </button>
+                        </motion.button>
                       )}
                     </div>
                   </div>
@@ -825,22 +748,24 @@ export default function EditEventPage() {
                         />
                       </label>
                       {(bannerFile || currentBanner) && (
-                        <button
+                        <motion.button
                           type="button"
                           onClick={() => handlePreviewImage('banner')}
                           className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-3 rounded-lg hover:bg-blue-100 transition-colors"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                         >
                           <Eye size={18} />
                           Preview
-                        </button>
+                        </motion.button>
                       )}
                     </div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Waktu & Lokasi */}
-              <div className="bg-gray-50 rounded-xl p-6">
+              <motion.div variants={itemVariants} className="bg-gray-50 rounded-xl p-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Waktu & Lokasi</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -896,10 +821,10 @@ export default function EditEventPage() {
                     />
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Deskripsi & Peraturan */}
-              <div className="bg-gray-50 rounded-xl p-6">
+              <motion.div variants={itemVariants} className="bg-gray-50 rounded-xl p-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Informasi Tambahan</h2>
                 <div className="space-y-6">
                   <div className="space-y-2">
@@ -927,20 +852,22 @@ export default function EditEventPage() {
                     />
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Kategori Tiket */}
-              <div className="bg-gray-50 rounded-xl p-6">
+              <motion.div variants={itemVariants} className="bg-gray-50 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold text-gray-800">Kategori Tiket</h2>
-                  <button
+                  <motion.button
                     type="button"
                     onClick={handleAddTicketClick}
                     className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-colors"
+                    whileHover={{ scale: 1.05, y: -1 }}
+                    whileTap={{ scale: 0.95 }}
                   >
                     <Plus size={20} />
                     Tambah Kategori Tiket
-                  </button>
+                  </motion.button>
                 </div>
 
                 <div className="space-y-4">
@@ -952,7 +879,13 @@ export default function EditEventPage() {
                     </div>
                   ) : (
                     ticketList.map((t) => (
-                      <div key={t.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                      <motion.div 
+                        key={t.id} 
+                        className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
@@ -977,50 +910,68 @@ export default function EditEventPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 ml-4">
-                            <button
+                            <motion.button
                               type="button"
                               onClick={() => handleEditTicket(t)}
                               className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-100 transition-colors"
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
                             >
                               <Pencil size={16} />
                               Edit
-                            </button>
-                            <button
+                            </motion.button>
+                            <motion.button
                               type="button"
                               onClick={() => removeTicketCategory(t.id)}
                               className="flex items-center gap-2 bg-red-50 text-red-700 px-3 py-2 rounded-lg hover:bg-red-100 transition-colors"
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
                             >
                               <Trash2 size={16} />
                               Hapus
-                            </button>
+                            </motion.button>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     ))
                   )}
                 </div>
-              </div>
+              </motion.div>
 
               {/* Submit Button */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200">
-                <button
+              <motion.div 
+                variants={itemVariants}
+                className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200"
+              >
+                <motion.button
                   type="button"
                   onClick={() => navigate(`/detailEvent/${id}`)}
                   className="flex-1 border border-gray-300 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  whileHover={{ scale: 1.02, y: -1 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   Batal
-                </button>
-                <button
+                </motion.button>
+                <motion.button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-6 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
+                  whileHover={{ scale: loading ? 1 : 1.02, y: loading ? 0 : -1 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   <Save size={20} />
-                  {loading ? "Menyimpan Perubahan..." : "Simpan Perubahan"}
-                </button>
-              </div>
-            </form>
-          </div>
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Menyimpan Perubahan...
+                    </div>
+                  ) : (
+                    "Simpan Perubahan"
+                  )}
+                </motion.button>
+              </motion.div>
+            </motion.form>
+          </motion.div>
         </div>
       </div>
     </div>
