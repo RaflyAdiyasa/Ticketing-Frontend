@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
-import { ChevronLeft, ChevronRight, Calendar, MapPin, Ticket, TrendingUp, Music, Cpu, GraduationCap, Dumbbell, Briefcase, Palette, Users, UtensilsCrossed, Heart, Moon, Mountain, Baby, Sparkles, ArrowRight, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, MapPin, Ticket, TrendingUp, Music, Cpu, GraduationCap, Dumbbell, Briefcase, Palette, Users, UtensilsCrossed, Heart, Moon, Mountain, Baby, Sparkles, ArrowRight, Clock, ShoppingBag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { eventAPI } from "../services/api";
 
@@ -210,10 +210,13 @@ const CATEGORIES = {
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [events, setEvents] = useState([]);
+  const [bestSellingEvents, setBestSellingEvents] = useState([]);
+  const [popularEvents, setPopularEvents] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [likedEvents, setLikedEvents] = useState(new Set());
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Banner state
   const [currentBanner, setCurrentBanner] = useState(0);
@@ -281,6 +284,47 @@ export default function LandingPage() {
     );
   };
 
+  // Check login status
+  useEffect(() => {
+    const token = sessionStorage.getItem('token');
+    setIsLoggedIn(!!token);
+  }, []);
+
+  // Fetch liked events for logged in user
+  useEffect(() => {
+    const fetchLikedEvents = async () => {
+      if (!isLoggedIn) return;
+      try {
+        const response = await eventAPI.getMyLikedEvents();
+        const likedEventIds = new Set(
+          (response.data?.liked_event || []).map(e => e.event_id)
+        );
+        setLikedEvents(likedEventIds);
+      } catch (err) {
+        console.error("Error fetching liked events:", err);
+      }
+    };
+    fetchLikedEvents();
+  }, [isLoggedIn]);
+
+  // Transform event data
+  const transformEvent = (event) => ({
+    id: event.event_id || event.id,
+    name: event.name,
+    date: formatEventDate(event.date_start, event.date_end),
+    dateStart: event.date_start,
+    dateEnd: event.date_end,
+    price: getLowestPrice(event.ticket_categories),
+    poster: event.image,
+    banner: event.flyer || event.image,
+    category: event.category,
+    location: event.venue || event.location,
+    district: event.district,
+    totalLikes: event.total_likes || 0,
+    totalTicketsSold: event.total_tickets_sold || 0,
+    originalData: event,
+  });
+
   // Fetch events dari backend
   useEffect(() => {
     const fetchEvents = async () => {
@@ -288,33 +332,32 @@ export default function LandingPage() {
         setLoading(true);
         setError(null);
 
-        // Fetch popular events
+        // Fetch all approved events
+        const approvedResponse = await eventAPI.getApprovedEvents();
+        const allEvents = approvedResponse.data || [];
+
+        // Transform all events
+        const transformedEvents = allEvents.map(transformEvent);
+
+        // Sort by total_tickets_sold for best selling
+        const bestSelling = [...transformedEvents]
+          .sort((a, b) => b.totalTicketsSold - a.totalTicketsSold)
+          .slice(0, 8);
+        setBestSellingEvents(bestSelling);
+
+        // Fetch popular events (by likes)
         const popularResponse = await eventAPI.getEventsPopular();
-        let popularEvents = popularResponse.data?.events || [];
-
-        // Jika tidak ada popular, ambil approved events
-        if (popularEvents.length === 0) {
-          const approvedResponse = await eventAPI.getApprovedEvents();
-          popularEvents = approvedResponse.data || [];
+        let popularEventsData = popularResponse.data?.events || [];
+        
+        if (popularEventsData.length === 0) {
+          // Fallback: sort all events by likes
+          popularEventsData = [...transformedEvents]
+            .sort((a, b) => b.totalLikes - a.totalLikes)
+            .slice(0, 8);
+          setPopularEvents(popularEventsData);
+        } else {
+          setPopularEvents(popularEventsData.map(transformEvent));
         }
-
-        // Transform data
-        const transformedEvents = popularEvents.map((event) => ({
-          id: event.event_id || event.id,
-          name: event.name,
-          date: formatEventDate(event.date_start, event.date_end),
-          dateStart: event.date_start,
-          dateEnd: event.date_end,
-          price: getLowestPrice(event.ticket_categories),
-          poster: event.image,
-          banner: event.flyer || event.image,
-          category: event.category,
-          location: event.venue || event.location,
-          district: event.district,
-          originalData: event,
-        }));
-
-        setEvents(transformedEvents);
 
         // Filter upcoming events (event yang akan datang)
         const now = new Date();
@@ -334,10 +377,57 @@ export default function LandingPage() {
     fetchEvents();
   }, []);
 
+  // Handle like event
+  const handleLikeEvent = async (eventId, e) => {
+    e.stopPropagation();
+    
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+
+    // Capture the current like status BEFORE making any state changes
+    const isCurrentlyLiked = likedEvents.has(eventId);
+
+    try {
+      await eventAPI.likeEvent(eventId);
+      
+      // Update likedEvents state
+      setLikedEvents(prev => {
+        const newSet = new Set(prev);
+        if (isCurrentlyLiked) {
+          newSet.delete(eventId);
+        } else {
+          newSet.add(eventId);
+        }
+        return newSet;
+      });
+
+      // Update like counts in UI using the captured status
+      const updateLikes = (events) => events.map(event => {
+        if (event.id === eventId) {
+          return {
+            ...event,
+            totalLikes: isCurrentlyLiked 
+              ? Math.max(0, (event.totalLikes || 1) - 1) 
+              : (event.totalLikes || 0) + 1
+          };
+        }
+        return event;
+      });
+
+      setBestSellingEvents(updateLikes);
+      setPopularEvents(updateLikes);
+      setUpcomingEvents(updateLikes);
+    } catch (err) {
+      console.error("Error liking event:", err);
+    }
+  };
+
   // Banner events (max 5)
   const bannerEvents = useMemo(
-    () => events.filter((e) => e.banner).slice(0, 5),
-    [events]
+    () => bestSellingEvents.filter((e) => e.banner).slice(0, 5),
+    [bestSellingEvents]
   );
 
   // Auto slide banner
@@ -409,12 +499,12 @@ export default function LandingPage() {
   // Available categories dari events yang ada
   const availableCategories = useMemo(() => {
     const cats = new Set();
-    events.forEach((event) => {
+    bestSellingEvents.forEach((event) => {
       const parent = getParentCategory(event.category);
       if (parent !== "Lainnya") cats.add(parent);
     });
     return Array.from(cats).slice(0, 8);
-  }, [events]);
+  }, [bestSellingEvents]);
 
   // Loading state
   if (loading) {
@@ -622,9 +712,8 @@ export default function LandingPage() {
                 <h2 className="text-2xl font-bold text-gray-900">
                   Jelajahi Kategori
                 </h2>
-                {/* PERBAIKAN: Konsisten menggunakan tombol dengan style yang sama */}
                 <button
-                  onClick={() => navigate("/kalender-event")}
+                  onClick={() => navigate("/cariEvent")}
                   className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors"
                 >
                   Lihat Semua
@@ -667,7 +756,7 @@ export default function LandingPage() {
         </section>
       )}
 
-      {/* Popular Events Section */}
+      {/* Best Selling Events Section (previously Popular) */}
       <section className="py-10 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <motion.div
@@ -678,31 +767,30 @@ export default function LandingPage() {
           >
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-blue-600" />
+                <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                  <ShoppingBag className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">
-                    Event Populer
+                    Event Terlaris
                   </h2>
                   <p className="text-gray-500 text-sm">
-                    Event paling diminati saat ini
+                    Event dengan penjualan tiket terbanyak
                   </p>
                 </div>
               </div>
-              {/* PERBAIKAN: Konsisten menggunakan tombol dengan style yang sama */}
               <button
-                onClick={() => navigate("/carievent")}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors"
+                onClick={() => navigate("/carievent?sort=terlaris")}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors"
               >
                 Lihat Semua
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
 
-            {events.length > 0 ? (
+            {bestSellingEvents.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {events.slice(0, 8).map((event, index) => (
+                {bestSellingEvents.slice(0, 8).map((event, index) => (
                   <EventCard
                     key={event.id}
                     event={event}
@@ -711,6 +799,10 @@ export default function LandingPage() {
                     formatRupiah={formatRupiah}
                     getCategoryData={getCategoryData}
                     getParentCategory={getParentCategory}
+                    isLiked={likedEvents.has(event.id)}
+                    onLike={(e) => handleLikeEvent(event.id, e)}
+                    isLoggedIn={isLoggedIn}
+                    showSales
                   />
                 ))}
               </div>
@@ -725,9 +817,70 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Popular Events Section (by Likes) */}
+      <section className="py-10 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-50 to-white">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-pink-100 rounded-xl flex items-center justify-center">
+                  <Heart className="w-5 h-5 text-pink-600" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Event Populer
+                  </h2>
+                  <p className="text-gray-500 text-sm">
+                    Event dengan likes terbanyak
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate("/carievent?sort=popularitas")}
+                className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors"
+              >
+                Lihat Semua
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {popularEvents.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {popularEvents.slice(0, 8).map((event, index) => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    index={index}
+                    onClick={() => navigate(`/detailEvent/${event.id}`)}
+                    formatRupiah={formatRupiah}
+                    getCategoryData={getCategoryData}
+                    getParentCategory={getParentCategory}
+                    isLiked={likedEvents.has(event.id)}
+                    onLike={(e) => handleLikeEvent(event.id, e)}
+                    isLoggedIn={isLoggedIn}
+                    showLikes
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={Heart}
+                title="Belum Ada Event Populer"
+                description="Saat ini belum ada event populer. Silakan cek kembali nanti."
+              />
+            )}
+          </motion.div>
+        </div>
+      </section>
+
       {/* Upcoming Events Section */}
       {upcomingEvents.length > 0 && (
-        <section className="py-10 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-50 to-white">
+        <section className="py-10 px-4 sm:px-6 lg:px-8 bg-white">
           <div className="max-w-7xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -737,8 +890,8 @@ export default function LandingPage() {
             >
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-emerald-600" />
+                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">
@@ -749,10 +902,9 @@ export default function LandingPage() {
                     </p>
                   </div>
                 </div>
-                {/* PERBAIKAN: Konsisten menggunakan tombol dengan style yang sama */}
                 <button
                   onClick={() => navigate("/kalender-event")}
-                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors"
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors"
                 >
                   <Calendar className="w-4 h-4" />
                   Lihat Kalender
@@ -769,6 +921,9 @@ export default function LandingPage() {
                     formatRupiah={formatRupiah}
                     getCategoryData={getCategoryData}
                     getParentCategory={getParentCategory}
+                    isLiked={likedEvents.has(event.id)}
+                    onLike={(e) => handleLikeEvent(event.id, e)}
+                    isLoggedIn={isLoggedIn}
                   />
                 ))}
               </div>
@@ -844,6 +999,11 @@ function EventCard({
   formatRupiah,
   getCategoryData,
   getParentCategory,
+  isLiked,
+  onLike,
+  isLoggedIn,
+  showSales,
+  showLikes,
 }) {
   const catData = getCategoryData(event.category);
   const parentCategory = getParentCategory(event.category);
@@ -891,6 +1051,17 @@ function EventCard({
             </span>
           </div>
         )}
+        {/* Like Button */}
+        <button
+          onClick={onLike}
+          className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+            isLiked 
+              ? 'bg-pink-500 text-white' 
+              : 'bg-white/90 text-gray-600 hover:bg-pink-100 hover:text-pink-500'
+          }`}
+        >
+          <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+        </button>
       </div>
 
       {/* Content */}
@@ -923,8 +1094,22 @@ function EventCard({
               {formatRupiah(event.price)}
             </p>
           </div>
-          <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
-            <ArrowRight className="w-4 h-4 text-blue-600 group-hover:text-white transition-colors" />
+          <div className="flex items-center gap-3">
+            {showSales && event.totalTicketsSold > 0 && (
+              <div className="flex items-center gap-1 text-emerald-600 text-sm">
+                <ShoppingBag className="w-4 h-4" />
+                <span className="font-medium">{event.totalTicketsSold}</span>
+              </div>
+            )}
+            {showLikes && event.totalLikes > 0 && (
+              <div className="flex items-center gap-1 text-pink-500 text-sm">
+                <Heart className="w-4 h-4 fill-current" />
+                <span className="font-medium">{event.totalLikes}</span>
+              </div>
+            )}
+            <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+              <ArrowRight className="w-4 h-4 text-blue-600 group-hover:text-white transition-colors" />
+            </div>
           </div>
         </div>
       </div>
@@ -940,6 +1125,9 @@ function UpcomingEventCard({
   formatRupiah,
   getCategoryData,
   getParentCategory,
+  isLiked,
+  onLike,
+  isLoggedIn,
 }) {
   const catData = getCategoryData(event.category);
   const parentCategory = getParentCategory(event.category);
@@ -993,15 +1181,27 @@ function UpcomingEventCard({
                 {event.name}
               </h3>
             </div>
-            {daysUntil !== null && daysUntil >= 0 && (
-              <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap flex-shrink-0">
-                {daysUntil === 0
-                  ? "Hari ini"
-                  : daysUntil === 1
-                  ? "Besok"
-                  : `${daysUntil} hari lagi`}
-              </span>
-            )}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {daysUntil !== null && daysUntil >= 0 && (
+                <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap">
+                  {daysUntil === 0
+                    ? "Hari ini"
+                    : daysUntil === 1
+                    ? "Besok"
+                    : `${daysUntil} hari lagi`}
+                </span>
+              )}
+              <button
+                onClick={onLike}
+                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+                  isLiked 
+                    ? 'bg-pink-500 text-white' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-pink-100 hover:text-pink-500'
+                }`}
+              >
+                <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-current' : ''}`} />
+              </button>
+            </div>
           </div>
 
           {event.location && (
@@ -1019,7 +1219,15 @@ function UpcomingEventCard({
             >
               {formatRupiah(event.price)}
             </p>
-            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
+            <div className="flex items-center gap-2">
+              {event.totalLikes > 0 && (
+                <span className="flex items-center gap-1 text-pink-500 text-xs">
+                  <Heart className="w-3 h-3 fill-current" />
+                  {event.totalLikes}
+                </span>
+              )}
+              <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
+            </div>
           </div>
         </div>
       </div>

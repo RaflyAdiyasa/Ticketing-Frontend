@@ -2,7 +2,7 @@ import { useParams } from "react-router";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { MapPin, CalendarDays, Shapes, CheckCircle, XCircle, Clock, Scale, Building, FileText, ArrowLeft, ShoppingCart, Plus, Minus } from "lucide-react";
+import { MapPin, CalendarDays, Shapes, CheckCircle, XCircle, Clock, Scale, Building, FileText, ArrowLeft, ShoppingCart, Plus, Minus, Heart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api, { eventAPI } from "../services/api";
 import useNotification from "../hooks/useNotification";
@@ -69,6 +69,11 @@ export default function EventDetail() {
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [verificationAction, setVerificationAction] = useState(null);
   const [approvalComment, setApprovalComment] = useState("");
+  
+  // State untuk like
+  const [isLiked, setIsLiked] = useState(false);
+  const [totalLikes, setTotalLikes] = useState(0);
+  const [likeLoading, setLikeLoading] = useState(false);
 
   useEffect(() => {
     const fetchEventDetail = async () => {
@@ -79,6 +84,7 @@ export default function EventDetail() {
         const eventData = response.data;
 
         setEvent(eventData);
+        setTotalLikes(eventData.total_likes || 0);
 
         const formattedTickets = eventData.ticket_categories?.map((ticket) => ({
           ticket_category_id: ticket.ticket_category_id,
@@ -140,6 +146,69 @@ export default function EventDetail() {
       fetchEventDetail();
     }
   }, [id]);
+
+  // Fetch liked status untuk user yang login
+  useEffect(() => {
+    const fetchLikedStatus = async () => {
+      if (!isLoggedIn || !id) return;
+      
+      try {
+        const response = await eventAPI.getMyLikedEvents();
+        const likedEventIds = (response.data?.liked_event || []).map(e => e.event_id);
+        setIsLiked(likedEventIds.includes(id));
+      } catch (err) {
+        console.error("Error fetching liked status:", err);
+      }
+    };
+
+    fetchLikedStatus();
+  }, [isLoggedIn, id]);
+
+  // Handle like/unlike event
+  const handleLikeEvent = async (e) => {
+    e.stopPropagation();
+    
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+
+    if (likeLoading) return;
+
+    setLikeLoading(true);
+    
+    // Simpan state sebelumnya untuk rollback jika error
+    const previousIsLiked = isLiked;
+    const previousTotalLikes = totalLikes;
+
+    // Optimistic update
+    setIsLiked(!isLiked);
+    setTotalLikes(prev => isLiked ? Math.max(0, prev - 1) : prev + 1);
+
+    try {
+      const response = await eventAPI.likeEvent(id);
+      
+      // Update dengan data dari server jika tersedia
+      if (response.data?.event_total_like !== undefined) {
+        setTotalLikes(response.data.event_total_like);
+      }
+      
+      // Update event state juga
+      setEvent(prev => ({
+        ...prev,
+        total_likes: response.data?.event_total_like ?? (isLiked ? Math.max(0, prev.total_likes - 1) : prev.total_likes + 1)
+      }));
+
+    } catch (err) {
+      console.error("Error toggling like:", err);
+      // Rollback jika error
+      setIsLiked(previousIsLiked);
+      setTotalLikes(previousTotalLikes);
+      showNotification("Gagal memproses like", "Error", "error");
+    } finally {
+      setLikeLoading(false);
+    }
+  };
 
   const updateQty = (index, delta) => {
     setTickets((prev) =>
@@ -351,7 +420,26 @@ export default function EventDetail() {
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-8">
               <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
                 <div className="flex-1">
-                  <h1 className="text-3xl lg:text-4xl font-bold mb-4">{event.name}</h1>
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <h1 className="text-3xl lg:text-4xl font-bold">{event.name}</h1>
+                    
+                    {/* Like Button di Header */}
+                    <motion.button
+                      onClick={handleLikeEvent}
+                      disabled={likeLoading}
+                      className={`flex items-center gap-2 px-3 py-3 rounded-full transition-all ${
+                        isLiked 
+                          ? 'bg-pink-500 text-white hover:bg-pink-600' 
+                          : 'bg-white/20 text-white hover:bg-white/30'
+                      } ${likeLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      whileHover={{ scale: likeLoading ? 1 : 1.05 }}
+                      whileTap={{ scale: likeLoading ? 1 : 0.95 }}
+                    >
+                      <Heart 
+                        className={`w-5 h-5 transition-all ${isLiked ? 'fill-current' : ''} ${likeLoading ? 'animate-pulse' : ''}`} 
+                      />
+                    </motion.button>
+                  </div>
                   
                   {/* Event Info Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -450,7 +538,7 @@ export default function EventDetail() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Content */}
                 <div className="lg:col-span-2 space-y-8">
-                  {/* About Event - DIUBAH */}
+                  {/* About Event */}
                   <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-100">
                       <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
@@ -467,7 +555,7 @@ export default function EventDetail() {
                     </div>
                   </div>
 
-                  {/* Event Rules - DIUBAH */}
+                  {/* Event Rules */}
                   {event.rules && (
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                       <div className="bg-gradient-to-r from-orange-50 to-amber-50 px-6 py-4 border-b border-orange-100">
@@ -486,7 +574,7 @@ export default function EventDetail() {
                     </div>
                   )}
 
-                  {/* Ticket Section - DIUBAH */}
+                  {/* Ticket Section */}
                   {!isOwner && (
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                       <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-green-100">
@@ -599,7 +687,7 @@ export default function EventDetail() {
                     </div>
                   )}
 
-                  {/* Owner Ticket Management - DIUBAH */}
+                  {/* Owner Ticket Management */}
                   {isOwner && (
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                       <div className="bg-gradient-to-r from-purple-50 to-violet-50 px-6 py-4 border-b border-purple-100">
@@ -684,7 +772,7 @@ export default function EventDetail() {
                 <div className="lg:col-span-1 space-y-6">
                   {/* Event Images */}
                   <div className="grid grid-cols-1 gap-4">
-                    <div className="rounded-xl overflow-hidden shadow-lg aspect-square border border-gray-200">
+                    <div className="rounded-xl overflow-hidden shadow-lg aspect-square border border-gray-200 relative group">
                       <img
                         src={event.image || "https://cdn2.steamgriddb.com/icon_thumb/63872edc3fa52d645b3d48f6d98caf2c.png"}
                         alt={event.name}
@@ -704,6 +792,34 @@ export default function EventDetail() {
                         />
                       </div>
                     )}
+                  </div>
+
+                  {/* Like Info Card */}
+                  <div className="bg-gradient-to-br from-pink-50 to-rose-50 border border-pink-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
+                          <Heart className={`w-5 h-5 ${isLiked ? 'text-pink-600 fill-current' : 'text-pink-400'}`} />
+                        </div>
+                        <div>
+                          <p className="text-sm text-pink-600 font-medium">Total Likes</p>
+                          <p className="text-2xl font-bold text-gray-900">{totalLikes}</p>
+                        </div>
+                      </div>
+                      <motion.button
+                        onClick={handleLikeEvent}
+                        disabled={likeLoading}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                          isLiked 
+                            ? 'bg-pink-500 text-white hover:bg-pink-600' 
+                            : 'bg-white text-pink-600 border border-pink-300 hover:bg-pink-50'
+                        } ${likeLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        whileHover={{ scale: likeLoading ? 1 : 1.02 }}
+                        whileTap={{ scale: likeLoading ? 1 : 0.98 }}
+                      >
+                        {likeLoading ? 'Loading...' : (isLiked ? 'Liked' : 'Like')}
+                      </motion.button>
+                    </div>
                   </div>
 
                   {/* Organizer Info */}

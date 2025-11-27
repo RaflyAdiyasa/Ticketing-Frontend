@@ -18,6 +18,7 @@ import RiwayatTransaksi from "./Pages/RiwayatPembelianPage";
 import CheckinTiket from "./Pages/CheckinTiketPage";
 import EditEventPage from "./Pages/EditEventPage";
 import CalendarEventPage from "./Pages/CalendarEventPage";
+import LikedEventsPage from "./Pages/LikedEventsPage";
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
           <Route path="/keranjang" element={<Keranjang />} />
           <Route path="/laporan/:eventId" element={<LaporanEventPage />} />
           <Route path="/kalender-event" element={<CalendarEventPage />} />
+          <Route path="/event-disukai" element={<LikedEventsPage />} />
           {/* Route baru untuk role-based pages */}
           <Route path="/tiket-saya" element={<TiketSaya />} />
           <Route path="/event-saya" element={<EventSaya />} />

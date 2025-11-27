@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { motion } from "framer-motion";
-import { User, Mail, Lock, Shield, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { User, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { authAPI } from "../services/api";
 import NotificationModal from "../components/NotificationModal";
@@ -93,7 +93,7 @@ export default function DaftarPage() {
     <div>
       <Navbar />
       
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center py-8">
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center py-8">
         <NotificationModal
           isOpen={notification.isOpen}
           onClose={hideNotification}
@@ -117,7 +117,7 @@ export default function DaftarPage() {
                   <p className="text-blue-100 mt-1">Bergabunglah dengan komunitas kami</p>
                 </div>
                 <div className="flex items-center gap-2 text-blue-100">
-                  <Shield size={20} />
+                  <User size={20} />
                   <span className="font-medium">Akun User</span>
                 </div>
               </div>

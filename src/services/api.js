@@ -55,6 +55,7 @@ export const eventAPI = {
   getApprovedEvents: () => api.get('/api/events?status=approved'),
   getEvent: (id) => api.get(`/api/event/${id}`),
   getEventsPopular: () => api.get('/api/events/popular'),
+  getEventsBestSelling: () => api.get('/api/events?status=approved&sort=best_selling'),
   getMyEvents: () => api.get('/api/events/my-events'),
   createEvent: (formData) => {
     const token = sessionStorage.getItem('token');
@@ -82,7 +83,9 @@ export const eventAPI = {
     return api.get(`/api/events/${eventId}/report/download`, {
       responseType: 'blob'
     });
-  }
+  },
+  likeEvent: (eventId) => api.post(`/api/events/${eventId}/like`),
+  getMyLikedEvents: () => api.get('/api/events/like'),
 };
 
 export const cartAPI = {

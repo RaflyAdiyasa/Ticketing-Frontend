@@ -9,11 +9,12 @@ import {
   Home,
   Ticket,
   Calendar,
-  CalendarDays, // NEW: Import CalendarDays icon
+  CalendarDays,
   ShieldCheck,
   Crown,
   Star,
   Users,
+  Heart,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
@@ -93,6 +94,11 @@ export default function Navbar() {
   const handleViewProfile = () => {
     setProfileDropdownOpen(false);
     navigate("/lihat-profil");
+  };
+
+  const handleViewLikedEvents = () => {
+    setProfileDropdownOpen(false);
+    navigate("/event-disukai");
   };
 
   const handleViewTransactionHistory = () => {
@@ -362,11 +368,24 @@ export default function Navbar() {
                           <span className="font-medium text-gray-700 group-hover:text-blue-600 transition-colors">Lihat Profil</span>
                         </button>
                         
+                        {/* Event yang Disukai - Available for ALL logged in users (User, Organizer, Admin) */}
+                        {isLoggedIn() && (
+                          <button
+                            onClick={handleViewLikedEvents}
+                            className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-pink-50 rounded-lg transition-colors group"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center group-hover:bg-pink-200 transition-colors">
+                              <Heart className="w-4 h-4 text-pink-600" />
+                            </div>
+                            <span className="font-medium text-gray-700 group-hover:text-pink-600 transition-colors">Event yang Disukai</span>
+                          </button>
+                        )}
+                        
                         {/* Transaction History - Only for User role */}
                         {getUserRole() === "user" && (
                           <button
                             onClick={handleViewTransactionHistory}
-                            className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-blue-50 rounded-lg transition-colors group"
+                            className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-green-50 rounded-lg transition-colors group"
                           >
                             <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center group-hover:bg-green-200 transition-colors">
                               <History className="w-4 h-4 text-green-600" />
@@ -430,7 +449,7 @@ export default function Navbar() {
               }`} />
             </NavLink>
 
-            {/* NEW: Kalender Event - Accessible by all users */}
+            {/* Kalender Event - Accessible by all users */}
             <NavLink
               to="/kalender-event"
               className={({ isActive }) => getNavLinkClass(isActive)}
@@ -621,7 +640,7 @@ export default function Navbar() {
               <span className="font-semibold">Cari Event</span>
             </NavLink>
 
-            {/* NEW: Kalender Event - Accessible by all users (Mobile) */}
+            {/* Kalender Event - Accessible by all users (Mobile) */}
             <NavLink
               to="/kalender-event"
               className={({ isActive }) => 
@@ -636,6 +655,24 @@ export default function Navbar() {
               <CalendarDays size={20} />
               <span className="font-semibold">Kalender Event</span>
             </NavLink>
+
+            {/* Event yang Disukai - Available for ALL logged in users (Mobile) */}
+            {isLoggedIn() && (
+              <NavLink
+                to="/event-disukai"
+                className={({ isActive }) => 
+                  `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
+                    isActive 
+                      ? "bg-pink-50 text-pink-600 font-bold" 
+                      : "text-gray-700 hover:bg-pink-50 hover:text-pink-600"
+                  }`
+                }
+                onClick={() => setMobileMenuIsOpen(false)}
+              >
+                <Heart size={20} />
+                <span className="font-semibold">Event Disukai</span>
+              </NavLink>
+            )}
 
             {/* Menu untuk User */}
             {isLoggedIn() && getUserRole() === "user" && (
