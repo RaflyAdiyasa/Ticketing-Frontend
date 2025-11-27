@@ -1,105 +1,94 @@
-// Pages/CheckinTiket.jsx
+// Pages/CheckinTiketPage.jsx
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { motion } from "framer-motion";
+import NotificationModal from "../components/NotificationModal";
+import useNotification from "../hooks/useNotification";
+import { ticketAPI, eventAPI } from "../services/api";
+import { motion, AnimatePresence } from "framer-motion";
 import { Html5QrcodeScanner } from "html5-qrcode";
+import {
+  QrCode,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  Home,
+  Ticket,
+  Calendar,
+  MapPin,
+  Clock,
+  User,
+  AlertCircle,
+  Loader2,
+  ScanLine,
+  ChevronLeft,
+  Tag,
+  CreditCard,
+  Building2,
+  Shield,
+  TicketCheck,
+  Users,
+  Receipt,
+  Sparkles,
+  Info
+} from "lucide-react";
 
-export default function CheckinTiket() {
+export default function CheckinTiketPage() {
   const { eventId } = useParams();
   const navigate = useNavigate();
+  
+  // States
   const [scanResult, setScanResult] = useState(null);
   const [isScanning, setIsScanning] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [ticketData, setTicketData] = useState(null);
+  const [eventData, setEventData] = useState(null);
+  const [checkInStatus, setCheckInStatus] = useState(null); // 'success', 'error', 'already_used'
+  const [errorMessage, setErrorMessage] = useState("");
+  const [scanCount, setScanCount] = useState(0);
+  const [user, setUser] = useState(null);
+  
   const scannerRef = useRef(null);
+  const { notification, showNotification, hideNotification } = useNotification();
 
-  // Data tiket dummy
-  const dummyTicketData = {
-    ticketId: "TKT-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
-    eventName: `Event ${eventId}`,
-    ticketType: "VIP",
-    price: "Rp 250.000,-",
-    buyerName: "Ahmad Wijaya",
-    purchaseDate: "28 Nov 2025",
-    status: "Valid",
-    seat: "A-15",
-    checkInTime: new Date().toLocaleTimeString()
-  };
-
-  // RELOAD SEBELUM TAMPIL: Gunakan URL parameter untuk menghindari infinite loop
+  // Check user login and role
   useEffect(() => {
-    const url = new URL(window.location.href);
-    
-    // Cek jika sudah reload
-    if (url.searchParams.get('reloaded') === 'true') {
-      setIsLoaded(true);
+    const userData = sessionStorage.getItem("user");
+    if (userData) {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      
+      // Hanya organizer dan admin yang bisa akses halaman ini
+      if (parsedUser.role !== "organizer" && parsedUser.role !== "admin") {
+        showNotification("Anda tidak memiliki akses ke halaman ini", "Akses Ditolak", "error");
+        navigate("/");
+        return;
+      }
+    } else {
+      showNotification("Silakan login terlebih dahulu", "Akses Ditolak", "warning");
+      navigate("/login");
       return;
     }
+    setIsLoaded(true);
+  }, [navigate, showNotification]);
+
+  // Fetch event data
+  useEffect(() => {
+    const fetchEventData = async () => {
+      if (!eventId || !isLoaded) return;
+      
+      try {
+        const response = await eventAPI.getEvent(eventId);
+        setEventData(response.data);
+      } catch (error) {
+        console.error("Error fetching event:", error);
+        showNotification("Gagal memuat data event", "Error", "error");
+      }
+    };
     
-    // Jika belum reload, tambahkan parameter dan reload
-    url.searchParams.set('reloaded', 'true');
-    window.location.href = url.toString();
-  }, []);
-
-  // BUAT SEPERTI TAB BARU - HAPUS SEMUA HISTORY
-  useEffect(() => {
-    if (isLoaded) {
-      // Hapus parameter dari URL
-      const cleanUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState(null, '', cleanUrl);
-      
-      // CLEAR ALL HISTORY - buat seperti tab baru
-      // Simpan current URL
-      const currentUrl = window.location.href;
-      
-      // Replace semua history dengan state kosong
-      window.history.replaceState(null, '', currentUrl);
-      
-      // Untuk beberapa browser, kita perlu melakukan push state juga
-      setTimeout(() => {
-        window.history.pushState(null, '', currentUrl);
-        
-        // Lock history - prevent back navigation
-        const handlePopState = (event) => {
-          // Immediately push current state kembali
-          window.history.pushState(null, '', currentUrl);
-        };
-
-        window.addEventListener('popstate', handlePopState);
-
-        return () => {
-          window.removeEventListener('popstate', handlePopState);
-        };
-      }, 100);
-    }
-  }, [isLoaded]);
-
-  // ATAU PENDEKATAN LEBIH AGGRESSIVE - Replace current entry dan lock
-  useEffect(() => {
-    if (isLoaded) {
-      // Approach 2: Ganti current entry dan lock
-      const currentUrl = window.location.href;
-      
-      // Ganti state saat ini dengan state kosong
-      window.history.replaceState(null, '', currentUrl);
-      
-      // Push state baru untuk mengunci
-      window.history.pushState(null, '', currentUrl);
-      
-      // Lock history - prevent any navigation
-      const handlePopState = (event) => {
-        // Langsung ganti dengan state saat ini
-        window.history.replaceState(null, '', currentUrl);
-        window.history.pushState(null, '', currentUrl);
-      };
-
-      window.addEventListener('popstate', handlePopState);
-
-      return () => {
-        window.removeEventListener('popstate', handlePopState);
-      };
-    }
-  }, [isLoaded]);
+    fetchEventData();
+  }, [eventId, isLoaded, showNotification]);
 
   // Clean function untuk membersihkan scanner
   const cleanUpScanner = useCallback(() => {
@@ -111,242 +100,709 @@ export default function CheckinTiket() {
     }
   }, []);
 
-  // Fungsi untuk handle semua jenis navigasi keluar dari halaman ini
-  const handleNavigationAway = useCallback((targetPath = '/') => {
-    cleanUpScanner();
-    window.location.href = targetPath;
-  }, [cleanUpScanner]);
-
-  // Override navbar links
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    const overrideNavLinks = () => {
-      const navLinks = document.querySelectorAll('nav a[href*="/"]');
-      navLinks.forEach(link => {
-        const href = link.getAttribute('href');
-        if (href && !href.includes('checkin')) {
-          link.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleNavigationAway(href);
-          };
-        }
-      });
-    };
-
-    const timer = setTimeout(overrideNavLinks, 300);
-    return () => clearTimeout(timer);
-  }, [handleNavigationAway, isLoaded]);
-
   // Fungsi untuk memulai scanner
   const startScanner = useCallback(() => {
     if (!isLoaded) return;
 
     cleanUpScanner();
 
+    // Pastikan container ada
+    const containerElement = document.getElementById('scanner-container');
+    if (!containerElement) return;
+
     let readerElement = document.getElementById('reader');
     if (!readerElement) {
       readerElement = document.createElement('div');
       readerElement.id = 'reader';
-      document.getElementById('scanner-container').appendChild(readerElement);
+      containerElement.appendChild(readerElement);
     }
 
     const newScanner = new Html5QrcodeScanner('reader', {
-      qrbox: { width: 500, height: 500 },
-      fps: 5,
+      qrbox: { width: 300, height: 300 },
+      fps: 10,
+      aspectRatio: 1.0,
+      showTorchButtonIfSupported: true,
+      showZoomSliderIfSupported: true,
+      defaultZoomValueIfSupported: 2
     });
 
-    function succes(result) {
-      newScanner.clear().then(() => {
-        setIsScanning(false);
-        setScanResult(result);
-      }).catch(error => {
-        console.log("Scanner clear error:", error);
-      });
+    async function onScanSuccess(decodedText) {
+      // Prevent multiple scans
+      if (isProcessing) return;
+      
+      setIsProcessing(true);
+      setScanResult(decodedText);
+      
+      // Clear scanner
+      await newScanner.clear().catch(console.log);
+      setIsScanning(false);
+      
+      // Process check-in
+      await processCheckIn(decodedText);
     }
 
-    function error(err) {
-      console.warn(err);
+    function onScanError(err) {
+      // Ignore scan errors (normal when no QR code is visible)
     }
 
-    newScanner.render(succes, error);
+    newScanner.render(onScanSuccess, onScanError);
     scannerRef.current = newScanner;
     setIsScanning(true);
-  }, [cleanUpScanner, isLoaded]);
+  }, [cleanUpScanner, isLoaded, isProcessing]);
 
-  // Inisialisasi scanner - hanya setelah reload selesai
+  // Process check-in dengan API
+  const processCheckIn = async (ticketCode) => {
+    try {
+      setCheckInStatus(null);
+      setErrorMessage("");
+      
+      const response = await ticketAPI.checkInTicket(eventId, ticketCode);
+      
+      if (response.data) {
+        setTicketData(response.data.ticket);
+        setCheckInStatus('success');
+        setScanCount(prev => prev + 1);
+        showNotification("Tiket berhasil di check-in!", "Check-in Berhasil", "success");
+      }
+    } catch (error) {
+      console.error("Check-in error:", error);
+      
+      const errorMsg = error.response?.data?.error || "Terjadi kesalahan saat check-in";
+      setErrorMessage(errorMsg);
+      
+      if (errorMsg.includes("already used") || errorMsg.includes("sudah digunakan")) {
+        setCheckInStatus('already_used');
+        showNotification("Tiket sudah pernah digunakan", "Check-in Gagal", "warning");
+      } else if (errorMsg.includes("not found") || errorMsg.includes("tidak ditemukan") || errorMsg.includes("invalid")) {
+        setCheckInStatus('error');
+        showNotification("Tiket tidak ditemukan atau tidak valid", "Check-in Gagal", "error");
+      } else if (errorMsg.includes("not active")) {
+        setCheckInStatus('error');
+        showNotification("Tiket tidak aktif", "Check-in Gagal", "error");
+      } else {
+        setCheckInStatus('error');
+        showNotification(errorMsg, "Check-in Gagal", "error");
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Inisialisasi scanner
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && user) {
       startScanner();
     }
-  }, [isLoaded, startScanner]);
+    
+    return () => {
+      cleanUpScanner();
+    };
+  }, [isLoaded, user, startScanner, cleanUpScanner]);
 
   // Fungsi untuk scan ulang
   const handleRescan = () => {
     setScanResult(null);
+    setTicketData(null);
+    setCheckInStatus(null);
+    setErrorMessage("");
     setIsScanning(true);
+    setIsProcessing(false);
+    
     setTimeout(() => {
       startScanner();
     }, 100);
   };
 
-  // Fungsi untuk kembali - SELALU ke beranda
+  // Fungsi untuk kembali
   const handleBack = () => {
-    handleNavigationAway('/');
+    cleanUpScanner();
+    navigate(-1);
   };
 
-  // Tampilkan loading sampai reload selesai
-  if (!isLoaded) {
+  // Format tanggal
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  // Format waktu
+  const formatTime = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Format rupiah
+  const formatRupiah = (number) => {
+    if (!number || number === 0) return "GRATIS";
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(number);
+  };
+
+  // Loading state
+  if (!isLoaded || !user) {
     return (
-      <div>
+      <div className="min-h-screen bg-gray-100">
         <Navbar />
-        <div className="min-h-screen bg-[#E5E7EB] flex items-center justify-center pt-32">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Mempersiapkan scanner...</p>
-          </div>
+        <div className="flex items-center justify-center min-h-[60vh] pt-24">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center bg-white p-8 rounded-2xl shadow-lg border border-gray-200"
+          >
+            <Loader2 className="w-12 h-12 text-blue-600 mx-auto animate-spin" />
+            <p className="mt-4 text-gray-600 font-medium">Mempersiapkan scanner...</p>
+          </motion.div>
         </div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-gray-100">
       <Navbar />
+      
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={hideNotification}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
 
-      <div className="min-h-screen bg-[#E5E7EB] flex items-start justify-center p-4 overflow-auto">
-        <div className="min-h-screen w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 bg-white shadow-xl rounded-2xl">
-          
-          {/* Header */}
-          <div className="text-center mb-8 pt-4">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Scan Tiket - Event {eventId}
-            </h1>
-            <p className="text-gray-600">
-              Arahkan kamera ke QR code pada tiket untuk check-in
-            </p>
-          </div>
-
-          {/* Container untuk scanner */}
-          <div id="scanner-container" className="text-center">
-            {isScanning && !scanResult && (
-              <div>
-                <div id="reader" className="mx-auto max-w-md"></div>
-                <p className="text-gray-600 mt-4">Scanning QR code...</p>
-              </div>
-            )}
-          </div>
-
-          {scanResult && (
+      <div className="pt-24 pb-12">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="bg-white rounded-2xl shadow-lg p-6 md:p-8 mt-15"
+          >
+            
+            {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-6"
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4"
             >
-              {/* Hasil Scan String */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-blue-800 mb-2">
-                  Hasil Scan:
-                </h3>
-                <code className="bg-white p-3 rounded border text-sm break-all">
-                  {scanResult}
-                </code>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                  <TicketCheck className="w-8 h-8 text-blue-600" />
+                  Check-in Tiket
+                </h1>
+                <p className="text-gray-600 mt-2">
+                  {eventData?.name || `Event ID: ${eventId}`}
+                </p>
               </div>
+              
+              <motion.button
+                onClick={handleBack}
+                className="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2.5 rounded-lg transition-colors font-medium"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <ChevronLeft size={18} />
+                Kembali
+              </motion.button>
+            </motion.div>
 
-              {/* Data Tiket */}
-              <div className="bg-green-50 border border-green-200 rounded-2xl p-6">
-                <div className="text-center mb-4">
-                  <div className="text-green-500 text-4xl mb-2">✅</div>
-                  <h2 className="text-2xl font-bold text-green-800 mb-2">
-                    Scan Berhasil!
-                  </h2>
-                  <p className="text-green-600">
-                    Tiket berhasil divalidasi dan check-in
+            {/* Stats Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="bg-blue-600 text-white p-6 rounded-xl mb-8"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium">Check-in Sesi Ini</p>
+                  <p className="text-3xl font-bold mt-1">{scanCount} Tiket</p>
+                  <p className="text-blue-100 text-sm mt-2">
+                    Scan QR code tiket untuk check-in pengunjung
                   </p>
                 </div>
-
-                {/* Detail Tiket */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">
-                    Detail Tiket
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-sm text-gray-500">Ticket ID</label>
-                        <p className="font-semibold">{dummyTicketData.ticketId}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm text-gray-500">Nama Event</label>
-                        <p className="font-semibold">{dummyTicketData.eventName}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm text-gray-500">Tipe Tiket</label>
-                        <p className="font-semibold">{dummyTicketData.ticketType}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm text-gray-500">Harga</label>
-                        <p className="font-semibold">{dummyTicketData.price}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-sm text-gray-500">Nama Pembeli</label>
-                        <p className="font-semibold">{dummyTicketData.buyerName}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm text-gray-500">Tanggal Pembelian</label>
-                        <p className="font-semibold">{dummyTicketData.purchaseDate}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm text-gray-500">Status</label>
-                        <p className="font-semibold text-green-600">{dummyTicketData.status}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm text-gray-500">Waktu Check-in</label>
-                        <p className="font-semibold">{dummyTicketData.checkInTime}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {dummyTicketData.seat && (
-                    <div className="mt-4 text-center">
-                      <label className="text-sm text-gray-500">Nomor Kursi</label>
-                      <p className="text-2xl font-bold text-blue-600">{dummyTicketData.seat}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Tombol Aksi */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleRescan}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-                  >
-                    🔄 Scan Tiket Lain
-                  </motion.button>
-                  
-                  <button
-                    onClick={handleBack}
-                    className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                  >
-                    Kembali ke Beranda
-                  </button>
-                </div>
+                <motion.div 
+                  className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center"
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                >
+                  <TicketCheck size={32} className="text-blue-600"/>
+                </motion.div>
               </div>
             </motion.div>
-          )}
-          
-          <div className="text-center text-gray-500 text-sm mt-8">
-            <p>Pastikan QR code dalam kondisi baik dan terlihat jelas oleh kamera</p>
-          </div>
+
+            {/* Event Info Card */}
+            {eventData && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="bg-gray-50 rounded-xl p-6 mb-8 border border-gray-200"
+              >
+                <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-4">
+                  <Info size={18} className="text-blue-600" />
+                  Informasi Event
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Calendar className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Tanggal</p>
+                      <p className="font-medium text-gray-900">{formatDate(eventData.date_start)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Clock className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Waktu</p>
+                      <p className="font-medium text-gray-900">{formatTime(eventData.date_start)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Building2 className="w-5 h-5 text-red-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Venue</p>
+                      <p className="font-medium text-gray-900">{eventData.venue || eventData.location}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Lokasi</p>
+                      <p className="font-medium text-gray-900">{eventData.district}</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Main Content */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="bg-white rounded-2xl border border-gray-200 overflow-hidden"
+            >
+              {/* Scanner Section */}
+              <AnimatePresence mode="wait">
+                {isScanning && !scanResult && (
+                  <motion.div
+                    key="scanner"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="p-6"
+                  >
+                    <div className="text-center mb-6">
+                      <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                        <ScanLine className="w-8 h-8 text-blue-600" />
+                      </div>
+                      <h2 className="text-xl font-bold text-gray-900">Scan QR Code Tiket</h2>
+                      <p className="text-gray-500 mt-2">
+                        Arahkan kamera ke QR code pada tiket pengunjung
+                      </p>
+                    </div>
+                    
+                    {/* Scanner Container */}
+                    <div id="scanner-container" className="max-w-md mx-auto">
+                      <div id="reader" className="rounded-xl overflow-hidden"></div>
+                    </div>
+                    
+                    {/* Instructions */}
+                    <div className="mt-6 bg-blue-50 rounded-xl p-4 border border-blue-200">
+                      <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5" />
+                        Petunjuk Scanning
+                      </h4>
+                      <ul className="text-sm text-blue-700 space-y-1">
+                        <li>• Pastikan QR code terlihat jelas dan tidak rusak</li>
+                        <li>• Posisikan QR code di tengah area scanning</li>
+                        <li>• Jaga jarak optimal sekitar 15-30 cm dari kamera</li>
+                        <li>• Pastikan pencahayaan cukup</li>
+                      </ul>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Processing State */}
+                {isProcessing && (
+                  <motion.div
+                    key="processing"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="p-12 text-center"
+                  >
+                    <Loader2 className="w-16 h-16 text-blue-600 mx-auto animate-spin" />
+                    <p className="mt-4 text-lg font-medium text-gray-700">Memproses check-in...</p>
+                    <p className="text-gray-500 mt-2">Mohon tunggu sebentar</p>
+                  </motion.div>
+                )}
+
+                {/* Result Section */}
+                {!isScanning && !isProcessing && scanResult && (
+                  <motion.div
+                    key="result"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="p-6"
+                  >
+                    {/* Success State */}
+                    {checkInStatus === 'success' && (
+                      <div className="space-y-6">
+                        {/* Success Header */}
+                        <motion.div 
+                          initial={{ scale: 0.8 }}
+                          animate={{ scale: 1 }}
+                          className="text-center py-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200"
+                        >
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+                            className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4"
+                          >
+                            <CheckCircle2 className="w-10 h-10 text-green-600" />
+                          </motion.div>
+                          <h2 className="text-2xl font-bold text-green-800">Check-in Berhasil!</h2>
+                          <p className="text-green-600 mt-2">Tiket telah divalidasi dan pengunjung dapat masuk</p>
+                        </motion.div>
+
+                        {/* Ticket Details */}
+                        {ticketData && (
+                          <div className="bg-gray-50 rounded-xl p-6 space-y-4 border border-gray-200">
+                            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                              <Ticket className="w-5 h-5 text-blue-600" />
+                              Detail Tiket
+                            </h3>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <DetailItem
+                                icon={<QrCode className="w-5 h-5 text-gray-500" />}
+                                label="Kode Tiket"
+                                value={ticketData.code}
+                              />
+                              <DetailItem
+                                icon={<Tag className="w-5 h-5 text-gray-500" />}
+                                label="ID Tiket"
+                                value={ticketData.ticket_id?.slice(0, 12) + "..."}
+                              />
+                              <DetailItem
+                                icon={<Shield className="w-5 h-5 text-gray-500" />}
+                                label="Status"
+                                value={
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Sudah Check-in
+                                  </span>
+                                }
+                              />
+                              <DetailItem
+                                icon={<Clock className="w-5 h-5 text-gray-500" />}
+                                label="Waktu Check-in"
+                                value={new Date().toLocaleTimeString('id-ID', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  second: '2-digit'
+                                })}
+                              />
+                            </div>
+
+                            {ticketData.tag && (
+                              <div className="pt-4 border-t border-gray-200">
+                                <DetailItem
+                                  icon={<User className="w-5 h-5 text-gray-500" />}
+                                  label="Tag Pemilik"
+                                  value={ticketData.tag}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Already Used State */}
+                    {checkInStatus === 'already_used' && (
+                      <div className="space-y-6">
+                        <motion.div 
+                          initial={{ scale: 0.8 }}
+                          animate={{ scale: 1 }}
+                          className="text-center py-6 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-2xl border border-amber-200"
+                        >
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+                            className="inline-flex items-center justify-center w-20 h-20 bg-amber-100 rounded-full mb-4"
+                          >
+                            <AlertCircle className="w-10 h-10 text-amber-600" />
+                          </motion.div>
+                          <h2 className="text-2xl font-bold text-amber-800">Tiket Sudah Digunakan</h2>
+                          <p className="text-amber-600 mt-2">Tiket ini sudah pernah di check-in sebelumnya</p>
+                        </motion.div>
+
+                        <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                          <div className="flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <h4 className="font-semibold text-amber-800">Perhatian</h4>
+                              <p className="text-sm text-amber-700 mt-1">
+                                Tiket dengan kode <span className="font-mono font-bold">{scanResult}</span> sudah digunakan. 
+                                Mohon periksa kembali atau hubungi panitia jika ada masalah.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Error State */}
+                    {checkInStatus === 'error' && (
+                      <div className="space-y-6">
+                        <motion.div 
+                          initial={{ scale: 0.8 }}
+                          animate={{ scale: 1 }}
+                          className="text-center py-6 bg-gradient-to-r from-red-50 to-rose-50 rounded-2xl border border-red-200"
+                        >
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+                            className="inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-full mb-4"
+                          >
+                            <XCircle className="w-10 h-10 text-red-600" />
+                          </motion.div>
+                          <h2 className="text-2xl font-bold text-red-800">Check-in Gagal</h2>
+                          <p className="text-red-600 mt-2">{errorMessage || "Tiket tidak valid atau tidak ditemukan"}</p>
+                        </motion.div>
+
+                        <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                          <div className="flex items-start gap-3">
+                            <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <h4 className="font-semibold text-red-800">Kemungkinan Penyebab</h4>
+                              <ul className="text-sm text-red-700 mt-1 space-y-1">
+                                <li>• QR code tidak terbaca dengan benar</li>
+                                <li>• Tiket bukan untuk event ini</li>
+                                <li>• Tiket sudah tidak aktif atau expired</li>
+                                <li>• Kode tiket tidak valid</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                          <p className="text-sm text-gray-600">
+                            <span className="font-semibold">Kode yang di-scan:</span>{" "}
+                            <span className="font-mono bg-gray-200 px-2 py-1 rounded">{scanResult}</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-4 mt-8">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleRescan}
+                        className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all"
+                      >
+                        <RefreshCw className="w-5 h-5" />
+                        Scan Tiket Lain
+                      </motion.button>
+                      
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleBack}
+                        className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-all"
+                      >
+                        <Home className="w-5 h-5" />
+                        Kembali ke Dashboard
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Quick Stats */}
+            {isScanning && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.5 }}
+                className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4"
+              >
+                <StatCard
+                  icon={<Users className="w-6 h-6" />}
+                  label="Total Attendant"
+                  value={eventData?.total_attendant || 0}
+                  color="blue"
+                />
+                <StatCard
+                  icon={<Ticket className="w-6 h-6" />}
+                  label="Tiket Terjual"
+                  value={eventData?.total_tickets_sold || 0}
+                  color="green"
+                />
+                <StatCard
+                  icon={<TicketCheck className="w-6 h-6" />}
+                  label="Check-in Sesi Ini"
+                  value={scanCount}
+                  color="purple"
+                />
+                <StatCard
+                  icon={<CreditCard className="w-6 h-6" />}
+                  label="Total Sales"
+                  value={formatRupiah(eventData?.total_sales || 0)}
+                  color="amber"
+                  isSmallText
+                />
+              </motion.div>
+            )}
+
+            {/* Footer Tips */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="mt-8 text-center text-sm text-gray-500"
+            >
+              <p>
+                Pastikan QR code dalam kondisi baik dan terlihat jelas oleh kamera.
+                <br />
+                Jika mengalami masalah, coba refresh halaman atau gunakan perangkat lain.
+              </p>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
+
+      {/* Custom Styles for Scanner */}
+      <style>{`
+        #reader {
+          border: none !important;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+        #reader video {
+          border-radius: 12px;
+        }
+        #reader__scan_region {
+          background: transparent !important;
+        }
+        #reader__scan_region video {
+          border-radius: 8px;
+        }
+        #reader__dashboard {
+          padding: 12px !important;
+        }
+        #reader__dashboard_section_swaplink {
+          text-decoration: none !important;
+          color: #2563eb !important;
+          font-weight: 600;
+        }
+        #html5-qrcode-button-camera-permission,
+        #html5-qrcode-button-camera-start,
+        #html5-qrcode-button-camera-stop {
+          background: #2563eb !important;
+          border: none !important;
+          padding: 12px 24px !important;
+          border-radius: 8px !important;
+          color: white !important;
+          font-weight: 600 !important;
+          cursor: pointer !important;
+          transition: all 0.2s !important;
+        }
+        #html5-qrcode-button-camera-permission:hover,
+        #html5-qrcode-button-camera-start:hover,
+        #html5-qrcode-button-camera-stop:hover {
+          background: #1d4ed8 !important;
+        }
+        #html5-qrcode-anchor-scan-type-change {
+          color: #2563eb !important;
+          text-decoration: none !important;
+          font-weight: 500 !important;
+        }
+        #reader__filescan_input {
+          padding: 8px !important;
+        }
+        #reader select {
+          padding: 8px 12px !important;
+          border-radius: 6px !important;
+          border: 1px solid #d1d5db !important;
+        }
+      `}</style>
     </div>
+  );
+}
+
+// Detail Item Component
+function DetailItem({ icon, label, value }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="flex-shrink-0 mt-0.5">{icon}</div>
+      <div>
+        <p className="text-xs text-gray-500">{label}</p>
+        <p className="font-medium text-gray-900">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+// Stat Card Component
+function StatCard({ icon, label, value, color, isSmallText = false }) {
+  const colorClasses = {
+    blue: "bg-blue-50 text-blue-600 border-blue-200",
+    green: "bg-green-50 text-green-600 border-green-200",
+    purple: "bg-purple-50 text-purple-600 border-purple-200",
+    amber: "bg-amber-50 text-amber-600 border-amber-200"
+  };
+
+  const iconColorClasses = {
+    blue: "text-blue-600",
+    green: "text-green-600",
+    purple: "text-purple-600",
+    amber: "text-amber-600"
+  };
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02, y: -2 }}
+      className={`${colorClasses[color]} border rounded-xl p-4 transition-all`}
+    >
+      <div className={`${iconColorClasses[color]} mb-2`}>{icon}</div>
+      <p className={`font-bold ${isSmallText ? 'text-sm' : 'text-2xl'}`}>{value}</p>
+      <p className="text-xs opacity-80">{label}</p>
+    </motion.div>
   );
 }

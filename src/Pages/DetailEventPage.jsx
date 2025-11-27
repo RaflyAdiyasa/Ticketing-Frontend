@@ -1,9 +1,8 @@
-// DetailEventPage.jsx
 import { useParams } from "react-router";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { MapPin, CalendarDays, Shapes, CheckCircle, XCircle, Clock, Scale, Building, FileText, ArrowLeft, ShoppingCart } from "lucide-react";
+import { MapPin, CalendarDays, Shapes, CheckCircle, XCircle, Clock, Scale, Building, FileText, ArrowLeft, ShoppingCart, Plus, Minus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api, { eventAPI } from "../services/api";
 import useNotification from "../hooks/useNotification";
@@ -451,8 +450,240 @@ export default function EventDetail() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Content */}
                 <div className="lg:col-span-2 space-y-8">
+                  {/* About Event - DIUBAH */}
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-100">
+                      <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                        <div className="bg-blue-600 p-2 rounded-lg">
+                          <FileText className="w-6 h-6 text-white" />
+                        </div>
+                        Tentang Event
+                      </h2>
+                    </div>
+                    <div className="p-6">
+                      <div className="prose prose-lg max-w-none text-gray-700 leading-relaxed">
+                        {formatDescriptionWithNewlines(event.description)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Event Rules - DIUBAH */}
+                  {event.rules && (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                      <div className="bg-gradient-to-r from-orange-50 to-amber-50 px-6 py-4 border-b border-orange-100">
+                        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                          <div className="bg-orange-600 p-2 rounded-lg">
+                            <Scale className="w-6 h-6 text-white" />
+                          </div>
+                          Peraturan Event
+                        </h2>
+                      </div>
+                      <div className="p-6">
+                        <div className="prose prose-lg max-w-none text-gray-700 leading-relaxed">
+                          {formatDescriptionWithNewlines(event.rules)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Ticket Section - DIUBAH */}
+                  {!isOwner && (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-green-100">
+                        <h2 className="text-2xl font-bold text-gray-900">Pilihan Tiket</h2>
+                      </div>
+
+                      {tickets.length === 0 ? (
+                        <div className="text-center py-16 text-gray-500">
+                          <div className="max-w-md mx-auto">
+                            <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                              <ShoppingCart className="w-10 h-10 text-gray-400" />
+                            </div>
+                            <p className="text-lg font-medium mb-2">Belum ada tiket tersedia</p>
+                            <p className="text-gray-400">Tiket untuk event ini belum tersedia</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-6 space-y-6">
+                          {tickets.map((ticket, index) => (
+                            <motion.div
+                              key={ticket.ticket_category_id}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.3, delay: index * 0.1 }}
+                              className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300"
+                            >
+                              <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
+                                <div className="flex-1">
+                                  <div className="flex flex-wrap items-center gap-3 mb-4">
+                                    <p className="font-bold text-xl text-gray-900 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                      {ticket.type}
+                                    </p>
+                                    {ticket.stock === 0 && (
+                                      <span className="bg-red-100 text-red-800 text-sm px-3 py-1 rounded-full font-semibold border border-red-200">
+                                        HABIS
+                                      </span>
+                                    )}
+                                    {ticket.stock > 0 && ticket.stock <= 10 && (
+                                      <span className="bg-orange-100 text-orange-800 text-sm px-3 py-1 rounded-full font-semibold border border-orange-200">
+                                        HAMPIR HABIS
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="text-gray-600 mb-4 leading-relaxed bg-white/50 rounded-lg p-4 border border-gray-100">
+                                    {formatDescriptionWithNewlines(ticket.desc)}
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4">
+                                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                                      <p className="font-medium text-blue-700">Stok Tersedia</p>
+                                      <p className="font-bold text-gray-900 text-lg">{ticket.stock} / {ticket.quota}</p>
+                                    </div>
+                                    <div className="bg-green-50 rounded-lg p-3 border border-green-100">
+                                      <p className="font-medium text-green-700">Terjual</p>
+                                      <p className="font-bold text-green-600 text-lg">{ticket.sold}</p>
+                                    </div>
+                                    {ticket.date_time_start && (
+                                      <div className="bg-purple-50 rounded-lg p-3 border border-purple-100">
+                                        <p className="font-medium text-purple-700">Periode Tiket</p>
+                                        <p className="text-xs text-gray-600 font-medium">
+                                          {formatDateTime(ticket.date_time_start)} - {formatDateTime(ticket.date_time_end)}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-2xl font-bold text-gray-900">
+                                      {formatRupiah(ticket.price)}
+                                    </p>
+                                    {showTicketControls && (
+                                      <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-300 p-1 shadow-sm">
+                                          <button
+                                            onClick={() => updateQty(index, -1)}
+                                            disabled={ticket.qty === 0}
+                                            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200 ${
+                                              ticket.qty === 0
+                                                ? "opacity-30 cursor-not-allowed bg-gray-100 text-gray-400"
+                                                : "hover:bg-red-50 hover:text-red-600 bg-white text-gray-700 hover:border-red-200"
+                                            } border border-transparent`}
+                                          >
+                                            <Minus size={16} />
+                                          </button>
+                                          <span className="w-8 text-center font-bold text-lg text-gray-900">
+                                            {ticket.qty}
+                                          </span>
+                                          <button
+                                            onClick={() => updateQty(index, 1)}
+                                            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200 ${
+                                              ticket.qty >= ticket.stock || ticket.stock === 0
+                                                ? "opacity-30 cursor-not-allowed bg-gray-100 text-gray-400"
+                                                : "hover:bg-green-50 hover:text-green-600 bg-white text-gray-700 hover:border-green-200"
+                                            } border border-transparent`}
+                                            disabled={ticket.qty >= ticket.stock || ticket.stock === 0}
+                                          >
+                                            <Plus size={16} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Owner Ticket Management - DIUBAH */}
+                  {isOwner && (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                      <div className="bg-gradient-to-r from-purple-50 to-violet-50 px-6 py-4 border-b border-purple-100">
+                        <h2 className="text-2xl font-bold text-gray-900">Manajemen Tiket</h2>
+                      </div>
+                      {tickets.length === 0 ? (
+                        <div className="text-center py-16 text-gray-500">
+                          <div className="max-w-md mx-auto">
+                            <div className="w-24 h-24 mx-auto mb-4 bg-purple-100 rounded-full flex items-center justify-center">
+                              <ShoppingCart className="w-10 h-10 text-purple-400" />
+                            </div>
+                            <p className="text-lg font-medium mb-4">Belum ada tiket yang dibuat</p>
+                            <button 
+                              onClick={() => navigate(`/edit-event/${id}`)}
+                              className="bg-gradient-to-r from-purple-600 to-violet-600 text-white px-8 py-3 rounded-lg hover:from-purple-700 hover:to-violet-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl"
+                            >
+                              Tambah Tiket
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-6 space-y-6">
+                          {tickets.map((ticket) => (
+                            <div
+                              key={ticket.ticket_category_id}
+                              className="bg-gradient-to-br from-white to-purple-50 border border-purple-100 rounded-xl p-6 hover:shadow-md transition-all duration-300"
+                            >
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-4">
+                                    <p className="font-bold text-xl text-gray-900">{ticket.type}</p>
+                                    <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${
+                                      ticket.stock === 0 ? 'bg-red-100 text-red-800 border-red-200' : 
+                                      'bg-green-100 text-green-800 border-green-200'
+                                    }`}>
+                                      {ticket.stock === 0 ? 'HABIS' : 'TERSEDIA'}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="text-gray-600 mb-6 leading-relaxed bg-white/50 rounded-lg p-4 border border-gray-100">
+                                    {formatDescriptionWithNewlines(ticket.desc)}
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                                      <p className="text-sm text-blue-600 font-medium">Harga</p>
+                                      <p className="font-bold text-lg text-gray-900">{formatRupiah(ticket.price)}</p>
+                                    </div>
+                                    <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                                      <p className="text-sm text-purple-600 font-medium">Kuota</p>
+                                      <p className="font-bold text-lg text-gray-900">{ticket.quota}</p>
+                                    </div>
+                                    <div className="bg-green-50 rounded-lg p-4 border border-green-100">
+                                      <p className="text-sm text-green-600 font-medium">Terjual</p>
+                                      <p className="font-bold text-lg text-green-600">{ticket.sold}</p>
+                                    </div>
+                                    <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
+                                      <p className="text-sm text-orange-600 font-medium">Sisa</p>
+                                      <p className="font-bold text-lg text-gray-900">{ticket.stock}</p>
+                                    </div>
+                                  </div>
+                                  
+                                  {ticket.date_time_start && (
+                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                      <p className="text-sm text-gray-600 font-medium mb-1">Periode Tiket:</p>
+                                      <p className="text-sm text-gray-700 font-semibold">
+                                        {formatDateTime(ticket.date_time_start)} - {formatDateTime(ticket.date_time_end)}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Sidebar */}
+                <div className="lg:col-span-1 space-y-6">
                   {/* Event Images */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-4">
                     <div className="rounded-xl overflow-hidden shadow-lg aspect-square border border-gray-200">
                       <img
                         src={event.image || "https://cdn2.steamgriddb.com/icon_thumb/63872edc3fa52d645b3d48f6d98caf2c.png"}
@@ -475,202 +706,6 @@ export default function EventDetail() {
                     )}
                   </div>
 
-                  {/* About Event */}
-                  <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                    <h2 className="text-2xl font-semibold text-gray-900 mb-4 flex items-center gap-3">
-                      <div className="bg-blue-100 p-2 rounded-lg">
-                        <FileText className="w-6 h-6 text-blue-600" />
-                      </div>
-                      Tentang Event
-                    </h2>
-                    <div className="text-gray-700 leading-relaxed whitespace-pre-line bg-white p-6 rounded-lg border">
-                      {event.description}
-                    </div>
-                  </div>
-
-                  {/* Event Rules */}
-                  {event.rules && (
-                    <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                      <h2 className="text-2xl font-semibold text-gray-900 mb-4 flex items-center gap-3">
-                        <div className="bg-blue-100 p-2 rounded-lg">
-                          <Scale className="w-6 h-6 text-blue-600" />
-                        </div>
-                        Peraturan Event
-                      </h2>
-                      <div className="text-gray-700 leading-relaxed whitespace-pre-line bg-white p-6 rounded-lg border">
-                        {event.rules}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Ticket Section */}
-                  {!isOwner && (
-                    <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                      <h2 className="text-2xl font-semibold text-gray-900 mb-6">Pilihan Tiket</h2>
-
-                      {tickets.length === 0 ? (
-                        <div className="text-center py-12 text-gray-500 bg-white rounded-xl border-2 border-dashed border-gray-300">
-                          <p className="text-lg font-medium mb-2">Belum ada tiket tersedia</p>
-                          <p className="text-gray-400">Tiket untuk event ini belum tersedia</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {tickets.map((ticket, index) => (
-                            <div
-                              key={ticket.ticket_category_id}
-                              className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all"
-                            >
-                              <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
-                                <div className="flex-1">
-                                  <div className="flex flex-wrap items-center gap-3 mb-3">
-                                    <p className="font-semibold text-xl text-gray-900">{ticket.type}</p>
-                                    {ticket.stock === 0 && (
-                                      <span className="bg-red-100 text-red-800 text-sm px-3 py-1 rounded-full font-semibold">
-                                        HABIS
-                                      </span>
-                                    )}
-                                  </div>
-                                  
-                                  <div className="text-gray-600 mb-4 whitespace-pre-line">
-                                    {formatDescriptionWithNewlines(ticket.desc)}
-                                  </div>
-                                  
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-500 mb-4">
-                                    <div>
-                                      <p className="font-medium text-gray-700">Stok Tersedia</p>
-                                      <p className="font-semibold text-gray-900">{ticket.stock} / {ticket.quota}</p>
-                                    </div>
-                                    <div>
-                                      <p className="font-medium text-gray-700">Terjual</p>
-                                      <p className="font-semibold text-green-600">{ticket.sold}</p>
-                                    </div>
-                                    {ticket.date_time_start && (
-                                      <div>
-                                        <p className="font-medium text-gray-700">Periode Tiket</p>
-                                        <p className="text-xs text-gray-600">
-                                          {formatDateTime(ticket.date_time_start)} - {formatDateTime(ticket.date_time_end)}
-                                        </p>
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  <p className="text-2xl font-bold text-red-900">
-                                    {formatRupiah(ticket.price)}
-                                  </p>
-                                </div>
-
-                                {showTicketControls && (
-                                  <div className="flex items-center gap-4 shrink-0">
-                                    <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-2 border">
-                                      <button
-                                        onClick={() => updateQty(index, -1)}
-                                        disabled={ticket.qty === 0}
-                                        className={`w-10 h-10 flex items-center justify-center border rounded-lg text-lg font-bold transition-colors ${
-                                          ticket.qty === 0
-                                            ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400"
-                                            : "hover:bg-gray-200 bg-white text-gray-700"
-                                        }`}
-                                      >
-                                        −
-                                      </button>
-                                      <span className="w-12 text-center font-bold text-lg text-gray-900">{ticket.qty}</span>
-                                      <button
-                                        onClick={() => updateQty(index, 1)}
-                                        className={`w-10 h-10 flex items-center justify-center border rounded-lg text-lg font-bold transition-colors ${
-                                          ticket.qty >= ticket.stock || ticket.stock === 0
-                                            ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400"
-                                            : "hover:bg-gray-200 bg-white text-gray-700"
-                                        }`}
-                                        disabled={ticket.qty >= ticket.stock || ticket.stock === 0}
-                                      >
-                                        +
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Owner Ticket Management */}
-                  {isOwner && (
-                    <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                      <h2 className="text-2xl font-semibold text-gray-900 mb-6">Manajemen Tiket</h2>
-                      {tickets.length === 0 ? (
-                        <div className="text-center py-12 text-gray-500 bg-white rounded-xl border-2 border-dashed border-gray-300">
-                          <p className="text-lg font-medium mb-4">Belum ada tiket yang dibuat</p>
-                          <button 
-                            onClick={() => navigate(`/edit-event/${id}`)}
-                            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                          >
-                            Tambah Tiket
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="space-y-6">
-                          {tickets.map((ticket) => (
-                            <div
-                              key={ticket.ticket_category_id}
-                              className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow"
-                            >
-                              <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-3 mb-3">
-                                    <p className="font-semibold text-xl text-gray-900">{ticket.type}</p>
-                                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                                      ticket.stock === 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                                    }`}>
-                                      {ticket.stock === 0 ? 'HABIS' : 'TERSEDIA'}
-                                    </span>
-                                  </div>
-                                  
-                                  <div className="text-gray-600 mb-4 whitespace-pre-line">
-                                    {formatDescriptionWithNewlines(ticket.desc)}
-                                  </div>
-                                  
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-4">
-                                    <div>
-                                      <p className="text-sm text-gray-500">Harga</p>
-                                      <p className="font-semibold text-lg">{formatRupiah(ticket.price)}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-sm text-gray-500">Kuota</p>
-                                      <p className="font-semibold text-lg">{ticket.quota}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-sm text-gray-500">Terjual</p>
-                                      <p className="font-semibold text-lg text-green-600">{ticket.sold}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-sm text-gray-500">Sisa</p>
-                                      <p className="font-semibold text-lg">{ticket.stock}</p>
-                                    </div>
-                                  </div>
-                                  
-                                  {ticket.date_time_start && (
-                                    <div className="bg-gray-50 rounded-lg p-4 border">
-                                      <p className="text-sm text-gray-500 mb-1">Periode Tiket:</p>
-                                      <p className="text-sm text-gray-700">
-                                        {formatDateTime(ticket.date_time_start)} - {formatDateTime(ticket.date_time_end)}
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Sidebar */}
-                <div className="lg:col-span-1 space-y-6">
                   {/* Organizer Info */}
                   <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
                     <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-3">
@@ -751,7 +786,7 @@ export default function EventDetail() {
                         </div>
                         
                         <button
-                          className="w-full bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 shadow-md transition-all text-lg flex items-center justify-center gap-2"
+                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 shadow-md transition-all duration-300 text-lg flex items-center justify-center gap-2"
                           onClick={handleAddToCart}
                         >
                           <ShoppingCart size={20} />

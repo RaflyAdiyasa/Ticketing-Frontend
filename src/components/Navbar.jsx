@@ -4,16 +4,19 @@ import {
   ShoppingCart,
   X,
   History,
-  CircleUser,
   LogOut,
   User,
   Home,
   Ticket,
   Calendar,
+  CalendarDays, // NEW: Import CalendarDays icon
   ShieldCheck,
+  Crown,
+  Star,
+  Users,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { Link, NavLink, useNavigate, useLocation } from "react-router";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import useNotification from "../hooks/useNotification";
 import NotificationModal from "./NotificationModal"; 
 
@@ -122,6 +125,32 @@ export default function Navbar() {
     }
   };
 
+  const getRoleIcon = (role) => {
+    switch (role) {
+      case "user":
+        return <Users className="w-4 h-4" />;
+      case "organizer":
+        return <Star className="w-4 h-4" />;
+      case "admin":
+        return <Crown className="w-4 h-4" />;
+      default:
+        return <Users className="w-4 h-4" />;
+    }
+  };
+
+  const getRoleColor = (role) => {
+    switch (role) {
+      case "user":
+        return "bg-blue-100 text-blue-700 border-blue-200";
+      case "organizer":
+        return "bg-purple-100 text-purple-700 border-purple-200";
+      case "admin":
+        return "bg-amber-100 text-amber-700 border-amber-200";
+      default:
+        return "bg-blue-100 text-blue-700 border-blue-200";
+    }
+  };
+
   const shouldShowCart = () => {
     return isLoggedIn() && getUserRole() === "user";
   };
@@ -132,6 +161,8 @@ export default function Navbar() {
         return <Home size={18} />;
       case "/cariEvent":
         return <Search size={18} />;
+      case "/kalender-event":
+        return <CalendarDays size={18} />;
       case "/tiket-saya":
         return <Ticket size={18} />;
       case "/daftar-event":
@@ -152,7 +183,7 @@ export default function Navbar() {
         <img
           src={user.profile_pict}
           alt={user.username}
-          className="w-10 h-10 rounded-full object-cover border-2 border-white"
+          className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
           onError={(e) => {
             e.target.style.display = "none";
             e.target.nextSibling.style.display = "flex";
@@ -161,7 +192,7 @@ export default function Navbar() {
       );
     }
     return (
-      <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center border-2 border-white">
+      <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
         <User className="w-5 h-5 text-white" />
       </div>
     );
@@ -174,7 +205,7 @@ export default function Navbar() {
         <img
           src={user.profile_pict}
           alt={user.username}
-          className="w-14 h-14 rounded-full object-cover border-2 border-white/30"
+          className="w-14 h-14 rounded-full object-cover border-2 border-white/30 shadow-md"
           onError={(e) => {
             e.target.style.display = "none";
             e.target.nextSibling.style.display = "flex";
@@ -183,10 +214,19 @@ export default function Navbar() {
       );
     }
     return (
-      <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center border-2 border-white/30">
+      <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center border-2 border-white/30 shadow-md">
         <User className="w-7 h-7 text-white" />
       </div>
     );
+  };
+
+  // Fungsi untuk menangani status aktif pada NavLink
+  const getNavLinkClass = (isActive, additionalClasses = "") => {
+    const baseClasses = "flex items-center space-x-2 px-6 py-3 rounded-t-lg font-medium transition-all relative group";
+    const activeClasses = "bg-white text-blue-600 shadow-lg";
+    const inactiveClasses = "text-white hover:bg-white/20 hover:shadow-lg";
+    
+    return `${baseClasses} ${isActive ? activeClasses : inactiveClasses} ${additionalClasses}`;
   };
 
   return (
@@ -217,7 +257,7 @@ export default function Navbar() {
               
               {/* Logo */}
               <Link to="/" className="flex items-center space-x-2">
-                <div className="bg-white rounded-lg p-1">
+                <div className="bg-white rounded-lg p-1 shadow-md">
                   <Ticket className="w-6 h-6 text-blue-600" />
                 </div>
                 <span className="text-xl sm:text-2xl font-bold text-white">
@@ -234,8 +274,8 @@ export default function Navbar() {
                   <input
                     type="text"
                     name="search"
-                    placeholder="Cari event berdasarkan nama..."
-                    className="w-full pl-10 pr-4 py-3 rounded-lg bg-white/95 border border-white/20 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+                    placeholder="Cari event, konser, workshop..."
+                    className="w-full pl-10 pr-4 py-3 rounded-lg bg-white/95 border border-white/20 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent shadow-sm"
                   />
                 </div>
               </form>
@@ -261,22 +301,23 @@ export default function Navbar() {
                   >
                     {renderUserAvatar()}
                     <div className="hidden lg:flex flex-col items-start">
-                      <span className="text-sm font-medium">
+                      <span className="text-sm font-bold">
                         {user?.username}
                       </span>
-                      <span className="text-xs text-white/80 capitalize bg-white/20 px-2 py-0.5 rounded-full">
-                        {getRoleDisplayName(user?.role)}
+                      <span className={`text-xs px-2 py-0.5 rounded-full border flex items-center space-x-1 mt-1 ${getRoleColor(user?.role)}`}>
+                        {getRoleIcon(user?.role)}
+                        <span className="font-semibold">{getRoleDisplayName(user?.role)}</span>
                       </span>
                     </div>
                   </button>
 
                   {/* Profile Dropdown */}
                   {profileDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-200 z-50">
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50">
                       {/* User Info */}
                       <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100 rounded-t-xl">
                         <div className="flex items-center space-x-3">
-                          <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border-2 border-gray-300 bg-gray-200 flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border-2 border-gray-300 bg-gray-200 flex items-center justify-center shadow-sm">
                             {user?.profile_pict ? (
                               <img
                                 src={user.profile_pict}
@@ -289,7 +330,7 @@ export default function Navbar() {
                               />
                             ) : null}
                             <div
-                              className="w-full h-full flex items-center justify-center bg-blue-500 text-white font-semibold text-lg"
+                              className="w-full h-full flex items-center justify-center bg-blue-500 text-white font-bold text-lg shadow-inner"
                               style={{
                                 display: user?.profile_pict ? "none" : "flex",
                               }}
@@ -298,11 +339,12 @@ export default function Navbar() {
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">
+                            <p className="text-lg font-bold text-gray-900 truncate">
                               {user.username}
                             </p>
-                            <p className="text-xs text-gray-600 capitalize bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full inline-block mt-1">
-                              {getRoleDisplayName(user.role)}
+                            <p className={`text-sm px-3 py-1 rounded-full border flex items-center space-x-1 mt-1 w-fit ${getRoleColor(user.role)}`}>
+                              {getRoleIcon(user.role)}
+                              <span className="font-bold">{getRoleDisplayName(user.role)}</span>
                             </p>
                           </div>
                         </div>
@@ -312,36 +354,45 @@ export default function Navbar() {
                       <div className="p-2">
                         <button
                           onClick={handleViewProfile}
-                          className="w-full flex items-center space-x-3 px-3 py-3 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-all"
+                          className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-blue-50 rounded-lg transition-colors group"
                         >
-                          <User className="w-5 h-5" />
-                          <span>Lihat Profil</span>
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                            <User className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <span className="font-medium text-gray-700 group-hover:text-blue-600 transition-colors">Lihat Profil</span>
                         </button>
-
-                        {isLoggedIn() && getUserRole() === "user" && (
+                        
+                        {/* Transaction History - Only for User role */}
+                        {getUserRole() === "user" && (
                           <button
                             onClick={handleViewTransactionHistory}
-                            className="w-full flex items-center space-x-3 px-3 py-3 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-all"
+                            className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-blue-50 rounded-lg transition-colors group"
                           >
-                            <History className="w-5 h-5" />
-                            <span>Riwayat Pembelian</span>
+                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                              <History className="w-4 h-4 text-green-600" />
+                            </div>
+                            <span className="font-medium text-gray-700 group-hover:text-green-600 transition-colors">Riwayat Transaksi</span>
                           </button>
                         )}
-
-                        <button
-                          onClick={handleLogout}
-                          className="w-full flex items-center space-x-3 px-3 py-3 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-all mt-2"
-                        >
-                          <LogOut className="w-5 h-5" />
-                          <span>Keluar</span>
-                        </button>
+                        
+                        <div className="border-t border-gray-200 mt-2 pt-2">
+                          <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-red-50 rounded-lg transition-colors group"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center group-hover:bg-red-200 transition-colors">
+                              <LogOut className="w-4 h-4 text-red-600" />
+                            </div>
+                            <span className="font-medium text-red-600 group-hover:text-red-700 transition-colors">Keluar</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
               ) : (
                 <Link to="/login">
-                  <button className="bg-white text-blue-600 px-7 py-3 rounded-lg hover:bg-blue-50 font-semibold transition-all shadow-sm text-sm">
+                  <button className="bg-white text-blue-600 px-5 py-2.5 rounded-lg font-bold hover:bg-blue-50 hover:shadow-lg transition-all">
                     Masuk
                   </button>
                 </Link>
@@ -351,54 +402,59 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* NAVBAR BOTTOM (DESKTOP ONLY) */}
-      <nav className={`fixed hidden md:block top-20 w-full z-40 transition-all duration-300 ${
-        scrolled ? 'bg-[#044888] shadow-md' : 'bg-[#044888]'
-      }`}>
+      {/* NAVBAR BOTTOM - Secondary Nav */}
+      <nav className="hidden md:block fixed top-20 w-full z-40 bg-[#044888] shadow-md' : 'bg-[#044888] border-t border-white/20 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center space-x-1">
+          <div className="flex items-center space-x-1">
             <NavLink
               to="/"
-              className={({ isActive }) =>
-                `flex items-center space-x-2 px-4 py-3 rounded-t-lg font-medium transition-all ${
-                  isActive
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-white hover:bg-white/10"
-                }`
-              }
+              className={({ isActive }) => getNavLinkClass(isActive)}
             >
               <Home size={16} />
               <span>Beranda</span>
+              {/* Hover effect */}
+              <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                location.pathname === "/" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+              }`} />
             </NavLink>
 
             <NavLink
               to="/cariEvent"
-              className={({ isActive }) =>
-                `flex items-center space-x-2 px-4 py-3 rounded-t-lg font-medium transition-all ${
-                  isActive
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-white hover:bg-white/10"
-                }`
-              }
+              className={({ isActive }) => getNavLinkClass(isActive)}
             >
               <Search size={16} />
               <span>Cari Event</span>
+              {/* Hover effect */}
+              <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                location.pathname.startsWith("/cariEvent") ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+              }`} />
+            </NavLink>
+
+            {/* NEW: Kalender Event - Accessible by all users */}
+            <NavLink
+              to="/kalender-event"
+              className={({ isActive }) => getNavLinkClass(isActive)}
+            >
+              <CalendarDays size={16} />
+              <span>Kalender Event</span>
+              {/* Hover effect */}
+              <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                location.pathname === "/kalender-event" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+              }`} />
             </NavLink>
 
             {/* Menu untuk User */}
             {isLoggedIn() && getUserRole() === "user" && (
               <NavLink
                 to="/tiket-saya"
-                className={({ isActive }) =>
-                  `flex items-center space-x-2 px-4 py-3 rounded-t-lg font-medium transition-all ${
-                    isActive
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-white hover:bg-white/10"
-                  }`
-                }
+                className={({ isActive }) => getNavLinkClass(isActive)}
               >
                 <Ticket size={16} />
                 <span>Tiket Saya</span>
+                {/* Hover effect */}
+                <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                  location.pathname === "/tiket-saya" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                }`} />
               </NavLink>
             )}
 
@@ -407,29 +463,25 @@ export default function Navbar() {
               <>
                 <NavLink
                   to="/daftar-event"
-                  className={({ isActive }) =>
-                    `flex items-center space-x-2 px-4 py-3 rounded-t-lg font-medium transition-all ${
-                      isActive
-                        ? "bg-white text-blue-600 shadow-sm"
-                        : "text-white hover:bg-white/10"
-                    }`
-                  }
+                  className={({ isActive }) => getNavLinkClass(isActive)}
                 >
                   <Calendar size={16} />
                   <span>Buat Event</span>
+                  {/* Hover effect */}
+                  <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                    location.pathname === "/daftar-event" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                  }`} />
                 </NavLink>
                 <NavLink
                   to="/event-saya"
-                  className={({ isActive }) =>
-                    `flex items-center space-x-2 px-4 py-3 rounded-t-lg font-medium transition-all ${
-                      isActive
-                        ? "bg-white text-blue-600 shadow-sm"
-                        : "text-white hover:bg-white/10"
-                    }`
-                  }
+                  className={({ isActive }) => getNavLinkClass(isActive)}
                 >
                   <Calendar size={16} />
                   <span>Event Saya</span>
+                  {/* Hover effect */}
+                  <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                    location.pathname === "/event-saya" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                  }`} />
                 </NavLink>
               </>
             )}
@@ -439,29 +491,25 @@ export default function Navbar() {
               <>
                 <NavLink
                   to="/verifikasiUser"
-                  className={({ isActive }) =>
-                    `flex items-center space-x-2 px-4 py-3 rounded-t-lg font-medium transition-all ${
-                      isActive
-                        ? "bg-white text-blue-600 shadow-sm"
-                        : "text-white hover:bg-white/10"
-                    }`
-                  }
+                  className={({ isActive }) => getNavLinkClass(isActive)}
                 >
                   <ShieldCheck size={16} />
                   <span>Verifikasi User</span>
+                  {/* Hover effect */}
+                  <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                    location.pathname === "/verifikasiUser" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                  }`} />
                 </NavLink>
                 <NavLink
                   to="/verifikasi-event"
-                  className={({ isActive }) =>
-                    `flex items-center space-x-2 px-4 py-3 rounded-t-lg font-medium transition-all ${
-                      isActive
-                        ? "bg-white text-blue-600 shadow-sm"
-                        : "text-white hover:bg-white/10"
-                    }`
-                  }
+                  className={({ isActive }) => getNavLinkClass(isActive)}
                 >
                   <ShieldCheck size={16} />
                   <span>Verifikasi Event</span>
+                  {/* Hover effect */}
+                  <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                    location.pathname === "/verifikasi-event" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                  }`} />
                 </NavLink>
               </>
             )}
@@ -470,7 +518,7 @@ export default function Navbar() {
       </nav>
 
       {/* MOBILE SEARCH BAR */}
-      <nav className="fixed md:hidden top-16 w-full z-40 bg-[#0C8CE9] border-b border-white/20">
+      <nav className="fixed md:hidden top-16 w-full z-40 bg-[#0C8CE9] border-b border-white/20 shadow-sm">
         <div className="px-4 py-3">
           <form onSubmit={handleSearchSubmit}>
             <div className="relative">
@@ -479,7 +527,7 @@ export default function Navbar() {
                 type="text"
                 name="search"
                 placeholder="Cari event..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white/95 border border-white/20 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white/95 border border-white/20 focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-sm"
               />
             </div>
           </form>
@@ -514,48 +562,96 @@ export default function Navbar() {
               </button>
             </div>
             
-            {isLoggedIn() && (
+            {/* User Info - Ditampilkan di mobile */}
+            {isLoggedIn() ? (
               <div className="flex items-center space-x-3">
                 {renderMobileUserAvatar()}
                 <div>
-                  <p className="font-semibold">{user?.username}</p>
-                  <p className="text-xs text-blue-100 capitalize bg-white/20 px-2 py-0.5 rounded-full mt-1">
-                    {getRoleDisplayName(user.role)}
+                  <p className="font-bold text-lg">{user?.username}</p>
+                  <p className={`text-xs px-3 py-1 rounded-full border flex items-center space-x-1 mt-1 w-fit ${getRoleColor(user.role)}`}>
+                    {getRoleIcon(user.role)}
+                    <span className="font-bold">{getRoleDisplayName(user.role)}</span>
                   </p>
                 </div>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-blue-100 mb-3">Belum login?</p>
+                <Link to="/login">
+                  <button 
+                    className="bg-white text-blue-600 px-6 py-2 rounded-lg font-bold hover:bg-blue-50 transition-all"
+                    onClick={() => setMobileMenuIsOpen(false)}
+                  >
+                    Masuk Sekarang
+                  </button>
+                </Link>
               </div>
             )}
           </div>
 
           {/* Menu Items */}
-          <div className="p-4 space-y-2">
+          <div className="p-4 space-y-1">
             <NavLink
               to="/"
-              className="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all"
+              className={({ isActive }) => 
+                `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
+                  isActive 
+                    ? "bg-blue-50 text-blue-600 font-bold" 
+                    : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                }`
+              }
               onClick={() => setMobileMenuIsOpen(false)}
             >
               <Home size={20} />
-              <span className="font-medium">Beranda</span>
+              <span className="font-semibold">Beranda</span>
             </NavLink>
 
             <NavLink
               to="/cariEvent"
-              className="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all"
+              className={({ isActive }) => 
+                `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
+                  isActive 
+                    ? "bg-blue-50 text-blue-600 font-bold" 
+                    : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                }`
+              }
               onClick={() => setMobileMenuIsOpen(false)}
             >
               <Search size={20} />
-              <span className="font-medium">Cari Event</span>
+              <span className="font-semibold">Cari Event</span>
+            </NavLink>
+
+            {/* NEW: Kalender Event - Accessible by all users (Mobile) */}
+            <NavLink
+              to="/kalender-event"
+              className={({ isActive }) => 
+                `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
+                  isActive 
+                    ? "bg-blue-50 text-blue-600 font-bold" 
+                    : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                }`
+              }
+              onClick={() => setMobileMenuIsOpen(false)}
+            >
+              <CalendarDays size={20} />
+              <span className="font-semibold">Kalender Event</span>
             </NavLink>
 
             {/* Menu untuk User */}
             {isLoggedIn() && getUserRole() === "user" && (
               <NavLink
                 to="/tiket-saya"
-                className="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all"
+                className={({ isActive }) => 
+                  `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
+                    isActive 
+                      ? "bg-blue-50 text-blue-600 font-bold" 
+                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                  }`
+                }
                 onClick={() => setMobileMenuIsOpen(false)}
               >
                 <Ticket size={20} />
-                <span className="font-medium">Tiket Saya</span>
+                <span className="font-semibold">Tiket Saya</span>
               </NavLink>
             )}
 
@@ -564,19 +660,31 @@ export default function Navbar() {
               <>
                 <NavLink
                   to="/daftar-event"
-                  className="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all"
+                  className={({ isActive }) => 
+                    `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
+                      isActive 
+                        ? "bg-blue-50 text-blue-600 font-bold" 
+                        : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                    }`
+                  }
                   onClick={() => setMobileMenuIsOpen(false)}
                 >
                   <Calendar size={20} />
-                  <span className="font-medium">Buat Event</span>
+                  <span className="font-semibold">Buat Event</span>
                 </NavLink>
                 <NavLink
                   to="/event-saya"
-                  className="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all"
+                  className={({ isActive }) => 
+                    `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
+                      isActive 
+                        ? "bg-blue-50 text-blue-600 font-bold" 
+                        : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                    }`
+                  }
                   onClick={() => setMobileMenuIsOpen(false)}
                 >
                   <Calendar size={20} />
-                  <span className="font-medium">Event Saya</span>
+                  <span className="font-semibold">Event Saya</span>
                 </NavLink>
               </>
             )}
@@ -586,19 +694,31 @@ export default function Navbar() {
               <>
                 <NavLink
                   to="/verifikasiUser"
-                  className="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all"
+                  className={({ isActive }) => 
+                    `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
+                      isActive 
+                        ? "bg-blue-50 text-blue-600 font-bold" 
+                        : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                    }`
+                  }
                   onClick={() => setMobileMenuIsOpen(false)}
                 >
                   <ShieldCheck size={20} />
-                  <span className="font-medium">Verifikasi User</span>
+                  <span className="font-semibold">Verifikasi User</span>
                 </NavLink>
                 <NavLink
                   to="/verifikasi-event"
-                  className="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all"
+                  className={({ isActive }) => 
+                    `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
+                      isActive 
+                        ? "bg-blue-50 text-blue-600 font-bold" 
+                        : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                    }`
+                  }
                   onClick={() => setMobileMenuIsOpen(false)}
                 >
                   <ShieldCheck size={20} />
-                  <span className="font-medium">Verifikasi Event</span>
+                  <span className="font-semibold">Verifikasi Event</span>
                 </NavLink>
               </>
             )}
@@ -607,10 +727,10 @@ export default function Navbar() {
             {isLoggedIn() && (
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-50 transition-all mt-4"
+                className="w-full flex items-center space-x-3 p-4 rounded-lg text-red-600 hover:bg-red-50 transition-all mt-4 hover:scale-[1.02]"
               >
                 <LogOut size={20} />
-                <span className="font-medium">Keluar</span>
+                <span className="font-semibold">Keluar</span>
               </button>
             )}
           </div>

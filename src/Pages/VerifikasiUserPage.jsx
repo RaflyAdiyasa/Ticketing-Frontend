@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import { userAPI } from "../services/api";
 import NotificationModal from "../components/NotificationModal";
 import useNotification from "../hooks/useNotification";
-import { Search, Filter, X, Eye, RefreshCw, Users, UserCheck, UserX } from "lucide-react";
+import { Search, Filter, X, Eye, RefreshCw, Users, UserCheck, UserSearch, UserX } from "lucide-react";
 
 export default function VerifikasiUserPage() {
   const navigate = useNavigate();
@@ -82,7 +82,7 @@ export default function VerifikasiUserPage() {
       pending: { 
         class: "bg-yellow-100 text-yellow-800 border border-yellow-200", 
         text: "Menunggu",
-        icon: Users
+        icon: UserSearch
       },
       rejected: { 
         class: "bg-red-100 text-red-800 border border-red-200", 
@@ -189,7 +189,7 @@ export default function VerifikasiUserPage() {
                     <p className="text-yellow-100 text-sm font-medium">Menunggu Verifikasi</p>
                     <p className="text-3xl font-bold mt-1">{pendingUsers.length}</p>
                   </div>
-                  <UserX size={32} className="text-white opacity-80" />
+                  <UserSearch size={32} className="text-white opacity-80" />
                 </div>
               </div>
               

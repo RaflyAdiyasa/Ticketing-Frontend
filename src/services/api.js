@@ -97,13 +97,17 @@ export const paymentAPI = {
 };
 
 export const ticketAPI = {
-  getTickets: () => api.get('/api/tickets'),
+  getTickets: (status = '') => {
+    const params = status && status !== 'all' ? `?status=${status}` : '';
+    return api.get(`/api/tickets${params}`);
+  },
+  getTicketStats: () => api.get('/api/tickets/stats'),
   getTicketCode: (ticketId) => api.get(`/api/tickets/${ticketId}/code`),
-  checkInTicket: (eventId, ticketId) => api.patch(`/api/tickets/${eventId}/${ticketId}/checkin`),
+  checkInTicket: (eventId, ticketCode) => api.patch(`/api/tickets/${eventId}/${ticketCode}/checkin`),
   updateTagTicket: (ticketId, tagData) => api.patch(`/api/tickets/${ticketId}/tag`, tagData),
 };
 
-// NEW: Transaction API
+// Transaction API
 export const transactionAPI = {
   getTransactionHistory: () => api.get('/api/transactions'),
   getTransactionDetail: (transactionId) => api.get(`/api/transactions/${transactionId}`),

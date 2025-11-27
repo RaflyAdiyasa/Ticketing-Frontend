@@ -4,7 +4,26 @@ import Navbar from "../components/Navbar";
 import { cartAPI, paymentAPI } from "../services/api";
 import useNotification from "../hooks/useNotification";
 import NotificationModal from "../components/NotificationModal";
-import { Trash2, ExternalLink, Copy, Check, X } from "lucide-react";
+import { 
+  Trash2, 
+  ExternalLink, 
+  Copy, 
+  Check, 
+  X, 
+  Calendar, 
+  MapPin, 
+  Plus,
+  Minus,
+  AlertCircle,
+  CreditCard,
+  ShoppingCart,
+  ArrowRight,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+  Receipt
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function KeranjangPage() {
   const navigate = useNavigate();
@@ -38,17 +57,21 @@ export default function KeranjangPage() {
   const fetchCart = async () => {
     try {
       setLoading(true);
+      setError("");
       const response = await cartAPI.getCart();
       console.log("Backend response:", response.data);
       
       if (response.data && response.data.carts) {
         const transformedCart = transformCartData(response.data.carts);
         setCart(transformedCart);
+      } else {
+        setCart([]);
       }
     } catch (err) {
       console.error("Error fetching cart:", err);
-      setError("Gagal memuat data keranjang");
-      showNotification("Gagal memuat data keranjang", "Error", "error");
+      const errorMessage = err.response?.data?.error || "Gagal memuat data keranjang";
+      setError(errorMessage);
+      showNotification(errorMessage, "Error", "error");
     } finally {
       setLoading(false);
     }
@@ -64,12 +87,16 @@ export default function KeranjangPage() {
       const eventId = cartItem.event?.event_id || cartItem.event_id;
       const eventName = cartItem.event?.name || "Unknown Event";
       const eventImage = cartItem.event?.image || "https://picsum.photos/600/600?random=21";
+      const eventDate = cartItem.event?.date_start || cartItem.ticket_category?.date_time_start;
+      const eventLocation = cartItem.event?.location || "Lokasi tidak tersedia";
       
       if (!eventMap[eventId]) {
         eventMap[eventId] = {
           eventId: eventId,
           eventName: eventName,
           eventPoster: eventImage,
+          eventDate: eventDate,
+          eventLocation: eventLocation,
           tickets: []
         };
       }
@@ -118,9 +145,8 @@ export default function KeranjangPage() {
     
     try {
       await cartAPI.deleteCart({ cart_id: itemToDelete.cartId });
-      // Auto refresh cart data setelah hapus
       showNotification(`Tiket "${itemToDelete.ticketName}" berhasil dihapus`, "Sukses", "success");
-      window.location.reload();
+      await fetchCart();
     } catch (err) {
       console.error("Error deleting cart item:", err);
       showNotification("Gagal menghapus tiket dari keranjang", "Error", "error");
@@ -135,9 +161,8 @@ export default function KeranjangPage() {
     
     try {
       await cartAPI.deleteCart({ cart_id: itemToDecrement.cartId });
-      // Auto refresh cart data setelah hapus
       showNotification("Tiket berhasil dihapus dari keranjang", "Sukses", "success");
-      window.location.reload();
+      await fetchCart();
     } catch (err) {
       console.error("Error deleting cart item:", err);
       showNotification("Gagal menghapus tiket dari keranjang", "Error", "error");
@@ -161,7 +186,6 @@ export default function KeranjangPage() {
       };
 
       await cartAPI.updateCart(updateData);
-      // Auto refresh cart data setelah update
       await fetchCart();
       showNotification("Jumlah tiket berhasil ditambah", "Sukses", "success");
     } catch (err) {
@@ -174,7 +198,6 @@ export default function KeranjangPage() {
   // === Decrement handler ===
   const decrementQty = async (eventId, ticketId, cartId, currentQty, ticketName) => {
     if (currentQty <= 1) {
-      // Show modal konfirmasi untuk hapus
       setItemToDecrement({
         cartId,
         ticketName
@@ -190,7 +213,6 @@ export default function KeranjangPage() {
       };
 
       await cartAPI.updateCart(updateData);
-      // Auto refresh cart data setelah update
       await fetchCart();
       showNotification("Jumlah tiket berhasil dikurangi", "Sukses", "success");
     } catch (err) {
@@ -228,10 +250,7 @@ export default function KeranjangPage() {
         sessionStorage.setItem('last_transaction_id', response.data.transaction_id);
         sessionStorage.setItem('last_transaction_total', response.data.total);
         
-        // Tampilkan modal checkout success
         setShowCheckoutModal(true);
-        
-        // Auto refresh cart setelah checkout berhasil - tanpa timeout
         await fetchCart();
         
       } else {
@@ -252,41 +271,76 @@ export default function KeranjangPage() {
     return sum + event.tickets.reduce((s, t) => s + t.price * t.qty, 0);
   }, 0);
 
+  // Format date untuk display
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  // Stats untuk keranjang
+  const cartStats = {
+    totalItems: cart.reduce((sum, event) => sum + event.tickets.length, 0),
+    totalEvents: cart.length,
+    totalQuantity: cart.reduce((sum, event) => 
+      sum + event.tickets.reduce((s, t) => s + t.qty, 0), 0
+    )
+  };
+
   if (loading) {
     return (
-      <div>
+      <div className="min-h-screen bg-gray-100">
         <Navbar />
-        <div className="min-h-screen bg-[#E5E7EB] flex items-center justify-center pt-40">
+        <div className="flex items-center justify-center min-h-[60vh] pt-24">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Memuat keranjang...</p>
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto"
+            />
+            <p className="mt-6 text-slate-600 font-medium">Memuat keranjang...</p>
           </div>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error && cart.length === 0) {
     return (
-      <div>
+      <div className="min-h-screen bg-gray-100">
         <Navbar />
-        <div className="min-h-screen bg-[#E5E7EB] flex items-center justify-center pt-40">
-          <div className="text-center text-red-600">
-            <p>{error}</p>
-            <button 
+        <div className="flex items-center justify-center min-h-[60vh] pt-24 p-4">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center border border-red-100"
+          >
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="w-10 h-10 text-red-600" />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 mb-3">Terjadi Kesalahan</h3>
+            <p className="text-slate-600 mb-8">{error}</p>
+            <motion.button
               onClick={fetchCart}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="w-full px-6 py-4 bg-blue-600 text-white rounded-xl font-medium"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
+              <RefreshCw size={18} className="inline mr-2" />
               Coba Lagi
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
         </div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-gray-100">
       <Navbar />
 
       {/* Notification Modal */}
@@ -299,299 +353,471 @@ export default function KeranjangPage() {
       />
 
       {/* Modal Konfirmasi Hapus Tiket */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6">
-            <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                <Trash2 className="h-6 w-6 text-red-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Hapus Tiket
-              </h3>
-              <p className="text-sm text-gray-500 mb-6">
-                Hapus tiket "{itemToDelete?.ticketName}" dari keranjang?
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setItemToDelete(null);
-                  }}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                >
-                  Hapus
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Konfirmasi Decrement ke 0 */}
-      {showDecrementModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6">
-            <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
-                <X className="h-6 w-6 text-yellow-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Hapus Tiket
-              </h3>
-              <p className="text-sm text-gray-500 mb-6">
-                Jumlah tiket akan menjadi 0. Hapus tiket "{itemToDecrement?.ticketName}" dari keranjang?
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowDecrementModal(false);
-                    setItemToDecrement(null);
-                  }}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={confirmDecrement}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                >
-                  Hapus
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Checkout Success Modal */}
-      {showCheckoutModal && paymentData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-green-600">Checkout Berhasil!</h2>
-              <button 
-                onClick={() => setShowCheckoutModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-green-800 font-semibold text-center">
-                  Anda akan diarahkan ke halaman pembayaran...
-                </p>
-              </div>
-
-              {/* Detail Transaksi */}
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-3">Detail Transaksi</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">ID Transaksi:</span>
-                    <span className="font-medium">{paymentData.transaction_id}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Total Pembayaran:</span>
-                    <span className="font-bold text-blue-600">{formatRupiah(paymentData.total)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Status:</span>
-                    <span className="font-medium text-yellow-600">Menunggu Pembayaran</span>
-                  </div>
+      <AnimatePresence>
+        {showDeleteModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          >
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-2xl max-w-sm w-full p-6 border border-gray-100 shadow-2xl"
+            >
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                  <Trash2 className="h-6 w-6 text-red-600" />
                 </div>
-              </div>
-
-              {/* Payment URL */}
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-2">Link Pembayaran</h3>
-                <p className="text-xs text-gray-600 mb-3">
-                  Jika tidak diarahkan otomatis, salin link berikut atau klik tombol di bawah:
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Hapus Tiket
+                </h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Hapus tiket "{itemToDelete?.ticketName}" dari keranjang?
                 </p>
-                <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    value={paymentData.payment_url} 
-                    readOnly 
-                    className="flex-1 border rounded-lg px-3 py-2 text-xs bg-gray-50"
-                  />
-                  <button 
-                    onClick={() => copyToClipboard(paymentData.payment_url)}
-                    className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowDeleteModal(false);
+                      setItemToDelete(null);
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
                   >
-                    {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                    Batal
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
+                  >
+                    Hapus
                   </button>
                 </div>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
-                <button 
-                  onClick={() => setShowCheckoutModal(false)}
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                >
-                  Tutup
-                </button>
-                <button 
-                  onClick={openPaymentPage}
-                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  Buka Pembayaran
-                </button>
+      {/* Modal Konfirmasi Decrement ke 0 */}
+      <AnimatePresence>
+        {showDecrementModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          >
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-2xl max-w-sm w-full p-6 border border-gray-100 shadow-2xl"
+            >
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
+                  <X className="h-6 w-6 text-yellow-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Hapus Tiket
+                </h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Jumlah tiket akan menjadi 0. Hapus tiket "{itemToDecrement?.ticketName}" dari keranjang?
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowDecrementModal(false);
+                      setItemToDecrement(null);
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={confirmDecrement}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
+                  >
+                    Hapus
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className="min-h-screen bg-[#E5E7EB] flex items-start justify-center p-4 overflow-auto">
-        <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-40 bg-white shadow-xl p-8 rounded-2xl">
-          <h1 className="text-2xl font-bold mb-6">Keranjang</h1>
+      {/* Checkout Success Modal */}
+      <AnimatePresence>
+        {showCheckoutModal && paymentData && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          >
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-2xl max-w-md w-full p-6 border border-gray-100 shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-green-600 flex items-center gap-2">
+                  <Check className="w-5 h-5" />
+                  Checkout Berhasil!
+                </h2>
+                <motion.button 
+                  onClick={() => setShowCheckoutModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <X className="w-6 h-6" />
+                </motion.button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-green-800 font-semibold text-center">
+                    Anda akan diarahkan ke halaman pembayaran...
+                  </p>
+                </div>
 
-          {cart.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500 text-lg">Keranjang Anda kosong</p>
-              <button 
-                onClick={() => navigate('/cariEvent')}
-                className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Jelajahi Event
-              </button>
-            </div>
-          ) : (
-            <>
-              {cart.map((event) => (
-                <div key={event.eventId} className="mb-10 border rounded-xl p-4 shadow-sm">
-                  {/* Header Event */}
-                  <div className="flex items-center gap-4 mb-4">
-                    <img
-                      src={event.eventPoster}
-                      className="w-20 h-20 rounded-lg object-cover"
-                      alt={event.eventName}
-                      onError={(e) => {
-                        e.target.src = "https://picsum.photos/600/600?random=21";
-                      }}
+                {/* Detail Transaksi */}
+                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <h3 className="font-semibold mb-3 text-gray-900">Detail Transaksi</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">ID Transaksi:</span>
+                      <span className="font-medium text-gray-900">{paymentData.transaction_id}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Total Pembayaran:</span>
+                      <span className="font-bold text-blue-600">{formatRupiah(paymentData.total)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Status:</span>
+                      <span className="font-medium text-yellow-600">Menunggu Pembayaran</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment URL */}
+                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <h3 className="font-semibold mb-2 text-gray-900">Link Pembayaran</h3>
+                  <p className="text-xs text-gray-600 mb-3">
+                    Jika tidak diarahkan otomatis, salin link berikut atau klik tombol di bawah:
+                  </p>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={paymentData.payment_url} 
+                      readOnly 
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs bg-white"
                     />
-                    <div className="flex-1">
-                      <h2 className="text-lg font-semibold">{event.eventName}</h2>
-                      <p className="text-sm text-gray-600">
-                        {event.tickets[0]?.dateTimeStart ? 
-                          new Date(event.tickets[0].dateTimeStart).toLocaleDateString('id-ID', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          }) : ''
-                        }
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Table-like Ticket Rows */}
-                  <div className="grid grid-cols-12 font-semibold text-gray-700 border-b pb-2 mb-2">
-                    <div className="col-span-5">Tiket</div>
-                    <div className="col-span-3 text-center">Jumlah</div>
-                    <div className="col-span-3 text-right">Subtotal</div>
-                    <div className="col-span-1 text-center">Aksi</div>
-                  </div>
-
-                  {event.tickets.map((ticket) => (
-                    <div
-                      key={ticket.cartId}
-                      className="grid grid-cols-12 py-3 border-b last:border-b-0 items-center"
+                    <motion.button 
+                      onClick={() => copyToClipboard(paymentData.payment_url)}
+                      className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition flex items-center justify-center"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
-                      {/* Info Tiket */}
-                      <div className="col-span-5 pr-4">
-                        <p className="font-semibold text-sm">{ticket.name}</p>
-                        <p className="text-xs text-gray-600">{ticket.description}</p>
-                        <p className="text-xs mt-1">Harga: {formatRupiah(ticket.price)}</p>
-                        <p className="text-xs text-gray-500">Stok: {ticket.stock}</p>
+                      {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-gray-600" />}
+                    </motion.button>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <motion.button 
+                    onClick={() => setShowCheckoutModal(false)}
+                    className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Tutup
+                  </motion.button>
+                  <motion.button 
+                    onClick={openPaymentPage}
+                    className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Buka Pembayaran
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="pt-24 pb-12">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="bg-white rounded-2xl shadow-lg p-6 md:p-8 mt-15"
+          >
+            
+            {/* Header */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4"
+            >
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                  Keranjang Belanja
+                </h1>
+                <p className="text-gray-600 mt-2">
+                  Kelola tiket event yang akan Anda beli
+                </p>
+              </div>
+              
+              <motion.button
+                onClick={fetchCart}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg transition-colors font-medium"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+                Refresh
+              </motion.button>
+            </motion.div>
+
+            {/* Stats Card */}
+            {cart.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="bg-blue-600 text-white p-6 rounded-xl mb-8"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-100 text-sm font-medium">Ringkasan Keranjang</p>
+                    <p className="text-3xl font-bold mt-1">{cartStats.totalQuantity} Tiket</p>
+                    <p className="text-blue-100 text-sm mt-2">
+                      {cartStats.totalEvents} event • {cartStats.totalItems} jenis tiket
+                    </p>
+                  </div>
+                  <motion.div 
+                    className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center"
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                  >
+                    <ShoppingCart size={32} className="text-blue-600"/>
+                  </motion.div>
+                </div>
+              </motion.div>
+            )}
+
+            {cart.length === 0 ? (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center py-12"
+              >
+                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Receipt className="w-12 h-12 text-gray-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-3">Keranjang Kosong</h3>
+                <p className="text-slate-600 mb-8">Belum ada tiket di keranjang belanja Anda</p>
+                <motion.button
+                  onClick={() => navigate('/cariEvent')}
+                  className="px-6 py-4 bg-blue-600 text-white rounded-xl font-medium"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Sparkles size={18} className="inline mr-2" />
+                  Jelajahi Event
+                </motion.button>
+              </motion.div>
+            ) : (
+              <>
+                {/* Daftar Event dalam Keranjang */}
+                <div className="space-y-6">
+                  {cart.map((event, index) => (
+                    <motion.div 
+                      key={event.eventId}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+                    >
+                      
+                      {/* Header Event */}
+                      <div className="p-6 md:p-8 bg-gradient-to-r from-blue-50 to-indigo-50">
+                        <div className="flex flex-col lg:flex-row gap-6">
+                          <div className="flex-shrink-0">
+                            <img 
+                              src={event.eventPoster} 
+                              alt={event.eventName}
+                              className="w-20 h-20 rounded-xl object-cover shadow-md border border-gray-200"
+                              onError={(e) => {
+                                e.target.src = "https://picsum.photos/600/600?random=21";
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <h2 className="text-xl font-bold text-gray-900 mb-2">{event.eventName}</h2>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-gray-600">
+                                <Calendar size={16} className="text-blue-600 flex-shrink-0" />
+                                <span className="text-sm">{formatDate(event.eventDate)}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-gray-600">
+                                <MapPin size={16} className="text-blue-600 flex-shrink-0" />
+                                <span className="text-sm">{event.eventLocation}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Increment Area */}
-                      <div className="col-span-3 flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => decrementQty(event.eventId, ticket.ticketId, ticket.cartId, ticket.qty, ticket.name)}
-                          className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 transition"
-                        >
-                          -
-                        </button>
-                        <span className="w-6 text-center font-semibold">{ticket.qty}</span>
-                        <button
-                          onClick={() => incrementQty(event.eventId, ticket.ticketId, ticket.cartId, ticket.qty, ticket.stock)}
-                          className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 transition"
-                        >
-                          +
-                        </button>
+                      {/* Daftar Tiket */}
+                      <div className="border-t border-gray-200">
+                        <div className="p-6 md:p-8 space-y-4">
+                          {event.tickets.map((ticket, ticketIndex) => (
+                            <motion.div 
+                              key={ticket.cartId} 
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: (index + ticketIndex) * 0.05 }}
+                              className="bg-gray-50 rounded-xl border border-gray-300 p-4 hover:border-blue-300 transition-colors"
+                            >
+                              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-3">
+                                <div className="flex-1">
+                                  <h3 className="font-semibold text-gray-900 text-lg mb-2">{ticket.name}</h3>
+                                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                                    {ticket.description}
+                                  </p>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-600">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-gray-900">{formatRupiah(ticket.price)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-gray-500">Stok tersedia:</span>
+                                      <span className="font-semibold text-gray-900">{ticket.stock}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Quantity Controls */}
+                                <div className="flex items-center gap-4">
+                                  <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-300 p-2 shadow-sm">
+                                    <motion.button
+                                      onClick={() => decrementQty(event.eventId, ticket.ticketId, ticket.cartId, ticket.qty, ticket.name)}
+                                      className="p-1 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                    >
+                                      <Minus size={16} className="text-gray-700" />
+                                    </motion.button>
+                                    <span className="w-8 text-center font-bold text-lg text-gray-900">{ticket.qty}</span>
+                                    <motion.button
+                                      onClick={() => incrementQty(event.eventId, ticket.ticketId, ticket.cartId, ticket.qty, ticket.stock)}
+                                      className="p-1 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                    >
+                                      <Plus size={16} className="text-gray-700" />
+                                    </motion.button>
+                                  </div>
+                                  
+                                  {/* Delete Button */}
+                                  <motion.button
+                                    onClick={() => deleteCartItem(ticket.cartId, ticket.name)}
+                                    className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center"
+                                    title="Hapus dari keranjang"
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                  >
+                                    <Trash2 size={18} />
+                                  </motion.button>
+                                </div>
+                              </div>
+                              
+                              {/* Subtotal */}
+                              <div className="flex justify-between items-center pt-3 border-t border-gray-300">
+                                <span className="text-gray-600 text-sm">Subtotal:</span>
+                                <span className="font-bold text-gray-900 text-lg">
+                                  {formatRupiah(ticket.price * ticket.qty)}
+                                </span>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
                       </div>
-
-                      {/* Subtotal */}
-                      <div className="col-span-3 text-right pr-4 font-semibold">
-                        {formatRupiah(ticket.price * ticket.qty)}
-                      </div>
-
-                      {/* Delete Button dengan Icon Trash */}
-                      <div className="col-span-1 text-center">
-                        <button
-                          onClick={() => deleteCartItem(ticket.cartId, ticket.name)}
-                          className="p-2 bg-red-50 text-red-600 rounded hover:bg-red-100 transition flex items-center justify-center"
-                          title="Hapus dari keranjang"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
-              ))}
 
-              {/* Total & Checkout */}
-              <div className="border-t pt-4 mt-6">
-                <div className="flex justify-between items-center mb-4">
-                  <p className="text-xl font-bold">Total: {formatRupiah(totalHarga)}</p>
-                  
-                  {/* Informasi Checkout */}
-                  <div className="text-sm text-gray-600 text-right">
-                    <p>Pembayaran aman via Midtrans</p>
-                    <p>Buka di tab baru</p>
-                  </div>
-                </div>
-                
-                <button 
-                  className="w-full bg-blue-600 text-white py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transition disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  onClick={handleCheckout}
-                  disabled={checkoutLoading}
+                {/* Total & Checkout */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="mt-8 pt-8 border-t border-gray-200"
                 >
-                  {checkoutLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      Memproses Pembayaran...
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink className="w-5 h-5" />
-                      Checkout & Bayar
-                    </>
-                  )}
-                </button>
-                
-                {/* Informasi tambahan */}
-                <div className="mt-3 text-xs text-gray-500 text-center">
-                  <p>Anda akan diarahkan ke halaman pembayaran Midtrans di tab baru</p>
-                  <p className="mt-1">Setelah pembayaran selesai, Anda bisa menutup tab pembayaran dan kembali ke halaman ini</p>
-                </div>
-              </div>
-            </>
-          )}
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                    <div className="flex-1">
+                      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-lg">Total Pembayaran:</span>
+                          <span className="font-bold text-2xl">
+                            {formatRupiah(totalHarga)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Informasi Checkout */}
+                      <div className="mt-4 text-sm text-gray-600 space-y-1">
+                        <p className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-green-500" />
+                          Pembayaran akan dilakukan secara aman melalui Midtrans
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-green-500" />
+                          Anda akan dibawa ke tab baru untuk pembayaran
+                        </p>
+                        <p className="mt-2 text-xs text-gray-500">
+                          Setelah pembayaran selesai, Anda bisa menutup tab pembayaran dan kembali ke halaman ini
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="lg:w-64">
+                      <motion.button 
+                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl text-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center gap-3"
+                        onClick={handleCheckout}
+                        disabled={checkoutLoading}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        {checkoutLoading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Memproses...
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink size={20} />
+                            Checkout & Bayar
+                          </>
+                        )}
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </motion.div>
         </div>
       </div>
     </div>
