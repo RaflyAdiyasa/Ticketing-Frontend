@@ -735,7 +735,7 @@ function EventCard({
     <motion.div
       whileHover={{ y: -4 }}
       onClick={onClick}
-      className="group bg-gray-100 rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 overflow-hidden cursor-pointer transition-all duration-300"
+      className="group bg-white rounded-2xl shadow-sm hover:shadow-xl border border-gray-200 overflow-hidden cursor-pointer transition-all duration-300"
     >
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-gray-100">
@@ -768,17 +768,17 @@ function EventCard({
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+        <h3 className="font-semibold text-gray-900 text-lg mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
           {event.name}
         </h3>
         
         <div className="space-y-1.5 mb-3">
-          <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+          <div className="flex items-center gap-1.5 text-gray-700 text-xs">
             <Calendar size={12} className="flex-shrink-0" />
             <span className="truncate">{formatDate(event.date_start, event.date_end)}</span>
           </div>
           
-          <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+          <div className="flex items-center gap-1.5 text-gray-700 text-xs">
             <MapPin size={12} className="flex-shrink-0" />
             <span className="truncate">{event.venue || event.district || event.location}</span>
           </div>
@@ -787,7 +787,7 @@ function EventCard({
         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
           <div>
             <p className="text-xs text-gray-400">Mulai dari</p>
-            <p className={`font-bold text-sm ${minPrice === 0 ? 'text-emerald-600' : 'text-blue-600'}`}>
+            <p className={`font-bold text-md ${minPrice === 0 ? 'text-emerald-600' : 'text-blue-600'}`}>
               {formatRupiah(minPrice)}
             </p>
           </div>

@@ -123,7 +123,7 @@ export default function Navbar() {
       case "user":
         return "User";
       case "organizer":
-        return "Event Organizer";
+        return "Organizer";
       case "admin":
         return "Administrator";
       default:
@@ -411,7 +411,7 @@ export default function Navbar() {
                 </div>
               ) : (
                 <Link to="/login">
-                  <button className="bg-white text-blue-600 px-5 py-2.5 rounded-lg font-bold hover:bg-blue-50 hover:shadow-lg transition-all">
+                  <button className="bg-[#044888] shadow-md text-white px-5 py-2.5 rounded-lg font-bold hover:bg-white hover:shadow-lg hover:text-[#044888] transition-all">
                     Masuk
                   </button>
                 </Link>

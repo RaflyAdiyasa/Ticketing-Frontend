@@ -648,36 +648,7 @@ export default function CalendarEventPage() {
               </div>
             </motion.div>
 
-            {/* Summary Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-xl mb-8"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm font-medium">
-                    Total Event Tersedia
-                  </p>
-                  <p className="text-3xl font-bold mt-1">
-                    {filteredEvents.length} Event
-                  </p>
-                  <p className="text-blue-100 text-sm mt-2">
-                    {getEventsForMonth.length} event di bulan{" "}
-                    {monthNames[currentDate.getMonth()]}{" "}
-                    {currentDate.getFullYear()}
-                  </p>
-                </div>
-                <motion.div
-                  className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                >
-                  <CalendarDays size={32} className="text-blue-600" />
-                </motion.div>
-              </div>
-            </motion.div>
+
 
             {/* Panel Filter dan Pencarian */}
             <motion.div

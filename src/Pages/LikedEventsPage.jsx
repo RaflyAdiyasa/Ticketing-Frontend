@@ -10,17 +10,12 @@ import {
   MapPin,
   ArrowRight,
   RefreshCw,
-  Ticket,
   Clock,
   Building2,
   Search,
   X,
   Sparkles,
-  Filter,
   ArrowUpDown,
-  ChevronDown,
-  Tag,
-  Info
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -221,16 +216,6 @@ export default function LikedEventsPage() {
     return CATEGORY_COLORS[parentCategory] || CATEGORY_COLORS["Lainnya"];
   };
 
-  const formatRupiah = (angka) => {
-    if (!angka && angka !== 0) return "Gratis";
-    if (angka === 0) return "GRATIS";
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(angka);
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
@@ -257,17 +242,6 @@ export default function LikedEventsPage() {
     return `${startStr} - ${endStr}`;
   };
 
-  const getMinPrice = (event) => {
-    if (!event.ticket_categories || event.ticket_categories.length === 0) {
-      return 0;
-    }
-    const prices = event.ticket_categories
-      .map((tc) => tc.price)
-      .filter((p) => p !== undefined && p !== null);
-    if (prices.length === 0) return 0;
-    return Math.min(...prices);
-  };
-
   const handleEventClick = (eventId) => {
     navigate(`/detailEvent/${eventId}`);
   };
@@ -279,8 +253,6 @@ export default function LikedEventsPage() {
       parentCategory: getParentCategory(event.category),
       categoryColor: getCategoryColor(event.category),
       formattedDate: formatDateRange(event.date_start, event.date_end),
-      minPrice: getMinPrice(event),
-      formattedPrice: formatRupiah(getMinPrice(event))
     }));
   }, [likedEvents]);
 
@@ -432,33 +404,6 @@ export default function LikedEventsPage() {
                   <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
                   Refresh
                 </motion.button>
-              </div>
-            </motion.div>
-
-            {/* Stats Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="bg-pink-600 text-white p-6 rounded-xl mb-8"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-pink-100 text-sm font-medium">Total Event Favorit</p>
-                  <p className="text-3xl font-bold mt-1">{categoryStats.all} Event</p>
-                  <p className="text-pink-100 text-sm mt-2">
-                    {Object.keys(CATEGORY_COLORS).filter(cat => categoryStats[cat] > 0).slice(0, 3).map(cat => 
-                      `${categoryStats[cat]} ${cat}`
-                    ).join(' • ')}
-                  </p>
-                </div>
-                <motion.div 
-                  className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                >
-                  <Heart size={32} className="text-white fill-current"/>
-                </motion.div>
               </div>
             </motion.div>
 
@@ -668,7 +613,7 @@ function EventCard({ event, index, onClick, onUnlike }) {
 
         {/* Event Info */}
         <div className="flex-1 p-5">
-          <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <motion.span
@@ -684,7 +629,7 @@ function EventCard({ event, index, onClick, onUnlike }) {
                 )}
               </div>
               
-              <h3 className="text-lg font-bold text-gray-900 line-clamp-2 mb-2">
+              <h3 className="text-lg font-bold text-gray-900 line-clamp-2 mb-3">
                 {event.name}
               </h3>
 
@@ -718,12 +663,9 @@ function EventCard({ event, index, onClick, onUnlike }) {
                 )}
               </div>
 
-              {/* Price and Likes */}
+              {/* Event Stats and Actions */}
               <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                 <div className="flex items-center gap-4">
-                  <span className="text-lg font-bold text-blue-600">
-                    {event.formattedPrice}
-                  </span>
                   {event.total_likes > 0 && (
                     <span className="flex items-center gap-1.5 text-pink-500 text-sm font-medium">
                       <Heart className="w-4 h-4 fill-current" />
@@ -732,30 +674,18 @@ function EventCard({ event, index, onClick, onUnlike }) {
                   )}
                 </div>
                 
-                <motion.button
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onClick();
-                  }}
-                  whileHover={{ scale: 1.05, y: -1 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <span>Lihat Detail</span>
-                  <ArrowRight size={16} />
-                </motion.button>
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    onClick={onUnlike}
+                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 bg-pink-500 text-white hover:bg-pink-600"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <Heart className="w-5 h-5 fill-current" />
+                  </motion.button>
+                </div>
               </div>
             </div>
-
-            {/* Unlike Button */}
-            <motion.button
-              onClick={onUnlike}
-              className="w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 bg-pink-500 text-white hover:bg-pink-600 ml-2"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <Heart className="w-5 h-5 fill-current" />
-            </motion.button>
           </div>
         </div>
       </div>

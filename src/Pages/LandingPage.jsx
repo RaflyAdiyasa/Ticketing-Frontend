@@ -600,43 +600,7 @@ export default function LandingPage() {
                         }}
                       />
                       {/* Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                      {/* Event Info */}
-                      <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{
-                            opacity: index === currentBanner ? 1 : 0,
-                            y: index === currentBanner ? 0 : 20,
-                          }}
-                          transition={{ duration: 0.4, delay: 0.2 }}
-                        >
-                          {event.category && (
-                            <span
-                              className={`${
-                                getCategoryData(event.category).color
-                              } text-white text-xs px-3 py-1 rounded-full font-medium mb-3 inline-block`}
-                            >
-                              {getParentCategory(event.category)}
-                            </span>
-                          )}
-                          <h2 className="text-white text-xl sm:text-2xl lg:text-3xl font-bold mb-2 line-clamp-2">
-                            {event.name}
-                          </h2>
-                          <div className="flex flex-wrap items-center gap-4 text-white/80 text-sm">
-                            <span className="flex items-center gap-1.5">
-                              <Calendar className="w-4 h-4" />
-                              {event.date}
-                            </span>
-                            {event.location && (
-                              <span className="flex items-center gap-1.5">
-                                <MapPin className="w-4 h-4" />
-                                {event.location}
-                              </span>
-                            )}
-                          </div>
-                        </motion.div>
-                      </div>
+                      <div className="absolute inset-0" />
                     </div>
                   </motion.div>
                 ))}
