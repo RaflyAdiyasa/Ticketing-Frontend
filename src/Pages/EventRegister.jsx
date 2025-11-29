@@ -197,6 +197,24 @@ const VenueDropdown = ({ value, onChange, onCustomVenueToggle, isCustomVenue }) 
   );
 };
 
+// Fungsi untuk mendapatkan tanggal minimal (3 hari dari sekarang)
+const getMinDate = () => {
+  const minDate = new Date();
+  minDate.setDate(minDate.getDate() + 3);
+  return minDate.toISOString().split('T')[0];
+};
+
+// Fungsi untuk memformat tanggal menjadi format yang mudah dibaca
+const formatDateForDisplay = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('id-ID', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+
 export default function EventRegister() {
   const navigate = useNavigate();
   const { notification, showNotification, hideNotification } = useNotification();
@@ -227,6 +245,9 @@ export default function EventRegister() {
   });
   const [isCustomVenue, setIsCustomVenue] = useState(false);
 
+  // State untuk tanggal minimal
+  const minDate = getMinDate();
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -234,6 +255,14 @@ export default function EventRegister() {
       [name]: value,
       ...(name === "category" && { child_category: "" })
     }));
+
+    // Validasi tanggal selesai harus setelah tanggal mulai
+    if (name === "date_start" && formData.date_end && value > formData.date_end) {
+      setFormData(prev => ({
+        ...prev,
+        date_end: value
+      }));
+    }
   };
 
   const handleVenueChange = (e) => {
@@ -260,7 +289,35 @@ export default function EventRegister() {
   const handleFileChange = (e, type) => {
     const file = e.target.files[0];
     if (file) {
+      // Validasi ukuran file (maksimal 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB dalam bytes
+      if (file.size > maxSize) {
+        showNotification(
+          `Ukuran file ${type} terlalu besar! Maksimal 5MB.`,
+          "Peringatan",
+          "warning"
+        );
+        e.target.value = ""; // Reset input file
+        return;
+      }
+
+      // Validasi tipe file (hanya gambar)
+      if (!file.type.startsWith('image/')) {
+        showNotification(
+          `File ${type} harus berupa gambar!`,
+          "Peringatan",
+          "warning"
+        );
+        e.target.value = ""; // Reset input file
+        return;
+      }
+
       type === "poster" ? setPosterFile(file) : setBannerFile(file);
+      showNotification(
+        `File ${type} berhasil dipilih!`,
+        "Sukses",
+        "success"
+      );
     }
   };
 
@@ -317,6 +374,25 @@ export default function EventRegister() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    // Validasi tanggal
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const startDate = new Date(formData.date_start);
+    const minStartDate = new Date();
+    minStartDate.setDate(minStartDate.getDate() + 3);
+    minStartDate.setHours(0, 0, 0, 0);
+
+    if (startDate < minStartDate) {
+      showNotification(
+        `Tanggal mulai event harus minimal 3 hari dari sekarang. Paling cepat ${formatDateForDisplay(minDate)}`,
+        "Validasi Gagal",
+        "warning"
+      );
+      setLoading(false);
+      return;
+    }
 
     if (ticketList.length === 0) {
       showNotification("Harap tambahkan minimal satu kategori tiket!", "Peringatan", "warning");
@@ -449,6 +525,7 @@ export default function EventRegister() {
         onUpdateTicket={handleUpdateTicket}
         editingTicket={editingTicket}
         eventDates={{ start: formData.date_start, end: formData.date_end }}
+        minDate={minDate}
       />
 
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
@@ -555,7 +632,7 @@ export default function EventRegister() {
                         <Folder className="text-blue-500" size={24} />
                         <div className="flex-1">
                           <p className="text-sm font-medium text-gray-700">{getPosterFileName()}</p>
-                          <p className="text-xs text-gray-500">Klik untuk memilih file</p>
+                          <p className="text-xs text-gray-500">Klik untuk memilih file (maks. 5MB)</p>
                         </div>
                         <input
                           type="file"
@@ -586,7 +663,7 @@ export default function EventRegister() {
                         <Folder className="text-blue-500" size={24} />
                         <div className="flex-1">
                           <p className="text-sm font-medium text-gray-700">{getBannerFileName()}</p>
-                          <p className="text-xs text-gray-500">Klik untuk memilih file</p>
+                          <p className="text-xs text-gray-500">Klik untuk memilih file (maks. 5MB)</p>
                         </div>
                         <input
                           type="file"
@@ -626,9 +703,13 @@ export default function EventRegister() {
                         className="w-full outline-none bg-transparent"
                         value={formData.date_start}
                         onChange={handleInputChange}
+                        min={minDate}
                         required
                       />
                     </div>
+                    <p className="text-xs text-gray-800">
+                      Paling cepat 3 hari dari hari ini ({formatDateForDisplay(minDate)})
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -641,9 +722,13 @@ export default function EventRegister() {
                         className="w-full outline-none bg-transparent"
                         value={formData.date_end}
                         onChange={handleInputChange}
+                        min={formData.date_start || minDate}
                         required
                       />
                     </div>
+                    <p className="text-xs text-gray-800">
+                      Harus setelah tanggal mulai
+                    </p>
                   </div>
 
                   <div className="space-y-2">

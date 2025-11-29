@@ -129,7 +129,7 @@ const CATEGORIES = {
   ],
 };
 
-// District options - sama dengan di CariEventPage
+// District options
 const DISTRICTS = [
   "Tegalrejo",
   "Jetis",
@@ -175,7 +175,7 @@ export default function CalendarEventPage() {
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
-  const [viewMode, setViewMode] = useState("calendar"); // 'calendar' atau 'list'
+  const [viewMode, setViewMode] = useState("calendar");
   const [likedEvents, setLikedEvents] = useState(new Set());
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -184,6 +184,9 @@ export default function CalendarEventPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [districtFilter, setDistrictFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+
+  // State untuk mobile modal
+  const [showMobileEventModal, setShowMobileEventModal] = useState(false);
 
   // Nama bulan dan hari dalam Bahasa Indonesia
   const monthNames = [
@@ -202,6 +205,7 @@ export default function CalendarEventPage() {
   ];
 
   const dayNames = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+  const dayNamesFull = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
   // Check login status
   useEffect(() => {
@@ -252,13 +256,11 @@ export default function CalendarEventPage() {
       return;
     }
 
-    // Capture the current like status BEFORE making any state changes
     const isCurrentlyLiked = likedEvents.has(eventId);
 
     try {
       await eventAPI.likeEvent(eventId);
 
-      // Update likedEvents state
       setLikedEvents((prev) => {
         const newSet = new Set(prev);
         if (isCurrentlyLiked) {
@@ -269,7 +271,6 @@ export default function CalendarEventPage() {
         return newSet;
       });
 
-      // Update like counts in events using the captured status
       setEvents((prev) =>
         prev.map((event) => {
           if (event.event_id === eventId) {
@@ -291,19 +292,10 @@ export default function CalendarEventPage() {
   // Mendapatkan parent category dari child category
   const getParentCategory = (category) => {
     if (!category) return "Lainnya";
-
-    // Cek jika category adalah parent category
-    if (CATEGORIES[category]) {
-      return category;
-    }
-
-    // Cari parent dari child category
+    if (CATEGORIES[category]) return category;
     for (const [parent, children] of Object.entries(CATEGORIES)) {
-      if (children.includes(category)) {
-        return parent;
-      }
+      if (children.includes(category)) return parent;
     }
-
     return "Lainnya";
   };
 
@@ -312,27 +304,6 @@ export default function CalendarEventPage() {
     const parentCategory = getParentCategory(category);
     return CATEGORY_COLORS[parentCategory] || CATEGORY_COLORS["Lainnya"];
   };
-
-  // Mendapatkan parent categories unik dari events
-  const uniqueParentCategories = useMemo(() => {
-    const parentCats = new Set();
-    events.forEach((event) => {
-      const parent = getParentCategory(event.category);
-      parentCats.add(parent);
-    });
-    return Array.from(parentCats).sort();
-  }, [events]);
-
-  // Mendapatkan districts unik dari events
-  const uniqueDistricts = useMemo(() => {
-    const districts = new Set();
-    events.forEach((event) => {
-      if (event.district) {
-        districts.add(event.district);
-      }
-    });
-    return Array.from(districts).sort();
-  }, [events]);
 
   // Filter events
   const filteredEvents = useMemo(() => {
@@ -365,7 +336,6 @@ export default function CalendarEventPage() {
       const eventEnd = event.date_end ? new Date(event.date_end) : eventStart;
       const checkDate = new Date(date);
 
-      // Reset time untuk perbandingan tanggal saja
       eventStart.setHours(0, 0, 0, 0);
       eventEnd.setHours(23, 59, 59, 999);
       checkDate.setHours(0, 0, 0, 0);
@@ -430,7 +400,7 @@ export default function CalendarEventPage() {
     }
 
     // Hari-hari dari bulan berikutnya untuk melengkapi grid
-    const remainingDays = 42 - days.length; // 6 rows x 7 days
+    const remainingDays = 42 - days.length;
     for (let i = 1; i <= remainingDays; i++) {
       days.push({
         day: i,
@@ -507,28 +477,27 @@ export default function CalendarEventPage() {
     }).format(angka);
   };
 
-  // Check if date is today
   const isToday = (date) => {
     const today = new Date();
     return date.toDateString() === today.toDateString();
   };
 
-  // Check if date is selected
   const isSelected = (date) => {
     return selectedDate && date.toDateString() === selectedDate.toDateString();
   };
 
-  // Handle date click
   const handleDateClick = (dayInfo) => {
     setSelectedDate(dayInfo.date);
+    // Show modal on mobile if there are events
+    if (window.innerWidth < 768 && getEventsForDate(dayInfo.date).length > 0) {
+      setShowMobileEventModal(true);
+    }
   };
 
-  // Handle event click
   const handleEventClick = (eventId) => {
     navigate(`/detailEvent/${eventId}`);
   };
 
-  // Clear filters
   const clearFilters = () => {
     setSearchTerm("");
     setCategoryFilter("");
@@ -537,7 +506,6 @@ export default function CalendarEventPage() {
 
   const hasActiveFilters = searchTerm || categoryFilter || districtFilter;
 
-  // Get minimum price from ticket categories
   const getMinPrice = (event) => {
     if (!event.ticket_categories || event.ticket_categories.length === 0) {
       return 0;
@@ -549,7 +517,6 @@ export default function CalendarEventPage() {
     return Math.min(...prices);
   };
 
-  // Parent categories for legend
   const parentCategoriesForLegend = Object.keys(CATEGORIES);
 
   return (
@@ -564,130 +531,137 @@ export default function CalendarEventPage() {
         type={notification.type}
       />
 
-      <div className="py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto mt-32">
+      {/* Mobile Event Modal */}
+      <MobileEventModal
+        isOpen={showMobileEventModal}
+        onClose={() => setShowMobileEventModal(false)}
+        selectedDate={selectedDate}
+        events={selectedDate ? getEventsForDate(selectedDate) : []}
+        formatDate={formatDate}
+        formatDateRange={formatDateRange}
+        formatRupiah={formatRupiah}
+        getMinPrice={getMinPrice}
+        getCategoryColor={getCategoryColor}
+        getParentCategory={getParentCategory}
+        onEventClick={handleEventClick}
+        likedEvents={likedEvents}
+        onLike={handleLikeEvent}
+        isLoggedIn={isLoggedIn}
+        dayNamesFull={dayNamesFull}
+      />
+
+      <div className="py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto mt-28 sm:mt-32">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="bg-white rounded-2xl shadow-lg p-6 md:p-8"
+            className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 md:p-8"
           >
             {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4"
+              className="flex flex-col gap-4 mb-6 sm:mb-8"
             >
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                  Kalender Event
-                </h1>
-                <p className="text-gray-600 mt-2">
-                  Temukan event menarik berdasarkan tanggal
-                </p>
-              </div>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
+                    <CalendarDays className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+                    Kalender Event
+                  </h1>
+                  <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">
+                    Temukan event menarik berdasarkan tanggal
+                  </p>
+                </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                {/* View Mode Toggle */}
-                <motion.div
-                  className="flex bg-gray-100 rounded-lg p-1"
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                >
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                  {/* View Mode Toggle */}
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => setViewMode("calendar")}
+                      className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-all font-medium text-sm sm:text-base ${
+                        viewMode === "calendar"
+                          ? "bg-blue-600 text-white shadow-md"
+                          : "text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      <Calendar size={16} className="sm:w-[18px] sm:h-[18px]" />
+                      <span className="hidden xs:inline">Kalender</span>
+                    </button>
+                    <button
+                      onClick={() => setViewMode("list")}
+                      className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-all font-medium text-sm sm:text-base ${
+                        viewMode === "list"
+                          ? "bg-blue-600 text-white shadow-md"
+                          : "text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      <List size={16} className="sm:w-[18px] sm:h-[18px]" />
+                      <span className="hidden xs:inline">Daftar</span>
+                    </button>
+                  </div>
+
+                  {hasActiveFilters && (
+                    <button
+                      onClick={clearFilters}
+                      className="flex items-center gap-1 text-xs sm:text-sm text-red-600 hover:text-red-800 font-medium"
+                    >
+                      <X size={14} />
+                      <span className="hidden sm:inline">Hapus Filter</span>
+                    </button>
+                  )}
+
                   <button
-                    onClick={() => setViewMode("calendar")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${
-                      viewMode === "calendar"
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "text-gray-600 hover:bg-gray-200"
-                    }`}
+                    onClick={fetchEvents}
+                    className="flex items-center gap-1.5 sm:gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-colors font-medium text-sm sm:text-base"
                   >
-                    <Calendar size={18} />
-                    <span className="hidden sm:inline">Kalender</span>
+                    <RefreshCw
+                      size={16}
+                      className={`sm:w-[18px] sm:h-[18px] ${loading ? "animate-spin" : ""}`}
+                    />
+                    <span className="hidden sm:inline">Refresh</span>
                   </button>
-                  <button
-                    onClick={() => setViewMode("list")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${
-                      viewMode === "list"
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "text-gray-600 hover:bg-gray-200"
-                    }`}
-                  >
-                    <List size={18} />
-                    <span className="hidden sm:inline">Daftar</span>
-                  </button>
-                </motion.div>
-
-                {hasActiveFilters && (
-                  <motion.button
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    onClick={clearFilters}
-                    className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800 font-medium"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <X size={16} />
-                    Hapus Filter
-                  </motion.button>
-                )}
-
-                <motion.button
-                  onClick={fetchEvents}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg transition-colors font-medium"
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <RefreshCw
-                    size={18}
-                    className={loading ? "animate-spin" : ""}
-                  />
-                  <span className="hidden sm:inline">Refresh</span>
-                </motion.button>
+                </div>
               </div>
             </motion.div>
-
-
 
             {/* Panel Filter dan Pencarian */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="bg-gray-50 rounded-xl p-6 mb-8"
+              className="bg-gray-50 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8"
             >
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                <h3 className="text-xl font-semibold text-gray-800">
+              <div className="flex flex-row justify-between items-center gap-3 mb-3 sm:mb-4">
+                <h3 className="text-base sm:text-xl font-semibold text-gray-800">
                   Filter & Pencarian
                 </h3>
 
-                <motion.button
+                <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-1.5 sm:gap-2 text-blue-600 hover:text-blue-800 font-medium text-sm sm:text-base"
                 >
-                  <Filter size={18} />
-                  {showFilters ? "Sembunyikan Filter" : "Tampilkan Filter"}
-                </motion.button>
+                  <Filter size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="hidden sm:inline">
+                    {showFilters ? "Sembunyikan" : "Tampilkan"} Filter
+                  </span>
+                  <span className="sm:hidden">Filter</span>
+                </button>
               </div>
 
-              {/* Search Bar - Selalu tampil */}
-              <motion.div
-                className="relative mb-4"
-                whileFocus={{ scale: 1.02 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              >
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              {/* Search Bar */}
+              <div className="relative mb-3 sm:mb-4">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
                 <input
                   type="text"
                   placeholder="Cari nama event atau lokasi..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
                 />
-              </motion.div>
+              </div>
 
               {/* Filter Options */}
               <AnimatePresence>
@@ -699,19 +673,15 @@ export default function CalendarEventPage() {
                     transition={{ duration: 0.3 }}
                     className="overflow-hidden"
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
-                      <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 }}
-                      >
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 pt-3 sm:pt-4 border-t border-gray-200">
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                           Kategori
                         </label>
                         <select
                           value={categoryFilter}
                           onChange={(e) => setCategoryFilter(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
                         >
                           <option value="">Semua Kategori</option>
                           {parentCategoriesForLegend.map((category) => (
@@ -720,25 +690,21 @@ export default function CalendarEventPage() {
                             </option>
                           ))}
                         </select>
-                      </motion.div>
+                      </div>
 
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                      >
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                           Lokasi
                         </label>
                         <div className="relative">
                           <Building2
                             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                            size={18}
+                            size={16}
                           />
                           <select
                             value={districtFilter}
                             onChange={(e) => setDistrictFilter(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
                           >
                             <option value="">Semua Kecamatan</option>
                             {DISTRICTS.map((district) => (
@@ -748,38 +714,29 @@ export default function CalendarEventPage() {
                             ))}
                           </select>
                         </div>
-                      </motion.div>
+                      </div>
 
-                      <motion.div
-                        className="flex items-end"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 }}
-                      >
+                      <div className="flex items-end sm:col-span-2 lg:col-span-1">
                         <button
                           onClick={goToToday}
-                          className="w-full flex items-center justify-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-3 rounded-lg transition-colors font-medium"
+                          className="w-full flex items-center justify-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2.5 sm:py-3 rounded-lg transition-colors font-medium text-sm sm:text-base"
                         >
-                          <Calendar size={18} />
+                          <Calendar size={16} className="sm:w-[18px] sm:h-[18px]" />
                           Ke Hari Ini
                         </button>
-                      </motion.div>
+                      </div>
                     </div>
 
                     {/* Info Filter Aktif */}
                     {hasActiveFilters && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg"
-                      >
-                        <p className="text-sm text-blue-800">
+                      <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-xs sm:text-sm text-blue-800">
                           Filter aktif:
                           {searchTerm && ` Pencarian: "${searchTerm}"`}
                           {categoryFilter && ` Kategori: ${categoryFilter}`}
                           {districtFilter && ` Kecamatan: ${districtFilter}`}
                         </p>
-                      </motion.div>
+                      </div>
                     )}
                   </motion.div>
                 )}
@@ -788,87 +745,53 @@ export default function CalendarEventPage() {
 
             {/* Loading State */}
             {loading ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex flex-col items-center justify-center py-20"
-              >
-                <div className="relative w-16 h-16 mx-auto mb-4">
+              <div className="flex flex-col items-center justify-center py-16 sm:py-20">
+                <div className="relative w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4">
                   <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
                   <div className="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
                 </div>
-                <p className="text-gray-600 font-medium">
+                <p className="text-gray-600 font-medium text-sm sm:text-base">
                   Memuat data event...
                 </p>
-              </motion.div>
+              </div>
             ) : viewMode === "calendar" ? (
               /* Calendar View */
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-              >
+              <div>
                 {/* Calendar Navigation */}
-                <motion.div
-                  className="flex items-center justify-between mb-6"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4 }}
-                >
-                  <motion.button
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <button
                     onClick={goToPreviousMonth}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                    whileHover={{ scale: 1.05, x: -2 }}
-                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                   >
-                    <ChevronLeft size={20} />
-                    <span className="hidden sm:inline">Sebelumnya</span>
-                  </motion.button>
+                    <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
+                    <span className="hidden sm:inline text-sm">Sebelumnya</span>
+                  </button>
 
-                  <motion.h2
-                    className="text-xl md:text-2xl font-bold text-gray-900"
-                    key={`${currentDate.getMonth()}-${currentDate.getFullYear()}`}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
                     {monthNames[currentDate.getMonth()]}{" "}
                     {currentDate.getFullYear()}
-                  </motion.h2>
+                  </h2>
 
-                  <motion.button
+                  <button
                     onClick={goToNextMonth}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                    whileHover={{ scale: 1.05, x: 2 }}
-                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                   >
-                    <span className="hidden sm:inline">Selanjutnya</span>
-                    <ChevronRight size={20} />
-                  </motion.button>
-                </motion.div>
+                    <span className="hidden sm:inline text-sm">Selanjutnya</span>
+                    <ChevronRight size={18} className="sm:w-5 sm:h-5" />
+                  </button>
+                </div>
 
                 {/* Calendar Grid */}
-                <motion.div
-                  className="bg-white border border-gray-200 rounded-xl overflow-hidden"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.1 }}
-                >
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                   {/* Day Headers */}
                   <div className="grid grid-cols-7 bg-blue-600 text-white">
                     {dayNames.map((day) => (
-                      <motion.div
+                      <div
                         key={day}
-                        className="py-3 text-center font-semibold text-sm"
-                        whileHover={{ scale: 1.05 }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 400,
-                          damping: 17,
-                        }}
+                        className="py-2 sm:py-3 text-center font-semibold text-xs sm:text-sm"
                       >
                         {day}
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
 
@@ -879,13 +802,10 @@ export default function CalendarEventPage() {
                       const hasEvents = dayEvents.length > 0;
 
                       return (
-                        <motion.div
+                        <div
                           key={index}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.2, delay: index * 0.01 }}
                           onClick={() => handleDateClick(dayInfo)}
-                          className={`min-h-[100px] md:min-h-[120px] p-2 border-b border-r border-gray-200 cursor-pointer transition-all ${
+                          className={`min-h-[60px] sm:min-h-[80px] md:min-h-[100px] lg:min-h-[120px] p-1 sm:p-2 border-b border-r border-gray-200 cursor-pointer transition-all ${
                             !dayInfo.isCurrentMonth
                               ? "bg-gray-50 opacity-60"
                               : "bg-white hover:bg-blue-50"
@@ -894,74 +814,68 @@ export default function CalendarEventPage() {
                               ? "ring-2 ring-blue-500 ring-inset bg-blue-50"
                               : ""
                           } ${hasEvents ? "hover:shadow-inner" : ""}`}
-                          whileHover={{
-                            scale: 1.02,
-                            transition: {
-                              type: "spring",
-                              stiffness: 400,
-                              damping: 17,
-                            },
-                          }}
-                          whileTap={{ scale: 0.98 }}
                         >
                           {/* Day Number */}
-                          <div className="flex justify-start mb-1">
-                            <motion.span
-                              className={`text-sm font-medium inline-flex items-center justify-center ${
+                          <div className="flex justify-start mb-0.5 sm:mb-1">
+                            <span
+                              className={`text-xs sm:text-sm font-medium inline-flex items-center justify-center ${
                                 !dayInfo.isCurrentMonth
                                   ? "text-gray-400"
                                   : isToday(dayInfo.date)
-                                  ? "bg-blue-600 text-white w-7 h-7 rounded-full"
+                                  ? "bg-blue-600 text-white w-5 h-5 sm:w-7 sm:h-7 rounded-full"
                                   : "text-gray-900"
                               }`}
-                              whileHover={{ scale: 1.2 }}
-                              transition={{
-                                type: "spring",
-                                stiffness: 400,
-                                damping: 17,
-                              }}
                             >
                               {dayInfo.day}
-                            </motion.span>
+                            </span>
                           </div>
 
-                          {/* Events */}
-                          <div className="space-y-1">
-                            {dayEvents.slice(0, 2).map((event, eventIndex) => (
-                              <motion.div
+                          {/* Events - Hidden on mobile, show dots instead */}
+                          <div className="hidden sm:block space-y-0.5 sm:space-y-1">
+                            {dayEvents.slice(0, 2).map((event) => (
+                              <div
                                 key={event.event_id}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: eventIndex * 0.1 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleEventClick(event.event_id);
                                 }}
                                 className={`${getCategoryColor(
                                   event.category
-                                )} text-white text-xs px-2 py-1 rounded truncate cursor-pointer hover:opacity-80 transition-opacity`}
-                                whileHover={{ scale: 1.02 }}
+                                )} text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded truncate cursor-pointer hover:opacity-80 transition-opacity`}
                               >
                                 {event.name}
-                              </motion.div>
+                              </div>
                             ))}
                             {dayEvents.length > 2 && (
-                              <motion.div
-                                className="text-xs text-blue-600 font-medium"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                              >
+                              <div className="text-[10px] sm:text-xs text-blue-600 font-medium">
                                 +{dayEvents.length - 2} lainnya
-                              </motion.div>
+                              </div>
                             )}
                           </div>
-                        </motion.div>
+
+                          {/* Mobile: Show event dots */}
+                          <div className="sm:hidden flex flex-wrap gap-0.5 mt-0.5">
+                            {dayEvents.slice(0, 3).map((event) => (
+                              <div
+                                key={event.event_id}
+                                className={`w-1.5 h-1.5 rounded-full ${getCategoryColor(
+                                  event.category
+                                )}`}
+                              />
+                            ))}
+                            {dayEvents.length > 3 && (
+                              <span className="text-[8px] text-gray-500">
+                                +{dayEvents.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
-                </motion.div>
+                </div>
 
-                {/* Selected Date Events */}
+                {/* Selected Date Events - Desktop Only */}
                 <AnimatePresence>
                   {selectedDate && (
                     <motion.div
@@ -969,125 +883,95 @@ export default function CalendarEventPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
                       transition={{ duration: 0.3 }}
-                      className="mt-8"
+                      className="hidden md:block mt-6 sm:mt-8"
                     >
-                      <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
                         Event pada {formatDate(selectedDate.toISOString())}
                       </h3>
 
                       {getEventsForDate(selectedDate).length === 0 ? (
-                        <motion.div
-                          className="text-center py-8 bg-gray-50 rounded-xl"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                        >
-                          <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                          <p className="text-gray-500">
+                        <div className="text-center py-8 bg-gray-50 rounded-xl">
+                          <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 mx-auto mb-3" />
+                          <p className="text-gray-500 text-sm sm:text-base">
                             Tidak ada event pada tanggal ini
                           </p>
-                        </motion.div>
+                        </div>
                       ) : (
                         <div className="space-y-4">
-                          {getEventsForDate(selectedDate).map(
-                            (event, index) => (
-                              <motion.div
-                                key={event.event_id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{
-                                  duration: 0.3,
-                                  delay: index * 0.05,
-                                }}
-                              >
-                                <EventCard
-                                  event={event}
-                                  onClick={() =>
-                                    handleEventClick(event.event_id)
-                                  }
-                                  formatDateRange={formatDateRange}
-                                  formatRupiah={formatRupiah}
-                                  getMinPrice={getMinPrice}
-                                  getCategoryColor={getCategoryColor}
-                                  getParentCategory={getParentCategory}
-                                  isLiked={likedEvents.has(event.event_id)}
-                                  onLike={(e) =>
-                                    handleLikeEvent(event.event_id, e)
-                                  }
-                                  isLoggedIn={isLoggedIn}
-                                />
-                              </motion.div>
-                            )
-                          )}
+                          {getEventsForDate(selectedDate).map((event, index) => (
+                            <motion.div
+                              key={event.event_id}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{
+                                duration: 0.3,
+                                delay: index * 0.05,
+                              }}
+                            >
+                              <EventCard
+                                event={event}
+                                onClick={() => handleEventClick(event.event_id)}
+                                formatDateRange={formatDateRange}
+                                formatRupiah={formatRupiah}
+                                getMinPrice={getMinPrice}
+                                getCategoryColor={getCategoryColor}
+                                getParentCategory={getParentCategory}
+                                isLiked={likedEvents.has(event.event_id)}
+                                onLike={(e) => handleLikeEvent(event.event_id, e)}
+                                isLoggedIn={isLoggedIn}
+                              />
+                            </motion.div>
+                          ))}
                         </div>
                       )}
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </motion.div>
+
+                {/* Mobile: Hint to tap date */}
+                <p className="md:hidden text-center text-xs text-gray-500 mt-4">
+                  Ketuk tanggal untuk melihat detail event
+                </p>
+              </div>
             ) : (
               /* List View */
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-              >
+              <div>
                 {/* Month Navigation for List View */}
-                <motion.div
-                  className="flex items-center justify-between mb-6"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4 }}
-                >
-                  <motion.button
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <button
                     onClick={goToPreviousMonth}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                    whileHover={{ scale: 1.05, x: -2 }}
-                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                   >
-                    <ChevronLeft size={20} />
-                    Sebelumnya
-                  </motion.button>
+                    <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
+                    <span className="hidden sm:inline text-sm">Sebelumnya</span>
+                  </button>
 
-                  {/* Tambahkan bulan dan tahun di sini */}
-                  <motion.h2
-                    className="text-xl md:text-2xl font-bold text-gray-900"
-                    key={`${currentDate.getMonth()}-${currentDate.getFullYear()}`}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
                     {monthNames[currentDate.getMonth()]}{" "}
                     {currentDate.getFullYear()}
-                  </motion.h2>
+                  </h2>
 
-                  <motion.button
+                  <button
                     onClick={goToNextMonth}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                    whileHover={{ scale: 1.05, x: 2 }}
-                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                   >
-                    Selanjutnya
-                    <ChevronRight size={20} />
-                  </motion.button>
-                </motion.div>
+                    <span className="hidden sm:inline text-sm">Selanjutnya</span>
+                    <ChevronRight size={18} className="sm:w-5 sm:h-5" />
+                  </button>
+                </div>
 
                 {getEventsForMonth.length === 0 ? (
-                  <motion.div
-                    className="text-center py-16"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 text-lg mb-2">
+                  <div className="text-center py-12 sm:py-16">
+                    <Calendar className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 text-base sm:text-lg mb-2">
                       Tidak ada event di bulan ini
                     </p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-gray-400 text-xs sm:text-sm">
                       Coba pilih bulan lain atau ubah filter pencarian
                     </p>
-                  </motion.div>
+                  </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {getEventsForMonth.map((event, index) => (
                       <motion.div
                         key={event.event_id}
@@ -1112,51 +996,47 @@ export default function CalendarEventPage() {
                     ))}
                   </div>
                 )}
-              </motion.div>
+              </div>
             )}
 
             {/* Legend */}
-            <motion.div
-              className="mt-8 pt-6 border-t border-gray-200"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-            >
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">
+            <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200">
+              <h4 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
                 Legenda Kategori:
               </h4>
-              <div className="flex flex-wrap gap-3">
-                {parentCategoriesForLegend.map((category, index) => (
-                  <motion.div
+              <div className="flex flex-wrap gap-2 sm:gap-3">
+                {parentCategoriesForLegend.slice(0, 8).map((category) => (
+                  <button
                     key={category}
-                    className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                     onClick={() =>
                       setCategoryFilter(
                         categoryFilter === category ? "" : category
                       )
                     }
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.2, delay: index * 0.05 }}
-                    whileHover={{ scale: 1.05, y: -1 }}
-                    whileTap={{ scale: 0.95 }}
+                    className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm transition-all ${
+                      categoryFilter === category
+                        ? "bg-blue-100 text-blue-700 ring-1 ring-blue-300"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
                   >
                     <div
-                      className={`w-3 h-3 rounded ${CATEGORY_COLORS[category]}`}
-                    ></div>
-                    <span
-                      className={`text-sm ${
-                        categoryFilter === category
-                          ? "font-bold text-blue-600"
-                          : "text-gray-600"
-                      }`}
-                    >
+                      className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${CATEGORY_COLORS[category]}`}
+                    />
+                    <span className="truncate max-w-[80px] sm:max-w-none">
                       {category}
                     </span>
-                  </motion.div>
+                  </button>
                 ))}
+                {parentCategoriesForLegend.length > 8 && (
+                  <button
+                    onClick={() => setShowFilters(true)}
+                    className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    +{parentCategoriesForLegend.length - 8} lainnya
+                  </button>
+                )}
               </div>
-            </motion.div>
+            </div>
           </motion.div>
         </div>
       </div>
@@ -1164,7 +1044,187 @@ export default function CalendarEventPage() {
   );
 }
 
-// Event Card Component
+// Mobile Event Modal Component
+function MobileEventModal({
+  isOpen,
+  onClose,
+  selectedDate,
+  events,
+  formatDate,
+  formatDateRange,
+  formatRupiah,
+  getMinPrice,
+  getCategoryColor,
+  getParentCategory,
+  onEventClick,
+  likedEvents,
+  onLike,
+  isLoggedIn,
+  dayNamesFull,
+}) {
+  if (!isOpen || !selectedDate) return null;
+
+  const dayName = dayNamesFull[selectedDate.getDay()];
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center md:hidden"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="bg-white w-full max-h-[85vh] rounded-t-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drag Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 pb-3 border-b border-gray-200">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  {dayName}, {formatDate(selectedDate.toISOString())}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {events.length} event ditemukan
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-full"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="overflow-y-auto max-h-[calc(85vh-100px)] p-4">
+              {events.length === 0 ? (
+                <div className="text-center py-12">
+                  <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">
+                    Tidak ada event pada tanggal ini
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {events.map((event) => (
+                    <MobileEventCard
+                      key={event.event_id}
+                      event={event}
+                      onClick={() => {
+                        onClose();
+                        onEventClick(event.event_id);
+                      }}
+                      formatRupiah={formatRupiah}
+                      getMinPrice={getMinPrice}
+                      getCategoryColor={getCategoryColor}
+                      getParentCategory={getParentCategory}
+                      isLiked={likedEvents.has(event.event_id)}
+                      onLike={(e) => onLike(event.event_id, e)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// Mobile Event Card (Compact)
+function MobileEventCard({
+  event,
+  onClick,
+  formatRupiah,
+  getMinPrice,
+  getCategoryColor,
+  getParentCategory,
+  isLiked,
+  onLike,
+}) {
+  const parentCategory = getParentCategory(event.category);
+
+  return (
+    <div
+      onClick={onClick}
+      className="bg-white border border-gray-200 rounded-xl p-3 active:bg-gray-50 transition-colors"
+    >
+      <div className="flex gap-3">
+        {/* Image */}
+        {event.image && (
+          <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+            <img
+              src={event.image}
+              alt={event.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+            />
+          </div>
+        )}
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <span
+              className={`${getCategoryColor(
+                event.category
+              )} text-white text-[10px] px-2 py-0.5 rounded-full`}
+            >
+              {parentCategory}
+            </span>
+            <button
+              onClick={onLike}
+              className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                isLiked
+                  ? "bg-pink-500 text-white"
+                  : "bg-gray-100 text-gray-600"
+              }`}
+            >
+              <Heart className={`w-3.5 h-3.5 ${isLiked ? "fill-current" : ""}`} />
+            </button>
+          </div>
+
+          <h4 className="font-semibold text-gray-900 text-sm line-clamp-2 mb-1">
+            {event.name}
+          </h4>
+
+          <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+            <MapPin size={12} className="flex-shrink-0" />
+            <span className="truncate">{event.venue || event.location || "-"}</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span
+              className={`font-bold text-sm ${
+                getMinPrice(event) === 0 ? "text-green-600" : "text-blue-600"
+              }`}
+            >
+              {getMinPrice(event) === 0 ? "GRATIS" : formatRupiah(getMinPrice(event))}
+            </span>
+            <ArrowRight size={16} className="text-gray-400" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Event Card Component (Desktop & Mobile)
 function EventCard({
   event,
   onClick,
@@ -1181,24 +1241,110 @@ function EventCard({
   const parentCategory = getParentCategory(event.category);
 
   return (
-    <motion.div
-      whileHover={{
-        scale: 1.01,
-        y: -2,
-        transition: { type: "spring", stiffness: 400, damping: 17 },
-      }}
-      whileTap={{ scale: 0.99 }}
+    <div
       onClick={onClick}
-      className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden"
+      className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden active:scale-[0.99]"
     >
-      <div className="flex flex-col md:flex-row">
+      {/* Mobile Layout - Compact horizontal card */}
+      <div className="sm:hidden">
+        <div className="flex gap-3 p-3">
+          {/* Thumbnail */}
+          {event.image ? (
+            <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+              <img
+                src={event.image}
+                alt={event.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.src = "https://via.placeholder.com/96?text=Event";
+                }}
+              />
+            </div>
+          ) : (
+            <div className="w-24 h-24 rounded-lg flex-shrink-0 bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+              <Calendar className="w-8 h-8 text-blue-400" />
+            </div>
+          )}
+
+          {/* Content */}
+          <div className="flex-1 min-w-0 flex flex-col justify-between">
+            {/* Top Section */}
+            <div>
+              {/* Category & Like */}
+              <div className="flex items-start justify-between gap-2 mb-1.5">
+                <span
+                  className={`${getCategoryColor(event.category)} text-white text-[10px] px-2 py-0.5 rounded-full inline-block`}
+                >
+                  {parentCategory}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onLike(e);
+                  }}
+                  className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                    isLiked
+                      ? "bg-pink-500 text-white"
+                      : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  <Heart className={`w-3.5 h-3.5 ${isLiked ? "fill-current" : ""}`} />
+                </button>
+              </div>
+
+              {/* Title */}
+              <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight mb-1.5">
+                {event.name}
+              </h3>
+
+              {/* Date & Location - Compact */}
+              <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                <span className="flex items-center gap-1">
+                  <Calendar size={11} className="text-blue-500" />
+                  {event.date_start
+                    ? new Date(event.date_start).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "short",
+                      })
+                    : "-"}
+                </span>
+                <span className="flex items-center gap-1 truncate">
+                  <MapPin size={11} className="text-red-500 flex-shrink-0" />
+                  <span className="truncate">{event.venue || event.district || "-"}</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Bottom Section - Price */}
+            <div className="flex items-center justify-between mt-2">
+              <div>
+                <span
+                  className={`text-sm font-bold ${
+                    getMinPrice(event) === 0 ? "text-green-600" : "text-blue-600"
+                  }`}
+                >
+                  {getMinPrice(event) === 0 ? "GRATIS" : formatRupiah(getMinPrice(event))}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {event.total_likes > 0 && (
+                  <span className="flex items-center gap-0.5 text-pink-500 text-[10px]">
+                    <Heart className="w-3 h-3 fill-current" />
+                    {event.total_likes}
+                  </span>
+                )}
+                <ArrowRight size={16} className="text-gray-400" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop/Tablet Layout - Original horizontal card */}
+      <div className="hidden sm:flex">
         {/* Event Image */}
         {event.image && (
-          <motion.div
-            className="md:w-48 h-32 md:h-auto flex-shrink-0 bg-gray-100"
-            whileHover={{ scale: 1.02 }}
-            transition={{ type: "spring", stiffness: 400, damping: 17 }}
-          >
+          <div className="w-40 md:w-48 lg:w-56 flex-shrink-0 bg-gray-100">
             <img
               src={event.image}
               alt={event.name}
@@ -1207,23 +1353,19 @@ function EventCard({
                 e.target.style.display = "none";
               }}
             />
-          </motion.div>
+          </div>
         )}
 
         {/* Event Info */}
         <div className="flex-1 p-4 md:p-5">
           <div className="flex items-start justify-between gap-3 mb-3">
-            <div>
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <motion.span
-                  className={`${getCategoryColor(
-                    event.category
-                  )} text-white text-xs px-2 py-1 rounded-full`}
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span
+                  className={`${getCategoryColor(event.category)} text-white text-xs px-2.5 py-1 rounded-full`}
                 >
                   {parentCategory}
-                </motion.span>
+                </span>
                 {event.category !== parentCategory && event.category && (
                   <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                     {event.category}
@@ -1235,13 +1377,16 @@ function EventCard({
                   </span>
                 )}
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+              <h3 className="text-base lg:text-lg font-semibold text-gray-900 line-clamp-2">
                 {event.name}
               </h3>
             </div>
             {/* Like Button */}
             <button
-              onClick={onLike}
+              onClick={(e) => {
+                e.stopPropagation();
+                onLike(e);
+              }}
               className={`w-9 h-9 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
                 isLiked
                   ? "bg-pink-500 text-white"
@@ -1252,10 +1397,10 @@ function EventCard({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600 mb-3">
+          <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-3">
             <div className="flex items-center gap-2">
               <Calendar size={16} className="text-blue-600 flex-shrink-0" />
-              <span>{formatDateRange(event.date_start, event.date_end)}</span>
+              <span className="truncate">{formatDateRange(event.date_start, event.date_end)}</span>
             </div>
             <div className="flex items-center gap-2">
               <Building2 size={16} className="text-red-500 flex-shrink-0" />
@@ -1277,7 +1422,7 @@ function EventCard({
             {event.district && (
               <div className="flex items-center gap-2">
                 <MapPin size={16} className="text-purple-600 flex-shrink-0" />
-                <span className="truncate">{event.location}</span>
+                <span className="truncate">{event.district}</span>
               </div>
             )}
           </div>
@@ -1298,21 +1443,19 @@ function EventCard({
                   {event.total_likes}
                 </span>
               )}
-              <motion.button
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              <button
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
                 onClick={(e) => {
                   e.stopPropagation();
                   onClick();
                 }}
-                whileHover={{ scale: 1.05, y: -1 }}
-                whileTap={{ scale: 0.95 }}
               >
                 Lihat Detail
-              </motion.button>
+              </button>
             </div>
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
