@@ -3,19 +3,23 @@ import Navbar from "../components/Navbar";
 
 export default function LaporkanMasalahPage() {
   const [activeTab, setActiveTab] = useState("buat"); // buat / riwayat
-
   const [user, setUser] = useState(null);
 
+  // Effect hanya untuk mengambil data user dari sessionStorage
   useEffect(() => {
     const userData = sessionStorage.getItem("user");
     if (userData) {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
     }
+  }, []); // Empty dependency array - hanya dijalankan sekali saat mount
 
+  // Effect terpisah untuk update form ketika user berubah
+  useEffect(() => {
     if (user) {
-    setForm((prev) => ({ ...prev, user: user.name }));
-  }
-  }, [user]);
+      setForm((prev) => ({ ...prev, user: user.name }));
+    }
+  }, [user]); // Hanya dijalankan ketika user berubah
 
   const [reports, setReports] = useState([
     {
@@ -81,7 +85,7 @@ export default function LaporkanMasalahPage() {
     setReports([...reports, newReport]);
 
     // Reset form
-    setForm({ user: "", subject: "", message: "" });
+    setForm({ user: user?.name || "", subject: "", message: "" });
     setProofFile(null);
 
     setActiveTab("riwayat");
@@ -121,60 +125,58 @@ export default function LaporkanMasalahPage() {
 
           {/* ---------------- PAGE 1 — FORM BUAT LAPORAN ---------------- */}
           {activeTab === "buat" && (
-  <div className="space-y-5">
+            <div className="space-y-5">
+              {/* Field Pengirim (Otomatis, Non-editable) */}
+              <input
+                type="text"
+                placeholder={user?.name || "Memuat nama..."}
+                className="border px-4 py-2 rounded w-full bg-gray-100 text-gray-600"
+                value={form.user}
+                disabled
+              />
 
-    {/* Field Pengirim (Otomatis, Non-editable) */}
-    <input
-      type="text"
-      placeholder={user?.name || "Memuat nama..."}
-      className="border px-4 py-2 rounded w-full bg-gray-100 text-gray-600"
-      value={form.user}
-      disabled
-    />
+              <input
+                type="text"
+                placeholder="Subjek"
+                className="border px-4 py-2 rounded w-full"
+                value={form.subject}
+                onChange={(e) => setForm({ ...form, subject: e.target.value })}
+              />
 
-    <input
-      type="text"
-      placeholder="Subjek"
-      className="border px-4 py-2 rounded w-full"
-      value={form.subject}
-      onChange={(e) => setForm({ ...form, subject: e.target.value })}
-    />
+              <textarea
+                placeholder="Isi Pesan"
+                className="border px-4 py-2 rounded w-full"
+                rows={5}
+                value={form.message}
+                onChange={(e) => setForm({ ...form, message: e.target.value })}
+              />
 
-    <textarea
-      placeholder="Isi Pesan"
-      className="border px-4 py-2 rounded w-full"
-      rows={5}
-      value={form.message}
-      onChange={(e) => setForm({ ...form, message: e.target.value })}
-    />
+              {/* Upload bukti */}
+              <div className="space-y-1">
+                <label className="text-base text-gray-700 font-medium">
+                  Lampirkan Gambar
+                </label>
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png"
+                  onChange={fileHandler}
+                  className="border px-4 py-2 rounded w-full bg-white"
+                />
+                <p className="text-xs text-gray-500 italic">
+                  Maksimal 1 file • Format: JPG/JPEG/PNG • Ukuran Maksimal 5MB
+                </p>
+              </div>
 
-    {/* Upload bukti */}
-    <div className="space-y-1">
-      <label className="text-base text-gray-700 font-medium">
-        Lampirkan Gambar
-      </label>
-      <input
-        type="file"
-        accept=".jpg,.jpeg,.png"
-        onChange={fileHandler}
-        className="border px-4 py-2 rounded w-full bg-white"
-      />
-      <p className="text-xs text-gray-500 italic">
-        Maksimal 1 file • Format: JPG/JPEG/PNG • Ukuran Maksimal 5MB
-      </p>
-    </div>
-
-    <div className="flex justify-end">
-      <button
-        className="px-5 py-2 bg-blue-600 text-white rounded"
-        onClick={submitReport}
-      >
-        Kirim Laporan
-      </button>
-    </div>
-  </div>
-)}
-
+              <div className="flex justify-end">
+                <button
+                  className="px-5 py-2 bg-blue-600 text-white rounded"
+                  onClick={submitReport}
+                >
+                  Kirim Laporan
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* ---------------- PAGE 2 — TABEL RIWAYAT ---------------- */}
           {activeTab === "riwayat" && (
