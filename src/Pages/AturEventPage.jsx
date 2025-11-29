@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
-import { MoreVertical, ChevronRight, Trash2, Pencil } from "lucide-react";
+import { MoreVertical, ChevronRight, Trash2, Pencil, Plus, Search } from "lucide-react";
 
 export default function AturEventPage() {
   const navigate = useNavigate();
@@ -138,7 +138,9 @@ export default function AturEventPage() {
             <div>
               <div className="flex gap-3 mb-6">
                 <input type="text" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="Nama Kategori Baru" className="border px-4 py-2 rounded w-full" />
-                <button onClick={addCategory} className="bg-blue-600 text-white px-6 rounded-lg">Tambah</button>
+                <button onClick={addCategory} className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg pr-1.5 w-35">
+                     <Plus className="inline mr-1" />
+                    Tambah</button>
               </div>
 
               {categories.map((cat) => (
@@ -166,18 +168,18 @@ export default function AturEventPage() {
 
                     {cat.menu && (
                       <div
-                        className="absolute right-4 top-12 bg-white shadow-lg border rounded-lg w-44 py-2 z-30"
+                        className="absolute right-4 top-12 bg-white shadow-lg border rounded-lg w-58 py-2 z-30"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
                           onClick={() => openSubModal(cat)}
                         >
-                          ➕ Tambah Subkategori
+                          <Plus size={25} className="inline mr-0.5 pb-0.5" /> Tambah Subkategori
                         </button>
                         <button className="block px-4 py-2 text-red-600 hover:bg-gray-100 w-full text-left"
                           onClick={() => deleteCategory(cat.id)}
                         >
-                          <Trash2 size={15} className="inline mr-2" /> Hapus Kategori
+                          <Trash2 size={20} className="inline ml-1 mr-1.5 pb-0.5" /> Hapus Kategori
                         </button>
                       </div>
                     )}
@@ -210,17 +212,23 @@ export default function AturEventPage() {
   <div>
     {/* Search (kiri) + Tambah Venue (kanan) */}
     <div className="flex items-center justify-between mb-6">
+
+        <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"/>
       <input
         type="text"
         placeholder="Cari venue..."
         value={searchVenue}
         onChange={(e) => setSearchVenue(e.target.value)}
-        className="border px-4 py-2 rounded w-60"   // searchbar pendek
+        className="border pl-10 px-4 py-2 rounded w-60"   // searchbar pendek
       />
+        </div>
+
       <button
         onClick={openAddVenue}
-        className="bg-blue-600 text-white px-6 py-2 rounded-lg"
+        className="bg-blue-600 hover:bg-blue-500 text-white pl-2 pr-5 py-2 rounded-lg"
       >
+        <Plus size={25} className="inline mr-1" />
         Tambah Venue
       </button>
     </div>
