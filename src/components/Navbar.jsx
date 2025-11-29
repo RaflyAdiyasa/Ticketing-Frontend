@@ -375,8 +375,8 @@ export default function Navbar() {
                           <span className="font-medium text-gray-700 group-hover:text-blue-600 transition-colors">Lihat Profil</span>
                         </button>
                         
-                        {/* Event yang Disukai - Available for ALL logged in users (User, Organizer, Admin) */}
-                        {isLoggedIn() && (
+                        {/* Event yang Disukai - Only for User role */}
+                        {isLoggedIn() && getUserRole() === "user" && (
                           <button
                             onClick={handleViewLikedEvents}
                             className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-pink-50 rounded-lg transition-colors group"
@@ -401,7 +401,7 @@ export default function Navbar() {
                           </button>
                         )}
 
-                        {getUserRole() === "user" || getUserRole() === "organizer" && (
+                        {(getUserRole() === "user" || getUserRole() === "organizer") && (
                           <button
                             onClick={handleViewReportIssue}
                             className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-yellow-50 rounded-lg transition-colors group"
@@ -686,8 +686,8 @@ export default function Navbar() {
               <span className="font-semibold">Kalender Event</span>
             </NavLink>
 
-            {/* Event yang Disukai - Available for ALL logged in users (Mobile) */}
-            {isLoggedIn() && (
+            {/* Event yang Disukai - Only for User role (Mobile) */}
+            {isLoggedIn() && getUserRole() === "user" && (
               <NavLink
                 to="/event-disukai"
                 className={({ isActive }) => 
