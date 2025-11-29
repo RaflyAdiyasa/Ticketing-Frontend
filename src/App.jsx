@@ -20,6 +20,7 @@ import EditEventPage from "./Pages/EditEventPage";
 import CalendarEventPage from "./Pages/CalendarEventPage";
 import LikedEventsPage from "./Pages/LikedEventsPage";
 import AturEventPage from "./Pages/AturEventPage";
+import LaporkanMasalahPage from "./Pages/LaporkanMasalahPage";
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
           <Route path="/lihat-profil" element={<LihatProfilPage />} />
            <Route path="/riwayat-transaksi" element={<RiwayatTransaksi />} />
            <Route path="/scan/:eventId" element={<CheckinTiket />} />
+           <Route path="/laporkan-masalah" element={<LaporkanMasalahPage />} />
         </Routes>
       </BrowserRouter>
     </div>

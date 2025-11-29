@@ -16,6 +16,7 @@ import {
   Users,
   Heart,
   Settings,
+  Flag,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
@@ -105,6 +106,11 @@ export default function Navbar() {
   const handleViewTransactionHistory = () => {
     setProfileDropdownOpen(false);
     navigate("/riwayat-transaksi");
+  };
+
+  const handleViewReportIssue = () => {
+    setProfileDropdownOpen(false);
+    navigate("/laporkan-masalah");
   };
 
   const handleSearchSubmit = (e) => {
@@ -392,6 +398,18 @@ export default function Navbar() {
                               <History className="w-4 h-4 text-green-600" />
                             </div>
                             <span className="font-medium text-gray-700 group-hover:text-green-600 transition-colors">Riwayat Transaksi</span>
+                          </button>
+                        )}
+
+                        {getUserRole() === "user" || getUserRole() === "organizer" && (
+                          <button
+                            onClick={handleViewReportIssue}
+                            className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-yellow-50 rounded-lg transition-colors group"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center group-hover:bg-yellow-200 transition-colors">
+                              <Flag className="w-4 h-4 text-yellow-600" />
+                            </div>
+                            <span className="font-medium text-gray-700 group-hover:text-yellow-600 transition-colors">Laporkan Masalah</span>
                           </button>
                         )}
                         
