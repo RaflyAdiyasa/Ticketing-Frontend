@@ -2,28 +2,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { Calendar, Folder, Plus, Pencil, Trash2, Eye, X, Save, ArrowLeft, Search } from "lucide-react";
+import { Calendar, Folder, Plus, Pencil, Trash2, Eye, X, Save, ArrowLeft, Search, RefreshCw } from "lucide-react";
 import { eventAPI } from "../services/api";
 import TicketCategoryModal from "../components/TicketCategoryModal";
 import NotificationModal from "../components/NotificationModal";
 import useNotification from "../hooks/useNotification";
 import { motion } from "framer-motion";
-
-const CATEGORIES = {
-  "Hiburan": ["Musik", "Konser", "Festival", "Stand Up Comedy", "Film", "Teater", "K-Pop", "Dance Performance"],
-  "Teknologi": ["Konferensi Teknologi", "Workshop IT", "Startup", "Software Development", "Artificial Intelligence", "Data Science", "Cybersecurity", "Gaming & Esports"],
-  "Edukasi": ["Seminar", "Workshop", "Pelatihan", "Webinar", "Bootcamp", "Kelas Online", "Literasi Digital", "Kelas Bisnis"],
-  "Olahraga": ["Marathon", "Fun Run", "Sepak Bola", "Badminton", "Gym & Fitness", "Yoga", "Esport", "Cycling Event"],
-  "Bisnis & Profesional": ["Konferensi Bisnis", "Networking", "Karir", "Entrepreneurship", "Leadership", "Startup Meetup", "Investor & Pitching"],
-  "Seni & Budaya": ["Pameran Seni", "Pentas Budaya", "Fotografi", "Seni Rupa", "Crafting", "Pameran Museum", "Fashion Show"],
-  "Komunitas": ["Kegiatan Relawan", "Kegiatan Sosial", "Gathering Komunitas", "Komunitas Hobi", "Meetup", "Charity Event"],
-  "Kuliner": ["Festival Kuliner", "Food Tasting", "Workshop Memasak", "Street Food Event"],
-  "Kesehatan": ["Seminar Kesehatan", "Medical Check Event", "Workshop Kesehatan Mental", "Donor Darah"],
-  "Agama & Spiritual": ["Kajian", "Retreat", "Pengajian", "Event Keagamaan", "Meditasi"],
-  "Travel & Outdoor": ["Camping", "Hiking", "Trip Wisata", "Outdoor Gathering", "Photography Trip"],
-  "Keluarga & Anak": ["Family Gathering", "Event Anak", "Workshop Parenting", "Pentas Anak"],
-  "Fashion & Beauty": ["Fashion Expo", "Beauty Class", "Makeup Workshop", "Brand Launching"]
-};
 
 const DISTRICTS = [
   "Tegalrejo", "Jetis", "Gondokusuman", "Danurejan", "Gedongtengen",
@@ -194,6 +178,24 @@ const VenueDropdown = ({ value, onChange, onCustomVenueToggle, isCustomVenue }) 
   );
 };
 
+// Fungsi untuk mendapatkan tanggal minimal (3 hari dari sekarang)
+const getMinDate = () => {
+  const minDate = new Date();
+  minDate.setDate(minDate.getDate() + 3);
+  return minDate.toISOString().split('T')[0];
+};
+
+// Fungsi untuk memformat tanggal menjadi format yang mudah dibaca
+const formatDateForDisplay = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('id-ID', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+
 export default function EditEventPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -212,6 +214,8 @@ export default function EditEventPage() {
     rules: "",
   });
 
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [posterFile, setPosterFile] = useState(null);
   const [bannerFile, setBannerFile] = useState(null);
   const [currentPoster, setCurrentPoster] = useState("");
@@ -228,6 +232,28 @@ export default function EditEventPage() {
     type: ""
   });
   const [isCustomVenue, setIsCustomVenue] = useState(false);
+
+  // State untuk tanggal minimal
+  const minDate = getMinDate();
+
+  // Fetch categories dari API
+  const fetchEventCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      const response = await eventAPI.getEventCategories();
+      const categoriesData = response.data.event_category || [];
+      setCategories(categoriesData);
+    } catch (error) {
+      console.error("Error fetching event categories:", error);
+      showNotification("Gagal memuat kategori event", "Error", "error");
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEventCategories();
+  }, []);
 
   useEffect(() => {
     const fetchEventData = async () => {
@@ -311,6 +337,14 @@ export default function EditEventPage() {
       [name]: value,
       ...(name === "category" && { child_category: "" })
     }));
+
+    // Validasi tanggal selesai harus setelah tanggal mulai
+    if (name === "date_start" && formData.date_end && value > formData.date_end) {
+      setFormData(prev => ({
+        ...prev,
+        date_end: value
+      }));
+    }
   };
 
   const handleVenueChange = (e) => {
@@ -337,7 +371,35 @@ export default function EditEventPage() {
   const handleFileChange = (e, type) => {
     const file = e.target.files[0];
     if (file) {
+      // Validasi ukuran file (maksimal 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB dalam bytes
+      if (file.size > maxSize) {
+        showNotification(
+          `Ukuran file ${type} terlalu besar! Maksimal 5MB.`,
+          "Peringatan",
+          "warning"
+        );
+        e.target.value = ""; // Reset input file
+        return;
+      }
+
+      // Validasi tipe file (hanya gambar)
+      if (!file.type.startsWith('image/')) {
+        showNotification(
+          `File ${type} harus berupa gambar!`,
+          "Peringatan",
+          "warning"
+        );
+        e.target.value = ""; // Reset input file
+        return;
+      }
+
       type === "poster" ? setPosterFile(file) : setBannerFile(file);
+      showNotification(
+        `File ${type} berhasil dipilih!`,
+        "Sukses",
+        "success"
+      );
     }
   };
 
@@ -401,6 +463,25 @@ export default function EditEventPage() {
     e.preventDefault();
     setLoading(true);
 
+    // Validasi tanggal
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const startDate = new Date(formData.date_start);
+    const minStartDate = new Date();
+    minStartDate.setDate(minStartDate.getDate() + 3);
+    minStartDate.setHours(0, 0, 0, 0);
+
+    if (startDate < minStartDate) {
+      showNotification(
+        `Tanggal mulai event harus minimal 3 hari dari sekarang. Paling cepat ${formatDateForDisplay(minDate)}`,
+        "Validasi Gagal",
+        "warning"
+      );
+      setLoading(false);
+      return;
+    }
+
     if (ticketList.length === 0) {
       showNotification("Harap tambahkan minimal satu kategori tiket!", "Peringatan", "warning");
       setLoading(false);
@@ -462,7 +543,13 @@ export default function EditEventPage() {
     return bannerFile ? bannerFile.name : (currentBanner ? "Banner saat ini" : "Pilih file");
   };
 
-  const getChildCategories = () => CATEGORIES[formData.category] || [];
+  // Fungsi untuk mendapatkan subkategori berdasarkan kategori yang dipilih
+  const getChildCategories = () => {
+    const selectedCategory = categories.find(cat => 
+      cat.event_category_name === formData.category
+    );
+    return selectedCategory?.child_event_category || [];
+  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -574,6 +661,7 @@ export default function EditEventPage() {
         onUpdateTicket={handleUpdateTicket}
         editingTicket={editingTicket}
         eventDates={{ start: formData.date_start, end: formData.date_end }}
+        minDate={minDate}
       />
 
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
@@ -603,17 +691,31 @@ export default function EditEventPage() {
                   </div>
                 </div>
                 
-                {event && (
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-blue-100 font-medium">Status:</span>
-                    <span className={getStatusBadge(event.status)}>
-                      {event.status === 'pending' ? 'Pending' : 
-                       event.status === 'rejected' ? 'Ditolak' : 
-                       event.status === 'approved' ? 'Disetujui' : 
-                       event.status === 'published' ? 'Dipublikasi' : event.status}
-                    </span>
-                  </div>
-                )}
+                <div className="flex items-center gap-4">
+                  {event && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-blue-100 font-medium">Status:</span>
+                      <span className={getStatusBadge(event.status)}>
+                        {event.status === 'pending' ? 'Pending' : 
+                         event.status === 'rejected' ? 'Ditolak' : 
+                         event.status === 'approved' ? 'Disetujui' : 
+                         event.status === 'published' ? 'Dipublikasi' : event.status}
+                      </span>
+                    </div>
+                  )}
+                  
+                  <motion.button
+                    type="button"
+                    onClick={fetchEventCategories}
+                    disabled={loadingCategories}
+                    className="flex items-center gap-2 bg-blue-400 hover:bg-blue-300 text-white px-4 py-2 rounded-lg transition-colors font-medium disabled:opacity-50"
+                    whileHover={{ scale: loadingCategories ? 1 : 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <RefreshCw size={18} className={loadingCategories ? "animate-spin" : ""} />
+                    {loadingCategories ? "Memuat..." : "Refresh Kategori"}
+                  </motion.button>
+                </div>
               </div>
             </div>
 
@@ -649,12 +751,18 @@ export default function EditEventPage() {
                       value={formData.category}
                       onChange={handleInputChange}
                       required
+                      disabled={loadingCategories}
                     >
-                      <option value="">Pilih kategori event</option>
-                      {Object.keys(CATEGORIES).map((category) => (
-                        <option key={category} value={category}>{category}</option>
+                      <option value="">{loadingCategories ? "Memuat kategori..." : "Pilih kategori event"}</option>
+                      {categories.map((category) => (
+                        <option key={category.event_category_id} value={category.event_category_name}>
+                          {category.event_category_name}
+                        </option>
                       ))}
                     </select>
+                    {loadingCategories && (
+                      <p className="text-xs text-gray-500">Sedang memuat kategori...</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -665,13 +773,20 @@ export default function EditEventPage() {
                       value={formData.child_category}
                       onChange={handleInputChange}
                       required
-                      disabled={!formData.category}
+                      disabled={!formData.category || loadingCategories}
                     >
-                      <option value="">Pilih sub kategori</option>
+                      <option value="">
+                        {!formData.category ? "Pilih kategori terlebih dahulu" : "Pilih sub kategori"}
+                      </option>
                       {getChildCategories().map((childCategory) => (
-                        <option key={childCategory} value={childCategory}>{childCategory}</option>
+                        <option key={childCategory.child_event_category_id} value={childCategory.child_event_category_name}>
+                          {childCategory.child_event_category_name}
+                        </option>
                       ))}
                     </select>
+                    {formData.category && getChildCategories().length === 0 && (
+                      <p className="text-xs text-yellow-600">Tidak ada subkategori untuk kategori ini</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -704,7 +819,7 @@ export default function EditEventPage() {
                         <div className="flex-1">
                           <p className="text-sm font-medium text-gray-700">{getPosterFileName()}</p>
                           <p className="text-xs text-gray-500">
-                            {posterFile ? "File baru dipilih" : currentPoster ? "Gunakan file saat ini" : "Klik untuk memilih file"}
+                            {posterFile ? "File baru dipilih" : currentPoster ? "Gunakan file saat ini" : "Klik untuk memilih file (maks. 5MB)"}
                           </p>
                         </div>
                         <input
@@ -737,7 +852,7 @@ export default function EditEventPage() {
                         <div className="flex-1">
                           <p className="text-sm font-medium text-gray-700">{getBannerFileName()}</p>
                           <p className="text-xs text-gray-500">
-                            {bannerFile ? "File baru dipilih" : currentBanner ? "Gunakan file saat ini" : "Klik untuk memilih file"}
+                            {bannerFile ? "File baru dipilih" : currentBanner ? "Gunakan file saat ini" : "Klik untuk memilih file (maks. 5MB)"}
                           </p>
                         </div>
                         <input
@@ -778,9 +893,13 @@ export default function EditEventPage() {
                         className="w-full outline-none bg-transparent"
                         value={formData.date_start}
                         onChange={handleInputChange}
+                        min={minDate}
                         required
                       />
                     </div>
+                    <p className="text-xs text-gray-800">
+                      Paling cepat 3 hari dari hari ini ({formatDateForDisplay(minDate)})
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -793,9 +912,13 @@ export default function EditEventPage() {
                         className="w-full outline-none bg-transparent"
                         value={formData.date_end}
                         onChange={handleInputChange}
+                        min={formData.date_start || minDate}
                         required
                       />
                     </div>
+                    <p className="text-xs text-gray-800">
+                      Harus setelah tanggal mulai
+                    </p>
                   </div>
 
                   <div className="space-y-2">
