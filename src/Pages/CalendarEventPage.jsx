@@ -178,6 +178,7 @@ export default function CalendarEventPage() {
   const [viewMode, setViewMode] = useState("calendar");
   const [likedEvents, setLikedEvents] = useState(new Set());
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
   // State untuk filter
   const [searchTerm, setSearchTerm] = useState("");
@@ -207,16 +208,29 @@ export default function CalendarEventPage() {
   const dayNames = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
   const dayNamesFull = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
-  // Check login status
+  // Check login status and user role
   useEffect(() => {
     const token = sessionStorage.getItem("token");
-    setIsLoggedIn(!!token);
+    if (token) {
+      setIsLoggedIn(true);
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        setUserRole(payload.role);
+      } catch (error) {
+        console.error("Error parsing token:", error);
+        setUserRole(null);
+      }
+    } else {
+      setIsLoggedIn(false);
+      setUserRole(null);
+    }
   }, []);
 
-  // Fetch liked events for logged in user
+  // Fetch liked events for logged in user with role "user" only
   useEffect(() => {
     const fetchLikedEvents = async () => {
-      if (!isLoggedIn) return;
+      // Hanya fetch jika user login dan role adalah "user"
+      if (!isLoggedIn || userRole !== "user") return;
       try {
         const response = await eventAPI.getMyLikedEvents();
         const likedEventIds = new Set(
@@ -228,7 +242,7 @@ export default function CalendarEventPage() {
       }
     };
     fetchLikedEvents();
-  }, [isLoggedIn]);
+  }, [isLoggedIn, userRole]);
 
   useEffect(() => {
     fetchEvents();
@@ -247,12 +261,18 @@ export default function CalendarEventPage() {
     }
   };
 
-  // Handle like event
+  // Handle like event - Hanya untuk role "user"
   const handleLikeEvent = async (eventId, e) => {
     e.stopPropagation();
 
     if (!isLoggedIn) {
       navigate("/login");
+      return;
+    }
+
+    // Cek apakah user memiliki role "user"
+    // Jika bukan, tidak melakukan apa-apa (button akan disabled)
+    if (userRole !== "user") {
       return;
     }
 
@@ -547,6 +567,7 @@ export default function CalendarEventPage() {
         likedEvents={likedEvents}
         onLike={handleLikeEvent}
         isLoggedIn={isLoggedIn}
+        userRole={userRole}
         dayNamesFull={dayNamesFull}
       />
 
@@ -919,6 +940,7 @@ export default function CalendarEventPage() {
                                 isLiked={likedEvents.has(event.event_id)}
                                 onLike={(e) => handleLikeEvent(event.event_id, e)}
                                 isLoggedIn={isLoggedIn}
+                                userRole={userRole}
                               />
                             </motion.div>
                           ))}
@@ -990,6 +1012,7 @@ export default function CalendarEventPage() {
                           isLiked={likedEvents.has(event.event_id)}
                           onLike={(e) => handleLikeEvent(event.event_id, e)}
                           isLoggedIn={isLoggedIn}
+                          userRole={userRole}
                           showFullDate
                         />
                       </motion.div>
@@ -1060,6 +1083,7 @@ function MobileEventModal({
   likedEvents,
   onLike,
   isLoggedIn,
+  userRole,
   dayNamesFull,
 }) {
   if (!isOpen || !selectedDate) return null;
@@ -1132,6 +1156,7 @@ function MobileEventModal({
                       getParentCategory={getParentCategory}
                       isLiked={likedEvents.has(event.event_id)}
                       onLike={(e) => onLike(event.event_id, e)}
+                      userRole={userRole}
                     />
                   ))}
                 </div>
@@ -1154,8 +1179,10 @@ function MobileEventCard({
   getParentCategory,
   isLiked,
   onLike,
+  userRole,
 }) {
   const parentCategory = getParentCategory(event.category);
+  const canLike = userRole === "user";
 
   return (
     <div
@@ -1189,11 +1216,12 @@ function MobileEventCard({
             </span>
             <button
               onClick={onLike}
+              disabled={!canLike}
               className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
                 isLiked
                   ? "bg-pink-500 text-white"
                   : "bg-gray-100 text-gray-600"
-              }`}
+              } ${!canLike ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <Heart className={`w-3.5 h-3.5 ${isLiked ? "fill-current" : ""}`} />
             </button>
@@ -1236,9 +1264,11 @@ function EventCard({
   isLiked,
   onLike,
   isLoggedIn,
+  userRole,
   showFullDate = false,
 }) {
   const parentCategory = getParentCategory(event.category);
+  const canLike = userRole === "user";
 
   return (
     <div
@@ -1282,11 +1312,12 @@ function EventCard({
                     e.stopPropagation();
                     onLike(e);
                   }}
+                  disabled={!canLike}
                   className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
                     isLiked
                       ? "bg-pink-500 text-white"
                       : "bg-gray-100 text-gray-500"
-                  }`}
+                  } ${!canLike ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <Heart className={`w-3.5 h-3.5 ${isLiked ? "fill-current" : ""}`} />
                 </button>
@@ -1387,11 +1418,12 @@ function EventCard({
                 e.stopPropagation();
                 onLike(e);
               }}
+              disabled={!canLike}
               className={`w-9 h-9 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
                 isLiked
                   ? "bg-pink-500 text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-pink-100 hover:text-pink-500"
-              }`}
+              } ${!canLike ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
             </button>

@@ -144,6 +144,7 @@ export default function CariEvent() {
   const [showFilters, setShowFilters] = useState(false);
   const [likedEvents, setLikedEvents] = useState(new Set());
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -160,11 +161,25 @@ export default function CariEvent() {
   const initialSort = searchParams.get('sort') || "popularitas";
   const [sortBy, setSortBy] = useState(initialSort);
 
-  // Check login status
+  // Check login status dan role
   useEffect(() => {
-    const token = sessionStorage.getItem('token');
-    setIsLoggedIn(!!token);
+    const userData = sessionStorage.getItem("user");
+    const token = sessionStorage.getItem("token");
+    
+    if (userData && token) {
+      const user = JSON.parse(userData);
+      setIsLoggedIn(true);
+      setUserRole(user.role);
+    } else {
+      setIsLoggedIn(false);
+      setUserRole(null);
+    }
   }, []);
+
+  // Check if user can like (only regular users can like, not admin or organizer)
+  const canLike = useMemo(() => {
+    return isLoggedIn && userRole === "user";
+  }, [isLoggedIn, userRole]);
 
   // Fetch liked events for logged in user
   useEffect(() => {
@@ -282,6 +297,17 @@ export default function CariEvent() {
     
     if (!isLoggedIn) {
       navigate('/login');
+      return;
+    }
+
+    // Double check role sebelum like
+    const userData = sessionStorage.getItem("user");
+    if (!userData) return;
+    
+    const user = JSON.parse(userData);
+    if (user.role !== "user") {
+      // Optional: Tampilkan notifikasi bahwa hanya user biasa yang bisa like
+      console.log("Hanya user biasa yang dapat melakukan like");
       return;
     }
 
@@ -644,6 +670,7 @@ export default function CariEvent() {
                         onLike={(e) => handleLikeEvent(event.event_id, e)}
                         isLoggedIn={isLoggedIn}
                         sortBy={sortBy}
+                        canLike={canLike}
                       />
                     </motion.div>
                   ))}
@@ -726,7 +753,8 @@ function EventCard({
   isLiked,
   onLike,
   isLoggedIn,
-  sortBy
+  sortBy,
+  canLike
 }) {
   const minPrice = getLowestPrice(event.ticket_categories);
   const parentCategory = getParentCategory(event.category);
@@ -756,11 +784,21 @@ function EventCard({
         {/* Like Button */}
         <button
           onClick={onLike}
+          disabled={!canLike}
           className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-            isLiked 
+            !canLike
+              ? 'bg-white/90 text-gray-400 cursor-not-allowed'
+              : isLiked 
               ? 'bg-pink-500 text-white' 
               : 'bg-white/90 text-gray-600 hover:bg-pink-100 hover:text-pink-500'
           }`}
+          title={
+            !canLike
+              ? "Fitur like hanya tersedia untuk user biasa"
+              : isLiked
+              ? "Unlike"
+              : "Like"
+          }
         >
           <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
         </button>

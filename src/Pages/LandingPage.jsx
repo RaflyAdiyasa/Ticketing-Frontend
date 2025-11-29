@@ -1,7 +1,30 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
-import { ChevronLeft, ChevronRight, Calendar, MapPin, Ticket, TrendingUp, Music, Cpu, GraduationCap, Dumbbell, Briefcase, Palette, Users, UtensilsCrossed, Heart, Moon, Mountain, Baby, Sparkles, ArrowRight, Clock, ShoppingBag } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  MapPin,
+  Ticket,
+  TrendingUp,
+  Music,
+  Cpu,
+  GraduationCap,
+  Dumbbell,
+  Briefcase,
+  Palette,
+  Users,
+  UtensilsCrossed,
+  Heart,
+  Moon,
+  Mountain,
+  Baby,
+  Sparkles,
+  ArrowRight,
+  Clock,
+  ShoppingBag,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { eventAPI } from "../services/api";
 
@@ -217,6 +240,7 @@ export default function LandingPage() {
   const [error, setError] = useState(null);
   const [likedEvents, setLikedEvents] = useState(new Set());
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
   // Banner state
   const [currentBanner, setCurrentBanner] = useState(0);
@@ -284,20 +308,34 @@ export default function LandingPage() {
     );
   };
 
-  // Check login status
+  // Check login status and user role
   useEffect(() => {
-    const token = sessionStorage.getItem('token');
-    setIsLoggedIn(!!token);
+    const userData = sessionStorage.getItem("user");
+    const token = sessionStorage.getItem("token");
+
+    if (userData && token) {
+      const user = JSON.parse(userData);
+      setIsLoggedIn(true);
+      setUserRole(user.role);
+    } else {
+      setIsLoggedIn(false);
+      setUserRole(null);
+    }
   }, []);
+
+  // Check if user can like (only regular users can like, not admin or organizer)
+  const canLike = useMemo(() => {
+    return isLoggedIn && userRole === "user";
+  }, [isLoggedIn, userRole]);
 
   // Fetch liked events for logged in user
   useEffect(() => {
     const fetchLikedEvents = async () => {
-      if (!isLoggedIn) return;
+      if (!canLike) return;
       try {
         const response = await eventAPI.getMyLikedEvents();
         const likedEventIds = new Set(
-          (response.data?.liked_event || []).map(e => e.event_id)
+          (response.data?.liked_event || []).map((e) => e.event_id)
         );
         setLikedEvents(likedEventIds);
       } catch (err) {
@@ -305,7 +343,7 @@ export default function LandingPage() {
       }
     };
     fetchLikedEvents();
-  }, [isLoggedIn]);
+  }, [canLike]);
 
   // Transform event data
   const transformEvent = (event) => ({
@@ -348,7 +386,7 @@ export default function LandingPage() {
         // Fetch popular events (by likes)
         const popularResponse = await eventAPI.getEventsPopular();
         let popularEventsData = popularResponse.data?.events || [];
-        
+
         if (popularEventsData.length === 0) {
           // Fallback: sort all events by likes
           popularEventsData = [...transformedEvents]
@@ -380,9 +418,20 @@ export default function LandingPage() {
   // Handle like event
   const handleLikeEvent = async (eventId, e) => {
     e.stopPropagation();
-    
+
     if (!isLoggedIn) {
-      navigate('/login');
+      navigate("/login");
+      return;
+    }
+
+    // Double check role sebelum like
+    const userData = sessionStorage.getItem("user");
+    if (!userData) return;
+
+    const user = JSON.parse(userData);
+    if (user.role !== "user") {
+      // Optional: Tampilkan notifikasi bahwa hanya user biasa yang bisa like
+      console.log("Hanya user biasa yang dapat melakukan like");
       return;
     }
 
@@ -391,9 +440,9 @@ export default function LandingPage() {
 
     try {
       await eventAPI.likeEvent(eventId);
-      
+
       // Update likedEvents state
-      setLikedEvents(prev => {
+      setLikedEvents((prev) => {
         const newSet = new Set(prev);
         if (isCurrentlyLiked) {
           newSet.delete(eventId);
@@ -403,18 +452,19 @@ export default function LandingPage() {
         return newSet;
       });
 
-      // Update like counts in UI using the captured status
-      const updateLikes = (events) => events.map(event => {
-        if (event.id === eventId) {
-          return {
-            ...event,
-            totalLikes: isCurrentlyLiked 
-              ? Math.max(0, (event.totalLikes || 1) - 1) 
-              : (event.totalLikes || 0) + 1
-          };
-        }
-        return event;
-      });
+      // Update like counts in UI menggunakan status yang sudah di-capture
+      const updateLikes = (events) =>
+        events.map((event) => {
+          if (event.id === eventId) {
+            return {
+              ...event,
+              totalLikes: isCurrentlyLiked
+                ? Math.max(0, (event.totalLikes || 1) - 1)
+                : (event.totalLikes || 0) + 1,
+            };
+          }
+          return event;
+        });
 
       setBestSellingEvents(updateLikes);
       setPopularEvents(updateLikes);
@@ -668,7 +718,7 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-c-8 gap-2 sm:gap-4">
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-4">
                 {availableCategories.map((category, index) => {
                   const catData = CATEGORY_DATA[category];
                   const IconComponent = catData?.icon || Ticket;
@@ -749,6 +799,7 @@ export default function LandingPage() {
                     isLiked={likedEvents.has(event.id)}
                     onLike={(e) => handleLikeEvent(event.id, e)}
                     isLoggedIn={isLoggedIn}
+                    canLike={canLike}
                     showSales
                   />
                 ))}
@@ -810,6 +861,7 @@ export default function LandingPage() {
                     isLiked={likedEvents.has(event.id)}
                     onLike={(e) => handleLikeEvent(event.id, e)}
                     isLoggedIn={isLoggedIn}
+                    canLike={canLike}
                     showLikes
                   />
                 ))}
@@ -872,6 +924,7 @@ export default function LandingPage() {
                     isLiked={likedEvents.has(event.id)}
                     onLike={(e) => handleLikeEvent(event.id, e)}
                     isLoggedIn={isLoggedIn}
+                    canLike={canLike}
                   />
                 ))}
               </div>
@@ -950,6 +1003,7 @@ function EventCard({
   isLiked,
   onLike,
   isLoggedIn,
+  canLike,
   showSales,
   showLikes,
 }) {
@@ -1002,13 +1056,25 @@ function EventCard({
         {/* Like Button */}
         <button
           onClick={onLike}
+          disabled={!canLike}
           className={`absolute top-2 right-2 sm:top-3 sm:right-3 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all ${
-            isLiked 
-              ? 'bg-pink-500 text-white' 
-              : 'bg-white/90 text-gray-600 hover:bg-pink-100 hover:text-pink-500'
+            !canLike
+              ? "bg-white/90 text-gray-400 cursor-not-allowed"
+              : isLiked
+              ? "bg-pink-500 text-white"
+              : "bg-white/90 text-gray-600 hover:bg-pink-100 hover:text-pink-500"
           }`}
+          title={
+            !canLike
+              ? "Fitur like hanya tersedia untuk user biasa"
+              : isLiked
+              ? "Unlike"
+              : "Like"
+          }
         >
-          <Heart className={`w-3 h-3 sm:w-4 sm:h-4 ${isLiked ? 'fill-current' : ''}`} />
+          <Heart
+            className={`w-3 h-3 sm:w-4 sm:h-4 ${isLiked ? "fill-current" : ""}`}
+          />
         </button>
       </div>
 
@@ -1076,6 +1142,7 @@ function UpcomingEventCard({
   isLiked,
   onLike,
   isLoggedIn,
+  canLike,
 }) {
   const catData = getCategoryData(event.category);
   const parentCategory = getParentCategory(event.category);
@@ -1141,13 +1208,27 @@ function UpcomingEventCard({
               )}
               <button
                 onClick={onLike}
+                disabled={!canLike}
                 className={`w-5 h-5 sm:w-7 sm:h-7 rounded-full flex items-center justify-center transition-all ${
-                  isLiked 
-                    ? 'bg-pink-500 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-pink-100 hover:text-pink-500'
+                  !canLike
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    : isLiked
+                    ? "bg-pink-500 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-pink-100 hover:text-pink-500"
                 }`}
+                title={
+                  !canLike
+                    ? "Fitur like hanya tersedia untuk user biasa"
+                    : isLiked
+                    ? "Unlike"
+                    : "Like"
+                }
               >
-                <Heart className={`w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 ${isLiked ? 'fill-current' : ''}`} />
+                <Heart
+                  className={`w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 ${
+                    isLiked ? "fill-current" : ""
+                  }`}
+                />
               </button>
             </div>
           </div>
@@ -1190,7 +1271,9 @@ function EmptyState({ icon: Icon, title, description }) {
       <div className="w-12 h-12 sm:w-20 sm:h-20 bg-gray-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
         <Icon className="w-6 h-6 sm:w-10 sm:h-10 text-gray-400" />
       </div>
-      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">{title}</h3>
+      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">
+        {title}
+      </h3>
       <p className="text-gray-500 text-sm sm:text-base">{description}</p>
     </div>
   );

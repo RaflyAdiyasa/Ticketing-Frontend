@@ -615,10 +615,11 @@ export default function EventDetail() {
     }
   }, [id]);
 
-  // Fetch liked status untuk user yang login
+  // Fetch liked status untuk user yang login dengan role "user" saja
   useEffect(() => {
     const fetchLikedStatus = async () => {
-      if (!isLoggedIn || !id) return;
+      // Hanya fetch jika user login dan role adalah "user"
+      if (!isLoggedIn || !isRegularUser || !id) return;
 
       try {
         const response = await eventAPI.getMyLikedEvents();
@@ -632,14 +633,20 @@ export default function EventDetail() {
     };
 
     fetchLikedStatus();
-  }, [isLoggedIn, id]);
+  }, [isLoggedIn, isRegularUser, id]);
 
-  // Handle like/unlike event
+  // Handle like/unlike event - Hanya untuk role "user"
   const handleLikeEvent = async (e) => {
     e.stopPropagation();
 
     if (!isLoggedIn) {
       navigate("/login");
+      return;
+    }
+
+    // Cek apakah user adalah regular user (role "user")
+    // Jika bukan, tidak melakukan apa-apa (button akan disabled)
+    if (!isRegularUser) {
       return;
     }
 
@@ -802,7 +809,7 @@ export default function EventDetail() {
     } catch (error) {
       console.error("Error verifying event:", error);
       showNotification(
-        `Gagal ${action === "approve" ? "menyetujui" : "menolak"} event`,
+        "Gagal memverifikasi event",
         "Error",
         "error"
       );
@@ -826,7 +833,6 @@ export default function EventDetail() {
     setSelectedTicket(null);
   };
 
-  // Image preview handlers
   const openImagePreview = (src, alt, aspectRatio) => {
     setPreviewImage({ src, alt, aspectRatio });
     setShowImagePreview(true);
@@ -837,66 +843,82 @@ export default function EventDetail() {
     setPreviewImage({ src: null, alt: null, aspectRatio: "square" });
   };
 
-  // Permission flags
-  const canEdit =
-    isOwner && (event?.status === "pending" || event?.status === "rejected");
-  const canVerify = isAdmin && event?.status === "pending";
-  const canPurchase =
-    isLoggedIn && !isOwner && !isAdmin && !isEO && event?.status === "approved";
-  const showTicketControls = canPurchase;
-  const showStatusInfo = (isOwner || isAdmin) && isLoggedIn;
-
-  // Loading state
   if (loading) {
     return (
-      <div>
+      <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center pt-40">
-          <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-            <div className="text-lg text-gray-600">Memuat detail event...</div>
+        <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+          <div className="flex flex-col items-center gap-3 sm:gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-b-2 border-blue-600"></div>
+            <p className="text-gray-600 text-sm sm:text-base">Memuat detail event...</p>
           </div>
         </div>
+        <NotificationModal
+          message={notification.message}
+          title={notification.title}
+          type={notification.type}
+          isOpen={notification.isOpen}
+          onClose={hideNotification}
+        />
       </div>
     );
   }
 
-  // Error state
   if (error || !event) {
     return (
-      <div>
+      <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center pt-40">
-          <div className="text-lg text-red-600 mb-4">
-            {error || "Event tidak ditemukan"}
+        <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+          <div className="text-center px-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-red-600 mb-2">
+              Gagal memuat event
+            </h2>
+            <p className="text-gray-600 mb-4 text-sm sm:text-base">{error || "Event tidak ditemukan"}</p>
+            <button
+              onClick={() => navigate(-1)}
+              className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+            >
+              Kembali
+            </button>
           </div>
-          <button
-            onClick={() => navigate("/cariEvent")}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            Kembali ke Cari Event
-          </button>
         </div>
+        <NotificationModal
+          message={notification.message}
+          title={notification.title}
+          type={notification.type}
+          isOpen={notification.isOpen}
+          onClose={hideNotification}
+        />
       </div>
     );
   }
 
-  const totalHarga = tickets.reduce((sum, t) => sum + t.price * t.qty, 0);
+  const totalHarga = tickets.reduce(
+    (sum, ticket) => sum + ticket.price * ticket.qty,
+    0
+  );
   const adaTiketDipilih = tickets.some((t) => t.qty > 0);
 
+  const canEdit = isOwner || isAdmin;
+  const canVerify = isAdmin && event.status === "pending";
+  const canPurchase = isRegularUser;
+  const showTicketControls = canPurchase;
+  const showStatusInfo =
+    isOwner || isAdmin || (isEO && event.status !== "approved");
+
   return (
-    <div>
+    <div className="min-h-screen bg-gray-50 mt-30">
       <Navbar />
 
       <NotificationModal
+        message={notification.message}
+        title={notification.title}
+        type={notification.type}
         isOpen={notification.isOpen}
         onClose={hideNotification}
-        title={notification.title}
-        message={notification.message}
-        type={notification.type}
       />
 
-      <div className="min-h-screen bg-gray-100 pt-40 pb-8">
+      <div className="py-6 sm:py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header dengan Back Button */}
           <div className="mb-6">
@@ -920,17 +942,17 @@ export default function EventDetail() {
                       {event.name}
                     </h1>
 
-                    {/* Like Button */}
+                    {/* Like Button - Hanya untuk role "user" */}
                     <motion.button
                       onClick={handleLikeEvent}
-                      disabled={likeLoading}
+                      disabled={likeLoading || !isRegularUser}
                       className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full transition-all shrink-0 ${
                         isLiked
                           ? "bg-pink-500 text-white hover:bg-pink-600"
                           : "bg-white/20 text-white hover:bg-white/30"
-                      } ${likeLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-                      whileHover={{ scale: likeLoading ? 1 : 1.05 }}
-                      whileTap={{ scale: likeLoading ? 1 : 0.95 }}
+                      } ${(likeLoading || !isRegularUser) ? "opacity-50 cursor-not-allowed" : ""}`}
+                      whileHover={{ scale: (likeLoading || !isRegularUser) ? 1 : 1.05 }}
+                      whileTap={{ scale: (likeLoading || !isRegularUser) ? 1 : 0.95 }}
                     >
                       <Heart
                         className={`w-4 h-4 sm:w-5 sm:h-5 transition-all ${
@@ -988,17 +1010,6 @@ export default function EventDetail() {
                     </div>
                   </div>
                 </div>
-
-                {canEdit && (
-                  <div className="flex gap-3 shrink-0 w-full lg:w-auto">
-                    <button
-                      onClick={() => navigate(`/edit-event/${id}`)}
-                      className="flex items-center justify-center gap-2 bg-white text-blue-600 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg hover:bg-blue-50 transition-colors font-semibold text-sm sm:text-base w-full lg:w-auto"
-                    >
-                      Edit Event
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
 
