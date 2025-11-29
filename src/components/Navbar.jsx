@@ -15,6 +15,7 @@ import {
   Star,
   Users,
   Heart,
+  Settings,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
@@ -525,6 +526,17 @@ export default function Navbar() {
                 >
                   <ShieldCheck size={16} />
                   <span>Verifikasi Event</span>
+                  {/* Hover effect */}
+                  <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                    location.pathname === "/verifikasi-event" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                  }`} />
+                </NavLink>
+                <NavLink
+                  to="/atur-event"
+                  className={({ isActive }) => getNavLinkClass(isActive)}
+                >
+                  <Settings size={16} />
+                  <span>Atur Event</span>
                   {/* Hover effect */}
                   <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
                     location.pathname === "/verifikasi-event" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
