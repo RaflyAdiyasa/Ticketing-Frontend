@@ -137,7 +137,7 @@ export default function AturEventPage() {
           {activeTab === "kategori" && (
             <div>
               <div className="flex gap-3 mb-6">
-                <input type="text" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="Nama Kategori Baru" className="border px-4 py-2 rounded w-full" />
+                <input type="text" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="Tambah Kategori Baru" className="border px-4 py-2 rounded w-full" />
                 <button onClick={addCategory} className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg pr-1.5 w-35">
                      <Plus className="inline mr-1" />
                     Tambah</button>
@@ -191,7 +191,7 @@ export default function AturEventPage() {
                       {cat.subcategories.map((sub) => (
                         <div key={sub} className="ml-6 border px-3 py-2 rounded-lg bg-gray-50 flex justify-between items-center">
                           <span>{sub}</span>
-                          <button className="hover:text-red-600 flex items-center gap-1 text-sm"
+                          <button className="text-red-600 hover:text-red-400 flex items-center gap-1 text-sm"
                             onClick={() => {
                               if (confirm("Hapus subkategori?")) deleteSubcategory(cat.id, sub);
                             }}
@@ -226,7 +226,7 @@ export default function AturEventPage() {
 
       <button
         onClick={openAddVenue}
-        className="bg-blue-600 hover:bg-blue-500 text-white pl-2 pr-5 py-2 rounded-lg"
+        className="bg-blue-600 hover:bg-blue-500 text-white pl-2 pr-2 py-2 rounded-lg"
       >
         <Plus size={25} className="inline mr-1" />
         Tambah Venue

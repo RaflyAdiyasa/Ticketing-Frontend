@@ -769,6 +769,20 @@ export default function Navbar() {
                   <ShieldCheck size={20} />
                   <span className="font-semibold">Verifikasi Event</span>
                 </NavLink>
+                <NavLink
+                  to="/atur-event"
+                  className={({ isActive }) => 
+                    `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
+                      isActive 
+                        ? "bg-blue-50 text-blue-600 font-bold" 
+                        : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                    }`
+                  }
+                  onClick={() => setMobileMenuIsOpen(false)}
+                >
+                  <Settings size={20} />
+                  <span className="font-semibold">Atur Event</span>
+                </NavLink>
               </>
             )}
 
