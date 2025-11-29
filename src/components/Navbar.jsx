@@ -15,6 +15,8 @@ import {
   Star,
   Users,
   Heart,
+  Settings,
+  Flag,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
@@ -104,6 +106,11 @@ export default function Navbar() {
   const handleViewTransactionHistory = () => {
     setProfileDropdownOpen(false);
     navigate("/riwayat-transaksi");
+  };
+
+  const handleViewReportIssue = () => {
+    setProfileDropdownOpen(false);
+    navigate("/laporkan-masalah");
   };
 
   const handleSearchSubmit = (e) => {
@@ -393,6 +400,18 @@ export default function Navbar() {
                             <span className="font-medium text-gray-700 group-hover:text-green-600 transition-colors">Riwayat Transaksi</span>
                           </button>
                         )}
+
+                        {getUserRole() === "user" || getUserRole() === "organizer" && (
+                          <button
+                            onClick={handleViewReportIssue}
+                            className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-yellow-50 rounded-lg transition-colors group"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center group-hover:bg-yellow-200 transition-colors">
+                              <Flag className="w-4 h-4 text-yellow-600" />
+                            </div>
+                            <span className="font-medium text-gray-700 group-hover:text-yellow-600 transition-colors">Laporkan Masalah</span>
+                          </button>
+                        )}
                         
                         <div className="border-t border-gray-200 mt-2 pt-2">
                           <button
@@ -525,6 +544,17 @@ export default function Navbar() {
                 >
                   <ShieldCheck size={16} />
                   <span>Verifikasi Event</span>
+                  {/* Hover effect */}
+                  <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                    location.pathname === "/verifikasi-event" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                  }`} />
+                </NavLink>
+                <NavLink
+                  to="/atur-event"
+                  className={({ isActive }) => getNavLinkClass(isActive)}
+                >
+                  <Settings size={16} />
+                  <span>Atur Event</span>
                   {/* Hover effect */}
                   <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
                     location.pathname === "/verifikasi-event" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
@@ -756,6 +786,20 @@ export default function Navbar() {
                 >
                   <ShieldCheck size={20} />
                   <span className="font-semibold">Verifikasi Event</span>
+                </NavLink>
+                <NavLink
+                  to="/atur-event"
+                  className={({ isActive }) => 
+                    `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
+                      isActive 
+                        ? "bg-blue-50 text-blue-600 font-bold" 
+                        : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                    }`
+                  }
+                  onClick={() => setMobileMenuIsOpen(false)}
+                >
+                  <Settings size={20} />
+                  <span className="font-semibold">Atur Event</span>
                 </NavLink>
               </>
             )}
