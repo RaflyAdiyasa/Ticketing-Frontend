@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { Calendar, Folder, Plus, Pencil, Trash2, Eye, X, Save, ArrowLeft, Search, RefreshCw } from "lucide-react";
+import { Calendar, Folder, Plus, Pencil, Trash2, Eye, X, Save, ArrowLeft, Search } from "lucide-react";
 import { eventAPI } from "../services/api";
 import TicketCategoryModal from "../components/TicketCategoryModal";
 import NotificationModal from "../components/NotificationModal";
@@ -588,7 +588,7 @@ export default function EditEventPage() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center pt-36">
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center pt-36">
           <motion.div 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -606,7 +606,7 @@ export default function EditEventPage() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center pt-36">
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center pt-36">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -664,64 +664,54 @@ export default function EditEventPage() {
         minDate={minDate}
       />
 
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-32">
+      <div className="min-h-screen bg-gray-100 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="bg-white rounded-2xl shadow-xl overflow-hidden"
+            className="bg-white rounded-2xl shadow-lg p-6 md:p-8 mt-32"
           >
-            {/* Header dengan Gradient */}
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex items-center gap-4">
-                  <motion.button
-                    onClick={() => navigate(`/detailEvent/${id}`)}
-                    className="flex items-center gap-2 text-white hover:text-blue-100 transition-colors p-2 rounded-lg hover:bg-blue-400"
-                    whileHover={{ scale: 1.05, x: -2 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <ArrowLeft size={20} />
-                    <span className="font-medium">Kembali</span>
-                  </motion.button>
-                  <div>
-                    <h1 className="text-2xl md:text-3xl font-bold">Edit Event</h1>
-                    <p className="text-blue-100 mt-1">Perbarui informasi event Anda</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-4">
-                  {event && (
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-blue-100 font-medium">Status:</span>
-                      <span className={getStatusBadge(event.status)}>
-                        {event.status === 'pending' ? 'Pending' : 
-                         event.status === 'rejected' ? 'Ditolak' : 
-                         event.status === 'approved' ? 'Disetujui' : 
-                         event.status === 'published' ? 'Dipublikasi' : event.status}
-                      </span>
-                    </div>
-                  )}
-                  
-                  <motion.button
-                    type="button"
-                    onClick={fetchEventCategories}
-                    disabled={loadingCategories}
-                    className="flex items-center gap-2 bg-blue-400 hover:bg-blue-300 text-white px-4 py-2 rounded-lg transition-colors font-medium disabled:opacity-50"
-                    whileHover={{ scale: loadingCategories ? 1 : 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <RefreshCw size={18} className={loadingCategories ? "animate-spin" : ""} />
-                    {loadingCategories ? "Memuat..." : "Refresh Kategori"}
-                  </motion.button>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8"
+            >
+              <div className="flex items-center gap-4">
+                <motion.button
+                  onClick={() => navigate(`/detailEvent/${id}`)}
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors p-2 rounded-lg hover:bg-gray-100"
+                  whileHover={{ scale: 1.05, x: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <ArrowLeft size={20} />
+                  <span className="font-medium">Kembali</span>
+                </motion.button>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Edit Event</h1>
+                  <p className="text-gray-600 mt-2">Perbarui informasi event Anda</p>
                 </div>
               </div>
-            </div>
+              
+              <div className="flex items-center gap-4 mt-4 md:mt-0">
+                {event && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-700 font-medium">Status:</span>
+                    <span className={getStatusBadge(event.status)}>
+                      {event.status === 'pending' ? 'Pending' : 
+                       event.status === 'rejected' ? 'Ditolak' : 
+                       event.status === 'approved' ? 'Disetujui' : 
+                       event.status === 'published' ? 'Dipublikasi' : event.status}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
 
             <motion.form 
               onSubmit={handleSubmit} 
-              className="space-y-8 p-6 md:p-8"
+              className="space-y-8"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
@@ -1078,7 +1068,7 @@ export default function EditEventPage() {
                 <motion.button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-6 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
+                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
                   whileHover={{ scale: loading ? 1 : 1.02, y: loading ? 0 : -1 }}
                   whileTap={{ scale: 0.98 }}
                 >

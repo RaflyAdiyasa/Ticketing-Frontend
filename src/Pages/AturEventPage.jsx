@@ -15,8 +15,8 @@ import {
   RefreshCw,
   Folder,
   Tag,
+  Shapes,
   AlertTriangle,
-  CheckCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -288,14 +288,14 @@ export default function AturEventPage() {
               <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-xl">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-blue-100 text-sm font-medium">Total Kategori</p>
+                    <p className="text-blue-100 text-2sm font-medium">Total Kategori</p>
                     <p className="text-3xl font-bold mt-1">{totalCategories}</p>
                   </div>
                   <motion.div
                     whileHover={{ scale: 1.1, rotate: 5 }}
                     transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   >
-                    <Folder size={32} className="text-white opacity-80" />
+                    <Shapes size={32} className="text-white opacity-80" />
                   </motion.div>
                 </div>
               </div>
@@ -303,14 +303,14 @@ export default function AturEventPage() {
               <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-xl">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-green-100 text-sm font-medium">Total Subkategori</p>
+                    <p className="text-green-100 text-2sm font-medium">Total Subkategori</p>
                     <p className="text-3xl font-bold mt-1">{totalSubCategories}</p>
                   </div>
                   <motion.div
                     whileHover={{ scale: 1.1, rotate: 5 }}
                     transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   >
-                    <Tag size={32} className="text-white opacity-80" />
+                    <Shapes size={32} className="text-white opacity-80" />
                   </motion.div>
                 </div>
               </div>

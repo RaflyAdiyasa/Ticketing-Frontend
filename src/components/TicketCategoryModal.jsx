@@ -9,8 +9,7 @@ export default function TicketCategoryModal({
   onAddTicket,
   editingTicket,
   onUpdateTicket,
-  eventDates,
-  minDate 
+  eventDates 
 }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -47,27 +46,6 @@ export default function TicketCategoryModal({
     category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Fungsi untuk mendapatkan tanggal minimal (3 hari dari sekarang)
-  const getMinDate = () => {
-    const minDate = new Date();
-    minDate.setDate(minDate.getDate() + 3);
-    return minDate.toISOString().split('T')[0];
-  };
-
-  // Fungsi untuk memformat tanggal menjadi format yang mudah dibaca
-  const formatDateForDisplay = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  // Gunakan minDate dari props atau hitung sendiri
-  const ticketMinDate = minDate || getMinDate();
-
   useEffect(() => {
     if (isOpen) {
       if (editingTicket) {
@@ -75,8 +53,8 @@ export default function TicketCategoryModal({
           name: editingTicket.name || "",
           quota: editingTicket.quota || "",
           price: editingTicket.price || "",
-          date_start: editingTicket.date_start || "",
-          date_end: editingTicket.date_end || "",
+          date_start: editingTicket.date_start || eventDates?.start || "",
+          date_end: editingTicket.date_end || eventDates?.end || "",
           time_start: editingTicket.time_start || "00:00",
           time_end: editingTicket.time_end || "23:59",
           description: editingTicket.description || ""
@@ -121,14 +99,6 @@ export default function TicketCategoryModal({
     if (name === "name") {
       setSearchQuery(value);
     }
-
-    // Validasi tanggal selesai harus setelah tanggal mulai
-    if (name === "date_start" && formData.date_end && value > formData.date_end) {
-      setFormData(prev => ({
-        ...prev,
-        date_end: value
-      }));
-    }
   };
 
   const handleTextareaChange = (e) => {
@@ -166,55 +136,57 @@ export default function TicketCategoryModal({
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
+  const validateForm = () => {
     if (!formData.name || !formData.quota || !formData.price || !formData.date_start || !formData.date_end) {
-      showNotification("Harap isi semua field yang wajib diisi!", "Validasi Gagal", "warning");
-      return;
+      return { isValid: false, message: "Harap isi semua field yang wajib diisi!" };
     }
 
-    // Validasi tanggal mulai minimal 3 hari dari sekarang
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const startDate = new Date(formData.date_start);
-    const minStartDate = new Date();
-    minStartDate.setDate(minStartDate.getDate() + 3);
-    minStartDate.setHours(0, 0, 0, 0);
-
-    if (startDate < minStartDate) {
-      showNotification(
-        `Tanggal mulai tiket harus minimal 3 hari dari sekarang. Paling cepat ${formatDateForDisplay(ticketMinDate)}`,
-        "Validasi Gagal",
-        "warning"
-      );
-      return;
-    }
-
-    // Validasi tanggal mulai dan selesai
     const startDateTime = new Date(`${formData.date_start}T${formData.time_start}`);
     const endDateTime = new Date(`${formData.date_end}T${formData.time_end}`);
     
     if (endDateTime <= startDateTime) {
-      showNotification("Tanggal/waktu selesai harus setelah tanggal/waktu mulai!", "Validasi Gagal", "warning");
-      return;
+      return { isValid: false, message: "Tanggal/waktu selesai harus setelah tanggal/waktu mulai!" };
     }
 
-    // Validasi tanggal tiket tidak boleh melebihi tanggal event
+    // Validasi terhadap tanggal event
     if (eventDates?.start && eventDates?.end) {
-      const eventStartDate = new Date(eventDates.start);
-      const eventEndDate = new Date(eventDates.end);
+      const eventStart = new Date(eventDates.start);
+      const eventEnd = new Date(eventDates.end);
       
-      if (startDateTime < eventStartDate) {
-        showNotification("Tanggal mulai tiket tidak boleh sebelum tanggal mulai event!", "Validasi Gagal", "warning");
-        return;
-      }
+      eventStart.setHours(0, 0, 0, 0);
+      eventEnd.setHours(23, 59, 59, 999);
       
-      if (endDateTime > eventEndDate) {
-        showNotification("Tanggal selesai tiket tidak boleh setelah tanggal selesai event!", "Validasi Gagal", "warning");
-        return;
+      const ticketStart = new Date(formData.date_start);
+      const ticketEnd = new Date(formData.date_end);
+      
+      ticketStart.setHours(0, 0, 0, 0);
+      ticketEnd.setHours(23, 59, 59, 999);
+
+      if (ticketStart < eventStart) {
+        return { 
+          isValid: false, 
+          message: `Tanggal mulai tiket tidak boleh sebelum tanggal event (${new Date(eventDates.start).toLocaleDateString('id-ID')})` 
+        };
       }
+
+      if (ticketEnd > eventEnd) {
+        return { 
+          isValid: false, 
+          message: `Tanggal selesai tiket tidak boleh setelah tanggal event (${new Date(eventDates.end).toLocaleDateString('id-ID')})` 
+        };
+      }
+    }
+
+    return { isValid: true };
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    const validation = validateForm();
+    if (!validation.isValid) {
+      showNotification(validation.message, "Validasi Gagal", "warning");
+      return;
     }
 
     const ticketData = {
@@ -226,10 +198,8 @@ export default function TicketCategoryModal({
 
     if (editingTicket) {
       onUpdateTicket(ticketData);
-      showNotification("Kategori tiket berhasil diperbarui!", "Update Berhasil", "success");
     } else {
       onAddTicket(ticketData);
-      showNotification("Kategori tiket berhasil ditambahkan!", "Tambah Berhasil", "success");
     }
 
     onClose();
@@ -237,7 +207,6 @@ export default function TicketCategoryModal({
 
   const handleCancel = () => {
     onClose();
-    showNotification("Proses dibatalkan", "Informasi", "info");
   };
 
   const generateTimeOptions = () => {
@@ -261,22 +230,22 @@ export default function TicketCategoryModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        className="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+          className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl"
         >
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
+          {/* Header yang lebih sederhana */}
+          <div className="border-b border-gray-200 p-6">
             <div className="flex justify-between items-center">
               <motion.h2 
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="text-xl font-bold"
+                className="text-xl font-bold text-gray-800"
               >
                 {editingTicket ? "Edit Kategori Tiket" : "Tambah Kategori Tiket"}
               </motion.h2>
@@ -286,11 +255,24 @@ export default function TicketCategoryModal({
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={onClose}
-                className="text-white hover:text-blue-100 p-1 rounded-full transition-colors"
+                className="text-gray-500 hover:text-gray-700 p-1 rounded-full transition-colors"
               >
                 <X size={24} />
               </motion.button>
             </div>
+            {eventDates?.start && eventDates?.end && (
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="text-sm text-gray-600 mt-2"
+              >
+                Tanggal tiket harus dalam rentang event:{" "}
+                <span className="font-medium">
+                  {new Date(eventDates.start).toLocaleDateString('id-ID')} - {new Date(eventDates.end).toLocaleDateString('id-ID')}
+                </span>
+              </motion.p>
+            )}
           </div>
 
           {/* Form */}
@@ -422,8 +404,9 @@ export default function TicketCategoryModal({
                         className="w-full outline-none bg-transparent" 
                         value={formData.date_start}
                         onChange={handleInputChange}
-                        min={ticketMinDate}
                         required
+                        min={eventDates?.start || undefined}
+                        max={eventDates?.end || undefined}
                       />
                     </div>
                     <div className="flex items-center border border-gray-300 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-colors">
@@ -443,9 +426,6 @@ export default function TicketCategoryModal({
                       </select>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-800">
-                    Paling cepat 3 hari dari hari ini ({formatDateForDisplay(ticketMinDate)})
-                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -459,8 +439,9 @@ export default function TicketCategoryModal({
                         className="w-full outline-none bg-transparent" 
                         value={formData.date_end}
                         onChange={handleInputChange}
-                        min={formData.date_start || ticketMinDate}
                         required
+                        min={formData.date_start || eventDates?.start || undefined}
+                        max={eventDates?.end || undefined}
                       />
                     </div>
                     <div className="flex items-center border border-gray-300 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-colors">
@@ -480,19 +461,16 @@ export default function TicketCategoryModal({
                       </select>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-800">
-                    Harus setelah tanggal mulai
-                  </p>
                 </div>
               </div>
               
               {eventDates?.start && eventDates?.end && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm text-blue-800">
-                    <strong>Info:</strong> Tanggal event utama: {new Date(eventDates.start).toLocaleDateString('id-ID')} hingga {new Date(eventDates.end).toLocaleDateString('id-ID')}
-                  </p>
-                  <p className="text-sm text-blue-800 mt-1">
-                    <strong>Catatan:</strong> Tanggal tiket harus berada dalam rentang tanggal event utama.
+                    <strong>Info:</strong> Tanggal tiket harus dalam rentang tanggal event:{" "}
+                    <span className="font-medium">
+                      {new Date(eventDates.start).toLocaleDateString('id-ID')} hingga {new Date(eventDates.end).toLocaleDateString('id-ID')}
+                    </span>
                   </p>
                 </div>
               )}
@@ -528,7 +506,7 @@ export default function TicketCategoryModal({
             >
               <motion.button
                 type="button"
-                onClick={handleCancel}
+                onClick={onClose}
                 className="flex-1 border border-gray-300 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                 whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
@@ -537,7 +515,7 @@ export default function TicketCategoryModal({
               </motion.button>
               <motion.button
                 type="submit"
-                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-6 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-colors font-medium shadow-md"
+                className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md"
                 whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
               >

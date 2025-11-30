@@ -64,13 +64,11 @@ const CATEGORIES = {
   ]
 };
 
-// District options - sama dengan di EventRegister
 const DISTRICTS = [
   "Tegalrejo", "Jetis", "Gondokusuman", "Danurejan", "Gedongtengen", "Ngampilan", "Wirobrajan", "Mantrijeron",
   "Kraton", "Gondomanan", "Pakualaman", "Mergangsan", "Umbulharjo", "Kotagede"
 ];
 
-// Category colors
 const CATEGORY_COLORS = {
   "Hiburan": "bg-purple-500",
   "Teknologi": "bg-blue-500",
@@ -88,7 +86,7 @@ const CATEGORY_COLORS = {
   "Lainnya": "bg-gray-500"
 };
 
-const ITEMS_PER_PAGE = 15; // 5 columns x 3 rows
+const ITEMS_PER_PAGE = 15;
 
 export default function CariEvent() {
   const navigate = useNavigate();
@@ -107,14 +105,10 @@ export default function CariEvent() {
   const formatDate = (dateStart, dateEnd) => {
     const start = new Date(dateStart);
     const end = new Date(dateEnd);
-    
     const formatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
     const startFormatted = start.toLocaleDateString('id-ID', formatOptions);
     const endFormatted = end.toLocaleDateString('id-ID', formatOptions);
-    
-    if (startFormatted === endFormatted) {
-      return startFormatted;
-    }
+    if (startFormatted === endFormatted) return startFormatted;
     return `${startFormatted} - ${endFormatted}`;
   };
 
@@ -145,11 +139,8 @@ export default function CariEvent() {
   const [likedEvents, setLikedEvents] = useState(new Set());
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState(null);
-  
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   
-  // State untuk filter
   const [filters, setFilters] = useState({
     keyword: namaEvent || searchParams.get('keyword') || "",
     date: searchParams.get('date') || "",
@@ -157,15 +148,12 @@ export default function CariEvent() {
     district: searchParams.get('district') || ""
   });
 
-  // State untuk sorting - get initial value from URL
   const initialSort = searchParams.get('sort') || "popularitas";
   const [sortBy, setSortBy] = useState(initialSort);
 
-  // Check login status dan role
   useEffect(() => {
     const userData = sessionStorage.getItem("user");
     const token = sessionStorage.getItem("token");
-    
     if (userData && token) {
       const user = JSON.parse(userData);
       setIsLoggedIn(true);
@@ -176,12 +164,10 @@ export default function CariEvent() {
     }
   }, []);
 
-  // Check if user can like (only regular users can like, not admin or organizer)
   const canLike = useMemo(() => {
     return isLoggedIn && userRole === "user";
   }, [isLoggedIn, userRole]);
 
-  // Fetch liked events for logged in user
   useEffect(() => {
     const fetchLikedEvents = async () => {
       if (!isLoggedIn) return;
@@ -198,7 +184,6 @@ export default function CariEvent() {
     fetchLikedEvents();
   }, [isLoggedIn]);
 
-  // Load data dari backend
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -213,25 +198,18 @@ export default function CariEvent() {
         setLoading(false);
       }
     };
-
     fetchEvents();
   }, []);
 
-  // Update keyword filter ketika namaEvent dari URL berubah
   useEffect(() => {
     if (namaEvent && namaEvent !== filters.keyword) {
-      setFilters(prev => ({
-        ...prev,
-        keyword: namaEvent
-      }));
+      setFilters(prev => ({ ...prev, keyword: namaEvent }));
     }
   }, [namaEvent, filters.keyword]);
 
-  // Apply filters DAN sorting
   useEffect(() => {
     let result = [...events];
 
-    // Apply filters
     if (filters.keyword) {
       result = result.filter(event => 
         event.name.toLowerCase().includes(filters.keyword.toLowerCase())
@@ -258,77 +236,48 @@ export default function CariEvent() {
       result = result.filter(event => event.district === filters.district);
     }
 
-    // APPLY SORTING
     if (sortBy === "popularitas") {
-      result = result.sort((eventA, eventB) => {
-        const likesA = eventA.total_likes || 0;
-        const likesB = eventB.total_likes || 0;
-        return likesB - likesA;
-      });
+      result = result.sort((a, b) => (b.total_likes || 0) - (a.total_likes || 0));
     } else if (sortBy === "terlaris") {
-      result = result.sort((eventA, eventB) => {
-        const salesA = eventA.total_tickets_sold || 0;
-        const salesB = eventB.total_tickets_sold || 0;
-        return salesB - salesA;
-      });
+      result = result.sort((a, b) => (b.total_tickets_sold || 0) - (a.total_tickets_sold || 0));
     } else if (sortBy === "terdekat") {
       const now = new Date();
-      result = result.sort((eventA, eventB) => {
-        const dateA = new Date(eventA.date_start);
-        const dateB = new Date(eventB.date_start);
-        // Filter hanya event yang akan datang
+      result = result.sort((a, b) => {
+        const dateA = new Date(a.date_start);
+        const dateB = new Date(b.date_start);
         const isUpcomingA = dateA >= now;
         const isUpcomingB = dateB >= now;
-        
         if (isUpcomingA && !isUpcomingB) return -1;
         if (!isUpcomingA && isUpcomingB) return 1;
-        
         return dateA - dateB;
       });
     }
 
     setFilteredEvents(result);
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   }, [filters, events, sortBy]);
 
-  // Handle like event
   const handleLikeEvent = async (eventId, e) => {
     e.stopPropagation();
-    
-    if (!isLoggedIn) {
-      navigate('/login');
-      return;
-    }
+    if (!isLoggedIn) { navigate('/login'); return; }
 
-    // Double check role sebelum like
     const userData = sessionStorage.getItem("user");
     if (!userData) return;
     
     const user = JSON.parse(userData);
-    if (user.role !== "user") {
-      // Optional: Tampilkan notifikasi bahwa hanya user biasa yang bisa like
-      console.log("Hanya user biasa yang dapat melakukan like");
-      return;
-    }
+    if (user.role !== "user") return;
 
-    // Capture the current like status BEFORE making any state changes
     const isCurrentlyLiked = likedEvents.has(eventId);
 
     try {
       await eventAPI.likeEvent(eventId);
-      
-      // Update likedEvents state
       setLikedEvents(prev => {
         const newSet = new Set(prev);
-        if (isCurrentlyLiked) {
-          newSet.delete(eventId);
-        } else {
-          newSet.add(eventId);
-        }
+        if (isCurrentlyLiked) newSet.delete(eventId);
+        else newSet.add(eventId);
         return newSet;
       });
 
-      // Update like counts in events using the captured status
       setEvents(prev => prev.map(event => {
         if (event.event_id === eventId) {
           return {
@@ -346,43 +295,28 @@ export default function CariEvent() {
   };
 
   const handleFilterChange = (field, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFilters(prev => ({ ...prev, [field]: value }));
   };
 
-  // Handler untuk sorting
   const handleSortChange = (value) => {
     setSortBy(value);
-    // Update URL params
     const newParams = new URLSearchParams(searchParams);
     newParams.set('sort', value);
     setSearchParams(newParams);
   };
 
-  const handleCardClick = (id) => {
-    navigate(`/detailEvent/${id}`);
-  };
+  const handleCardClick = (id) => navigate(`/detailEvent/${id}`);
 
   const clearFilters = () => {
-    setFilters({
-      keyword: "",
-      date: "",
-      category: "",
-      district: ""
-    });
+    setFilters({ keyword: "", date: "", category: "", district: "" });
     setSortBy("popularitas");
     navigate(`/cariEvent`);
   };
 
-  const handleRefresh = () => {
-    window.location.reload();
-  };
+  const handleRefresh = () => window.location.reload();
 
   const hasActiveFilters = filters.keyword || filters.date || filters.category || filters.district;
 
-  // Pagination calculations
   const totalPages = Math.ceil(filteredEvents.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
@@ -393,15 +327,12 @@ export default function CariEvent() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Generate page numbers to display
   const getPageNumbers = () => {
     const pages = [];
     const maxVisiblePages = 5;
     
     if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
       if (currentPage <= 3) {
         for (let i = 1; i <= 4; i++) pages.push(i);
@@ -426,93 +357,97 @@ export default function CariEvent() {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
       <Navbar />
 
-      <div className="py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto mt-32">
+      <div className="py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto mt-20 sm:mt-32">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-2xl shadow-lg p-6 md:p-8"
+            className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 md:p-8"
           >
             
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Cari Event</h1>
-                <p className="text-gray-600 mt-2">
-                  Total: {events.length} event • Ditampilkan: {filteredEvents.length} event
-                </p>
-              </div>
-              
-              <div className="flex items-center gap-3 mt-4 md:mt-0">
-                {hasActiveFilters && (
-                  <button
-                    onClick={clearFilters}
-                    className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800 font-medium"
-                  >
-                    <X size={16} />
-                    Hapus Filter
-                  </button>
-                )}
+            {/* Header - Mobile Optimized */}
+            <div className="flex flex-col gap-4 mb-6 sm:mb-8">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Cari Event</h1>
+                  <p className="text-sm sm:text-base text-gray-600 mt-1">
+                    Total: {events.length} • Ditampilkan: {filteredEvents.length}
+                  </p>
+                </div>
                 
-                <button
-                  onClick={handleRefresh}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl transition-colors font-medium"
-                >
-                  <RefreshCw size={18} />
-                  Refresh
-                </button>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  {hasActiveFilters && (
+                    <button
+                      onClick={clearFilters}
+                      className="flex items-center gap-1.5 text-xs sm:text-sm text-red-600 hover:text-red-800 font-medium px-2 py-1.5"
+                    >
+                      <X size={14} />
+                      <span className="hidden xs:inline">Hapus Filter</span>
+                      <span className="xs:hidden">Reset</span>
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={handleRefresh}
+                    className="flex items-center gap-1.5 sm:gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl transition-colors font-medium text-sm"
+                  >
+                    <RefreshCw size={16} />
+                    <span className="hidden sm:inline">Refresh</span>
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Sort Tabs */}
-            <div className="flex flex-wrap gap-2 mb-6">
+            {/* Sort Tabs - Mobile Scrollable */}
+            <div className="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible scrollbar-hide">
               <button
                 onClick={() => handleSortChange('popularitas')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-medium transition-all whitespace-nowrap text-sm ${
                   sortBy === 'popularitas'
                     ? 'bg-pink-600 text-white shadow-md'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                <Heart size={18} className={sortBy === 'popularitas' ? 'fill-current' : ''} />
+                <Heart size={16} className={sortBy === 'popularitas' ? 'fill-current' : ''} />
                 Popularitas
               </button>
               <button
                 onClick={() => handleSortChange('terlaris')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-medium transition-all whitespace-nowrap text-sm ${
                   sortBy === 'terlaris'
                     ? 'bg-emerald-600 text-white shadow-md'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                <ShoppingBag size={18} />
+                <ShoppingBag size={16} />
                 Terlaris
               </button>
               <button
                 onClick={() => handleSortChange('terdekat')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-medium transition-all whitespace-nowrap text-sm ${
                   sortBy === 'terdekat'
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                <Clock size={18} />
+                <Clock size={16} />
                 Terdekat
               </button>
             </div>
 
-            {/* Panel Filter dan Pencarian */}
-            <div className="bg-gray-50 rounded-xl p-6 mb-8">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                <h3 className="text-xl font-semibold text-gray-800">Filter & Pencarian</h3>
+            {/* Filter Panel - Mobile Optimized */}
+            <div className="bg-gray-50 rounded-lg sm:rounded-xl p-4 sm:p-6 mb-6 sm:mb-8">
+              <div className="flex justify-between items-center gap-3 mb-4">
+                <h3 className="text-base sm:text-xl font-semibold text-gray-800">Filter & Pencarian</h3>
                 
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-1.5 sm:gap-2 bg-white border border-gray-300 text-gray-700 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                 >
-                  <Filter size={18} />
-                  {showFilters ? "Sembunyikan Filter" : "Tampilkan Filter"}
+                  <Filter size={16} />
+                  <span className="hidden sm:inline">{showFilters ? "Sembunyikan" : "Tampilkan"}</span>
+                  <span className="sm:hidden">{showFilters ? "Tutup" : "Filter"}</span>
                 </button>
               </div>
 
@@ -521,93 +456,89 @@ export default function CariEvent() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="space-y-4 pt-4 border-t border-gray-200"
+                  className="space-y-3 sm:space-y-4 pt-4 border-t border-gray-200"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* Pencarian Nama */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    {/* Search Input */}
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700">
                         Cari Nama Event
                       </label>
                       <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                         <input
                           type="text"
                           placeholder="Cari event..."
                           value={filters.keyword}
                           onChange={(e) => handleFilterChange('keyword', e.target.value)}
-                          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
                         />
                       </div>
                     </div>
 
-                    {/* Filter Tanggal */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
+                    {/* Date Filter */}
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700">
                         Filter Tanggal
                       </label>
                       <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                         <input
                           type="date"
                           value={filters.date}
                           onChange={(e) => handleFilterChange('date', e.target.value)}
-                          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
                         />
                       </div>
                     </div>
 
-                    {/* Filter Kategori */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
+                    {/* Category Filter */}
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700">
                         Kategori
                       </label>
                       <select 
                         value={filters.category}
                         onChange={(e) => handleFilterChange('category', e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 sm:py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
                       >
                         <option value="">Semua Kategori</option>
                         {Object.keys(CATEGORIES).map((category) => (
-                          <option key={category} value={category}>
-                            {category}
-                          </option>
+                          <option key={category} value={category}>{category}</option>
                         ))}
                       </select>
                     </div>
 
-                    {/* Filter District */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
+                    {/* District Filter */}
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700">
                         Kecamatan
                       </label>
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                         <select 
                           value={filters.district}
                           onChange={(e) => handleFilterChange('district', e.target.value)}
-                          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
                         >
                           <option value="">Semua Kecamatan</option>
                           {DISTRICTS.map((district) => (
-                            <option key={district} value={district}>
-                              {district}
-                            </option>
+                            <option key={district} value={district}>{district}</option>
                           ))}
                         </select>
                       </div>
                     </div>
                   </div>
 
-                  {/* Info Filter Aktif */}
+                  {/* Active Filter Info */}
                   {hasActiveFilters && (
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm text-blue-800">
-                        Filter aktif: 
-                        {filters.keyword && ` Nama: "${filters.keyword}"`}
-                        {filters.date && ` Tanggal: ${new Date(filters.date).toLocaleDateString("id-ID")}`}
-                        {filters.category && ` Kategori: ${filters.category}`}
-                        {filters.district && ` Kecamatan: ${filters.district}`}
+                    <div className="p-2.5 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-xs sm:text-sm text-blue-800 break-words">
+                        <span className="font-medium">Filter aktif:</span>
+                        {filters.keyword && ` "${filters.keyword}"`}
+                        {filters.date && ` ${new Date(filters.date).toLocaleDateString("id-ID")}`}
+                        {filters.category && ` ${filters.category}`}
+                        {filters.district && ` ${filters.district}`}
                       </p>
                     </div>
                   )}
@@ -615,33 +546,33 @@ export default function CariEvent() {
               )}
             </div>
 
-            {/* Daftar Event */}
+            {/* Event List */}
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="relative w-16 h-16 mx-auto mb-4">
+              <div className="flex flex-col items-center justify-center py-16 sm:py-20">
+                <div className="relative w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4">
                   <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
                   <div className="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
                 </div>
-                <p className="text-gray-600 font-medium">Memuat daftar event...</p>
+                <p className="text-gray-600 font-medium text-sm sm:text-base">Memuat daftar event...</p>
               </div>
             ) : filteredEvents.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-10 h-10 text-gray-400" />
+              <div className="text-center py-12 sm:py-16">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {hasActiveFilters ? "Tidak ada event yang sesuai dengan filter" : "Tidak ada event yang tersedia"}
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
+                  {hasActiveFilters ? "Tidak ada event yang sesuai" : "Tidak ada event tersedia"}
                 </h3>
-                <p className="text-gray-500 mb-4">
+                <p className="text-sm text-gray-500 mb-4 px-4">
                   {hasActiveFilters 
-                    ? "Coba ubah kriteria filter atau hapus filter untuk melihat semua event"
-                    : "Coba refresh halaman atau periksa koneksi internet Anda"
+                    ? "Coba ubah kriteria filter"
+                    : "Coba refresh halaman"
                   }
                 </p>
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
-                    className="bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    className="bg-blue-600 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
                   >
                     Hapus Semua Filter
                   </button>
@@ -649,8 +580,8 @@ export default function CariEvent() {
               </div>
             ) : (
               <>
-                {/* Event Grid - 5 columns x 3 rows */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+                {/* Event Grid - Responsive */}
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
                   {paginatedEvents.map((event, index) => (
                     <motion.div
                       key={event.event_id}
@@ -676,36 +607,36 @@ export default function CariEvent() {
                   ))}
                 </div>
 
-                {/* Pagination */}
+                {/* Pagination - Mobile Optimized */}
                 {totalPages > 1 && (
-                  <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200">
-                    <div className="text-sm text-gray-500">
-                      Menampilkan {startIndex + 1}-{Math.min(endIndex, filteredEvents.length)} dari {filteredEvents.length} event
+                  <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 sm:pt-6 border-t border-gray-200">
+                    <div className="text-xs sm:text-sm text-gray-500 order-2 sm:order-1">
+                      {startIndex + 1}-{Math.min(endIndex, filteredEvents.length)} dari {filteredEvents.length}
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2 order-1 sm:order-2">
                       <button
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className={`flex items-center gap-1 px-3 py-2 rounded-lg font-medium transition-colors ${
+                        className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg font-medium transition-colors text-sm ${
                           currentPage === 1
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
                         }`}
                       >
-                        <ChevronLeft size={18} />
-                        <span className="hidden sm:inline">Sebelumnya</span>
+                        <ChevronLeft size={16} />
+                        <span className="hidden sm:inline">Prev</span>
                       </button>
                       
                       <div className="flex items-center gap-1">
                         {getPageNumbers().map((page, idx) => (
                           page === '...' ? (
-                            <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">...</span>
+                            <span key={`ellipsis-${idx}`} className="px-1 sm:px-2 text-gray-400 text-sm">...</span>
                           ) : (
                             <button
                               key={page}
                               onClick={() => handlePageChange(page)}
-                              className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg font-medium transition-colors text-sm ${
                                 currentPage === page
                                   ? 'bg-blue-600 text-white'
                                   : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
@@ -720,14 +651,14 @@ export default function CariEvent() {
                       <button
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className={`flex items-center gap-1 px-3 py-2 rounded-lg font-medium transition-colors ${
+                        className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg font-medium transition-colors text-sm ${
                           currentPage === totalPages
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
                         }`}
                       >
-                        <span className="hidden sm:inline">Selanjutnya</span>
-                        <ChevronRight size={18} />
+                        <span className="hidden sm:inline">Next</span>
+                        <ChevronRight size={16} />
                       </button>
                     </div>
                   </div>
@@ -741,20 +672,11 @@ export default function CariEvent() {
   );
 }
 
-// Event Card Component - consistent styling with LandingPage
+// Event Card Component - Mobile Optimized
 function EventCard({ 
-  event, 
-  onClick, 
-  formatRupiah, 
-  formatDate, 
-  getLowestPrice,
-  getCategoryColor,
-  getParentCategory,
-  isLiked,
-  onLike,
-  isLoggedIn,
-  sortBy,
-  canLike
+  event, onClick, formatRupiah, formatDate, getLowestPrice,
+  getCategoryColor, getParentCategory, isLiked, onLike,
+  isLoggedIn, sortBy, canLike
 }) {
   const minPrice = getLowestPrice(event.ticket_categories);
   const parentCategory = getParentCategory(event.category);
@@ -763,7 +685,7 @@ function EventCard({
     <motion.div
       whileHover={{ y: -4 }}
       onClick={onClick}
-      className="group bg-white rounded-2xl shadow-sm hover:shadow-xl border border-gray-200 overflow-hidden cursor-pointer transition-all duration-300"
+      className="group bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-xl border border-gray-200 overflow-hidden cursor-pointer transition-all duration-300"
     >
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-gray-100">
@@ -776,8 +698,8 @@ function EventCard({
           }}
         />
         {/* Category Badge */}
-        <div className="absolute top-3 left-3">
-          <span className={`${getCategoryColor(event.category)} text-white text-xs px-2.5 py-1 rounded-full font-medium`}>
+        <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
+          <span className={`${getCategoryColor(event.category)} text-white text-[10px] sm:text-xs px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full font-medium`}>
             {parentCategory}
           </span>
         </div>
@@ -785,66 +707,59 @@ function EventCard({
         <button
           onClick={onLike}
           disabled={!canLike}
-          className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+          className={`absolute top-2 sm:top-3 right-2 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all ${
             !canLike
               ? 'bg-white/90 text-gray-400 cursor-not-allowed'
               : isLiked 
               ? 'bg-pink-500 text-white' 
               : 'bg-white/90 text-gray-600 hover:bg-pink-100 hover:text-pink-500'
           }`}
-          title={
-            !canLike
-              ? "Fitur like hanya tersedia untuk user biasa"
-              : isLiked
-              ? "Unlike"
-              : "Like"
-          }
         >
-          <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+          <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isLiked ? 'fill-current' : ''}`} />
         </button>
       </div>
 
       {/* Content */}
-      <div className="p-4">
-        <h3 className="font-semibold text-gray-900 text-lg mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+      <div className="p-2.5 sm:p-4">
+        <h3 className="font-semibold text-gray-900 text-sm sm:text-lg mb-1.5 sm:mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors leading-tight">
           {event.name}
         </h3>
         
-        <div className="space-y-1.5 mb-3">
-          <div className="flex items-center gap-1.5 text-gray-700 text-xs">
-            <Calendar size={12} className="flex-shrink-0" />
+        <div className="space-y-1 sm:space-y-1.5 mb-2 sm:mb-3">
+          <div className="flex items-center gap-1 sm:gap-1.5 text-gray-700 text-[10px] sm:text-xs">
+            <Calendar size={10} className="flex-shrink-0 sm:w-3 sm:h-3" />
             <span className="truncate">{formatDate(event.date_start, event.date_end)}</span>
           </div>
           
-          <div className="flex items-center gap-1.5 text-gray-700 text-xs">
-            <MapPin size={12} className="flex-shrink-0" />
+          <div className="flex items-center gap-1 sm:gap-1.5 text-gray-700 text-[10px] sm:text-xs">
+            <MapPin size={10} className="flex-shrink-0 sm:w-3 sm:h-3" />
             <span className="truncate">{event.venue || event.district || event.location}</span>
           </div>
         </div>
         
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-          <div>
-            <p className="text-xs text-gray-400">Mulai dari</p>
-            <p className={`font-bold text-md ${minPrice === 0 ? 'text-emerald-600' : 'text-blue-600'}`}>
+        <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100">
+          <div className="min-w-0 flex-1">
+            <p className="text-[9px] sm:text-xs text-gray-400">Mulai dari</p>
+            <p className={`font-bold text-xs sm:text-md ${minPrice === 0 ? 'text-emerald-600' : 'text-blue-600'} truncate`}>
               {formatRupiah(minPrice)}
             </p>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-1">
             {sortBy === 'terlaris' && event.total_tickets_sold > 0 && (
-              <div className="flex items-center gap-1 text-emerald-600 text-xs">
-                <ShoppingBag className="w-3 h-3" />
+              <div className="flex items-center gap-0.5 sm:gap-1 text-emerald-600 text-[10px] sm:text-xs">
+                <ShoppingBag className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 <span className="font-medium">{event.total_tickets_sold}</span>
               </div>
             )}
             {sortBy === 'popularitas' && event.total_likes > 0 && (
-              <div className="flex items-center gap-1 text-pink-500 text-xs">
-                <Heart className="w-3 h-3 fill-current" />
+              <div className="flex items-center gap-0.5 sm:gap-1 text-pink-500 text-[10px] sm:text-xs">
+                <Heart className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" />
                 <span className="font-medium">{event.total_likes}</span>
               </div>
             )}
-            <div className="w-7 h-7 bg-blue-50 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
-              <ArrowRight className="w-3.5 h-3.5 text-blue-600 group-hover:text-white transition-colors" />
+            <div className="w-5 h-5 sm:w-7 sm:h-7 bg-blue-50 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+              <ArrowRight className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-blue-600 group-hover:text-white transition-colors" />
             </div>
           </div>
         </div>

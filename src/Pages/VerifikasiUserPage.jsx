@@ -197,7 +197,7 @@ export default function VerifikasiUserPage() {
               <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-xl">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-blue-100 text-sm font-medium">Total Users</p>
+                    <p className="text-blue-100 text-2sm font-medium">Total Users</p>
                     <p className="text-3xl font-bold mt-1">{allUsers.length}</p>
                   </div>
                   <motion.div
@@ -212,7 +212,7 @@ export default function VerifikasiUserPage() {
               <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-white p-6 rounded-xl">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-amber-100 text-sm font-medium">Menunggu Verifikasi</p>
+                    <p className="text-amber-100 text-2sm font-medium">Menunggu Verifikasi</p>
                     <p className="text-3xl font-bold mt-1">{pendingUsers.length}</p>
                   </div>
                   <motion.div
@@ -227,7 +227,7 @@ export default function VerifikasiUserPage() {
               <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-xl">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-green-100 text-sm font-medium">Terverifikasi</p>
+                    <p className="text-green-100 text-2sm font-medium">Terverifikasi</p>
                     <p className="text-3xl font-bold mt-1">{approvedUsers.length}</p>
                   </div>
                   <motion.div

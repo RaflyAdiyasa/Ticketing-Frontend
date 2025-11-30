@@ -362,38 +362,55 @@ export default function EventSayaPage() {
   return (
     <div>
       <Navbar />
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-32">
+      <div className="min-h-screen bg-gray-100 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="bg-white rounded-2xl shadow-xl overflow-hidden"
+            className="bg-white rounded-2xl shadow-lg p-6 md:p-8 mt-32"
           >
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold">Event Saya</h1>
-                  <p className="text-white-100 mt-1">
-                    Total: {events.length} event • Ditampilkan: {filteredEvents.length} event
-                  </p>
-                </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8"
+            >
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Event Saya</h1>
+                <p className="text-gray-600 mt-2">
+                  Total: {events.length} event • Ditampilkan: {filteredEvents.length} event
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-3 mt-4 md:mt-0">
+                {hasActiveFilters && (
+                  <motion.button
+                    onClick={clearFilters}
+                    className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800 font-medium"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <X size={16} />
+                    Hapus Filter
+                  </motion.button>
+                )}
                 
                 <motion.button
                   onClick={handleRefresh}
                   disabled={refreshing}
-                  className="flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg transition-colors font-medium disabled:opacity-50"
-                  whileHover={{ scale: refreshing ? 1 : 1.05 }}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg transition-colors font-medium disabled:opacity-50"
+                  whileHover={{ scale: refreshing ? 1 : 1.05, y: -2 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   <RefreshCw size={18} className={refreshing ? "animate-spin" : ""} />
                   {refreshing ? "Memperbarui..." : "Refresh"}
                 </motion.button>
               </div>
-            </div>
+            </motion.div>
 
             <motion.div 
-              className="p-6 md:p-8"
+              className="pb-6"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
@@ -420,8 +437,8 @@ export default function EventSayaPage() {
 
                     <motion.button
                       onClick={() => setShowFilters(!showFilters)}
-                      className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
-                      whileHover={{ scale: 1.05 }}
+                      className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                      whileHover={{ scale: 1.05, y: -2 }}
                       whileTap={{ scale: 0.95 }}
                     >
                       <Filter size={18} />
@@ -588,7 +605,7 @@ export default function EventSayaPage() {
                   {hasActiveFilters && (
                     <motion.button
                       onClick={clearFilters}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-colors font-medium shadow-md"
+                      className="bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
