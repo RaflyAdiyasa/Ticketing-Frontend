@@ -17,6 +17,7 @@ import {
   Heart,
   Settings,
   Flag,
+  FileText,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
@@ -111,6 +112,11 @@ export default function Navbar() {
   const handleViewReportIssue = () => {
     setProfileDropdownOpen(false);
     navigate("/laporkan-masalah");
+  };
+
+  const handleViewReportIssueAdmin = () => {
+    setProfileDropdownOpen(false);
+    navigate("/laporanMasalah");
   };
 
   const handleSearchSubmit = (e) => {
@@ -410,6 +416,18 @@ export default function Navbar() {
                               <Flag className="w-4 h-4 text-yellow-600" />
                             </div>
                             <span className="font-medium text-gray-700 group-hover:text-yellow-600 transition-colors">Laporkan Masalah</span>
+                          </button>
+                        )}
+
+                        { getUserRole() === "admin" && (
+                          <button
+                            onClick={handleViewReportIssueAdmin}
+                            className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-yellow-50 rounded-lg transition-colors group"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center group-hover:bg-yellow-200 transition-colors">
+                              <FileText className="w-4 h-4 text-yellow-600" />
+                            </div>
+                            <span className="font-medium text-gray-700 group-hover:text-yellow-600 transition-colors">Laporan Masalah</span>
                           </button>
                         )}
                         
