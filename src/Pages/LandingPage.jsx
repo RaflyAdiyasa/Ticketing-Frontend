@@ -261,10 +261,13 @@ export default function LandingPage() {
   // Slider refs for horizontal scroll
   const bestSellingSliderRef = useRef(null);
   const popularSliderRef = useRef(null);
+  const upcomingSliderRef = useRef(null);
   const [canScrollLeftBestSelling, setCanScrollLeftBestSelling] = useState(false);
   const [canScrollRightBestSelling, setCanScrollRightBestSelling] = useState(true);
   const [canScrollLeftPopular, setCanScrollLeftPopular] = useState(false);
   const [canScrollRightPopular, setCanScrollRightPopular] = useState(true);
+  const [canScrollLeftUpcoming, setCanScrollLeftUpcoming] = useState(false);
+  const [canScrollRightUpcoming, setCanScrollRightUpcoming] = useState(true);
 
   // Check scroll position for showing/hiding arrows
   const checkScrollPosition = useCallback((ref, setCanScrollLeft, setCanScrollRight) => {
@@ -290,7 +293,8 @@ export default function LandingPage() {
   useEffect(() => {
     checkScrollPosition(bestSellingSliderRef, setCanScrollLeftBestSelling, setCanScrollRightBestSelling);
     checkScrollPosition(popularSliderRef, setCanScrollLeftPopular, setCanScrollRightPopular);
-  }, [bestSellingEvents, popularEvents, checkScrollPosition]);
+    checkScrollPosition(upcomingSliderRef, setCanScrollLeftUpcoming, setCanScrollRightUpcoming);
+  }, [bestSellingEvents, popularEvents, upcomingEvents, checkScrollPosition]);
 
   // Utility functions
   const formatNumber = (num) => {
@@ -431,27 +435,34 @@ export default function LandingPage() {
         // Transform all events
         const transformedEvents = allEvents.map(transformEvent);
 
-        // Sort by total_tickets_sold for best selling
+        // Sort by total_tickets_sold for best selling (minimum 1 sale, limit 6)
         const bestSelling = [...transformedEvents]
+          .filter((e) => e.totalTicketsSold >= 1)
           .sort((a, b) => b.totalTicketsSold - a.totalTicketsSold)
-          .slice(0, 8);
+          .slice(0, 6);
         setBestSellingEvents(bestSelling);
 
-        // Fetch popular events (by likes)
+        // Fetch popular events (by likes) - minimum 1 like, limit 6
         const popularResponse = await eventAPI.getEventsPopular();
         let popularEventsData = popularResponse.data?.events || [];
 
         if (popularEventsData.length === 0) {
           // Fallback: sort all events by likes
           popularEventsData = [...transformedEvents]
+            .filter((e) => e.totalLikes >= 1)
             .sort((a, b) => b.totalLikes - a.totalLikes)
-            .slice(0, 8);
+            .slice(0, 6);
           setPopularEvents(popularEventsData);
         } else {
-          setPopularEvents(popularEventsData.map(transformEvent));
+          // Filter and limit the popular events from API
+          const filteredPopular = popularEventsData
+            .map(transformEvent)
+            .filter((e) => e.totalLikes >= 1)
+            .slice(0, 6);
+          setPopularEvents(filteredPopular);
         }
 
-        // Filter upcoming events (event yang akan datang)
+        // Filter upcoming events (event yang akan datang) - limit 6
         const now = new Date();
         const upcoming = transformedEvents
           .filter((e) => e.dateStart && new Date(e.dateStart) >= now)
@@ -869,7 +880,7 @@ export default function LandingPage() {
                   className="flex gap-3 sm:gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-2"
                   style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
-                  {bestSellingEvents.slice(0, 8).map((event, index) => (
+                  {bestSellingEvents.slice(0, 6).map((event, index) => (
                     <div key={event.id} className="flex-shrink-0 w-[calc(50%-6px)] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] xl:w-[calc(25%-18px)]">
                       <EventCard
                         event={event}
@@ -961,7 +972,7 @@ export default function LandingPage() {
                   className="flex gap-3 sm:gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-2"
                   style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
-                  {popularEvents.slice(0, 8).map((event, index) => (
+                  {popularEvents.slice(0, 6).map((event, index) => (
                     <div key={event.id} className="flex-shrink-0 w-[calc(50%-6px)] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] xl:w-[calc(25%-18px)]">
                       <EventCard
                         event={event}
@@ -1026,8 +1037,9 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-                {upcomingEvents.map((event, index) => (
+              {/* Desktop: Grid Layout */}
+              <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+                {upcomingEvents.slice(0, 6).map((event, index) => (
                   <UpcomingEventCard
                     key={event.id}
                     event={event}
@@ -1043,6 +1055,59 @@ export default function LandingPage() {
                     canLike={canLike}
                   />
                 ))}
+              </div>
+
+              {/* Mobile: Horizontal Slider with 2 Rows (3 columns x 2 rows) */}
+              <div className="sm:hidden relative group/slider">
+                {/* Left Arrow */}
+                <button
+                  onClick={() => handleSliderScroll(upcomingSliderRef, 'left')}
+                  className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white shadow-lg rounded-full flex items-center justify-center transition-all duration-300 hover:bg-blue-50 hover:scale-110 -ml-3 ${
+                    canScrollLeftUpcoming ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  }`}
+                >
+                  <ChevronLeft className="w-4 h-4 text-blue-600" />
+                </button>
+
+                {/* Right Arrow */}
+                <button
+                  onClick={() => handleSliderScroll(upcomingSliderRef, 'right')}
+                  className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white shadow-lg rounded-full flex items-center justify-center transition-all duration-300 hover:bg-blue-50 hover:scale-110 -mr-3 ${
+                    canScrollRightUpcoming ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  }`}
+                >
+                  <ChevronRight className="w-4 h-4 text-blue-600" />
+                </button>
+
+                {/* Scrollable Container with 2 rows */}
+                <div
+                  ref={upcomingSliderRef}
+                  onScroll={() => checkScrollPosition(upcomingSliderRef, setCanScrollLeftUpcoming, setCanScrollRightUpcoming)}
+                  className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth pb-2"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {/* Group events into columns of 2 */}
+                  {Array.from({ length: Math.ceil(upcomingEvents.slice(0, 6).length / 2) }).map((_, colIndex) => (
+                    <div key={colIndex} className="flex-shrink-0 w-[75vw] max-w-[280px] flex flex-col gap-3">
+                      {upcomingEvents.slice(0, 6).slice(colIndex * 2, colIndex * 2 + 2).map((event, index) => (
+                        <UpcomingEventCard
+                          key={event.id}
+                          event={event}
+                          index={colIndex * 2 + index}
+                          onClick={() => navigate(`/detailEvent/${event.id}`)}
+                          formatRupiah={formatRupiah}
+                          formatNumber={formatNumber}
+                          getCategoryData={getCategoryData}
+                          getParentCategory={getParentCategory}
+                          isLiked={likedEvents.has(event.id)}
+                          onLike={(e) => handleLikeEvent(event.id, e)}
+                          isLoggedIn={isLoggedIn}
+                          canLike={canLike}
+                        />
+                      ))}
+                    </div>
+                  ))}
+                </div>
               </div>
             </motion.div>
           </div>

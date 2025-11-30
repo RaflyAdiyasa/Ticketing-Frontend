@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { Download } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { CalendarDays, MapPin, Download, Ticket, Users, DollarSign, Heart, TrendingUp, AlertCircle, CheckCircle } from "lucide-react";
 import { eventAPI } from "../services/api";
 
 export default function LaporanEventPage() {
@@ -22,17 +22,16 @@ export default function LaporanEventPage() {
       setLoading(true);
       const response = await eventAPI.getEventReport(eventId);
       
-      // Handle new response structure
       if (response.data.report && response.data.metrics) {
         setReportData(response.data.report);
         setMetrics(response.data.metrics);
       } else {
-        // Fallback untuk struktur lama
         setReportData(response.data);
         setMetrics({
           total_attendant: response.data.total_checkins || 0,
           total_tickets_sold: response.data.total_tickets_sold || 0,
           total_sales: response.data.total_income || 0,
+          total_quota: response.data.total_quota || 0,
           sold_percentage: "0%",
           attendance_rate: "0%"
         });
@@ -48,13 +47,11 @@ export default function LaporanEventPage() {
   const handleDownloadReport = async () => {
     try {
       const response = await eventAPI.downloadEventReport(eventId);
-      
-      // Create blob and download
-      const blob = new Blob([response.data], { type: 'text/csv' });
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `report-event-${eventId}.csv`);
+      link.setAttribute('download', `laporan-event-${eventId}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -65,12 +62,9 @@ export default function LaporanEventPage() {
     }
   };
 
-  // Warna yang lebih kontras untuk kategori banyak
-  const CONTRAST_COLORS = [
-    "#0C8CE9", "#FF6B6B", "#4ECDC4", "#FFA726", "#9966CC", 
-    "#42A5F5", "#66BB6A", "#FF7043", "#AB47BC", "#26C6DA",
-    "#D4E157", "#FFCA28", "#8D6E63", "#78909C", "#7E57C2",
-    "#EC407A", "#5C6BC0", "#26A69A", "#FFA000", "#607D8B"
+  const CHART_COLORS = [
+    "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", 
+    "#EC4899", "#06B6D4", "#84CC16", "#F97316", "#6366F1"
   ];
 
   const formatRupiah = (angka) => {
@@ -78,33 +72,20 @@ export default function LaporanEventPage() {
       style: "currency",
       currency: "IDR",
       minimumFractionDigits: 0,
-    }).format(angka);
+    }).format(angka || 0);
   };
 
-  // Fungsi untuk mendapatkan warna berdasarkan data
-  const getChartColors = (data) => {
-    if (!data || data.length === 0) {
-      return ['#FF6B6B']; // Warna merah untuk data kosong
-    }
-
-    // Cek jika semua data value = 0
-    const allZero = data.every(item => item.value === 0);
-    if (allZero) {
-      return ['#FF6B6B']; // Warna merah untuk semua data 0
-    }
-
-    return CONTRAST_COLORS;
+  const hasValidData = (data) => {
+    if (!data || data.length === 0) return false;
+    return data.some(item => item.value > 0);
   };
 
-  // Custom label untuk pie chart
-  const renderCustomizedLabel = ({
-    cx, cy, midAngle, innerRadius, outerRadius, percent, name, value
-  }) => {
-    // Jangan tampilkan label jika value = 0 atau percent = 0
-    if (percent === 0 || value === 0) return null;
+  // Custom label di dalam pie chart
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, value }) => {
+    if (percent < 0.05 || value === 0) return null;
     
     const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const radius = outerRadius + 20;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -112,95 +93,135 @@ export default function LaporanEventPage() {
       <text 
         x={x} 
         y={y} 
-        fill="white" 
-        textAnchor={x > cx ? 'start' : 'end'} 
+        fill="#374151"
+        textAnchor={x > cx ? 'start' : 'end'}
         dominantBaseline="central"
         fontSize={12}
-        fontWeight="bold"
+        fontWeight="600"
       >
         {`${(percent * 100).toFixed(0)}%`}
       </text>
     );
   };
 
-  // Fungsi untuk render pie chart yang reusable
-  const renderPieChart = (data, title, tooltipFormatter) => {
-    const colors = getChartColors(data);
-    const hasData = data && data.length > 0 && !data.every(item => item.value === 0);
-
-    return (
-      <div className="w-full md:w-1/2 h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={hasData ? data : [{ name: 'Tidak ada data', value: 1 }]}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={100}
-              paddingAngle={hasData ? 2 : 0}
-              label={hasData ? renderCustomizedLabel : false}
-              labelLine={false}
-            >
-              {(hasData ? data : [{ name: 'Tidak ada data', value: 1 }]).map((_, index) => (
-                <Cell 
-                  key={index} 
-                  fill={colors[index % colors.length]} 
-                  stroke={hasData ? "#fff" : "none"}
-                  strokeWidth={hasData ? 2 : 0}
-                />
-              ))}
-            </Pie>
-            <Tooltip 
-              formatter={hasData ? tooltipFormatter : (value) => ['Tidak ada data', '']}
-            />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
+  // Empty State Component
+  const EmptyStateChart = ({ message, icon: Icon }) => (
+    <div className="flex flex-col items-center justify-center py-12">
+      <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+        <Icon className="w-12 h-12 text-gray-300" />
       </div>
-    );
+      <p className="text-gray-500 font-medium">{message}</p>
+    </div>
+  );
+
+  // Custom Tooltip
+  const CustomTooltip = ({ active, payload, type }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0];
+      return (
+        <div className="bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-200">
+          <p className="font-semibold text-gray-800">{data.name}</p>
+          <p className="text-gray-600">
+            {data.value} {type === 'purchase' ? 'tiket terjual' : 'check-in'}
+          </p>
+        </div>
+      );
+    }
+    return null;
   };
 
-  // Fungsi untuk render legend yang reusable
-  const renderLegend = (data, title) => {
-    const colors = getChartColors(data);
-    const hasData = data && data.length > 0 && !data.every(item => item.value === 0);
-
+  // Chart Section dengan Legend di samping
+  const ChartWithLegend = ({ data, title, subtitle, type, icon: Icon, emptyMessage }) => {
+    const validData = hasValidData(data);
+    
     return (
-      <div className="w-full md:w-1/2">
-        <div className="grid grid-cols-1 gap-3">
-          {(hasData ? data : [{ name: 'Tidak ada data', value: 0 }]).map((item, i) => (
-            <div
-              key={i}
-              className="p-3 bg-gray-50 rounded-lg shadow-sm border border-gray-200"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div 
-                    className="w-4 h-4 rounded-full mr-3"
-                    style={{ backgroundColor: colors[i % colors.length] }}
-                  ></div>
-                  <span className="font-medium">{item.name}</span>
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {/* Header */}
+        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${type === 'purchase' ? 'bg-blue-100' : 'bg-green-100'}`}>
+              <Icon className={`w-5 h-5 ${type === 'purchase' ? 'text-blue-600' : 'text-green-600'}`} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-800">{title}</h3>
+              <p className="text-sm text-gray-500">{subtitle}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {!validData ? (
+            <EmptyStateChart 
+              message={emptyMessage}
+              icon={Icon}
+            />
+          ) : (
+            <div className="flex flex-col lg:flex-row items-center gap-6">
+              {/* Pie Chart - Centered */}
+              <div className="w-full lg:w-1/2 flex justify-center">
+                <div className="w-64 h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={data}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={45}
+                        outerRadius={75}
+                        paddingAngle={2}
+                        label={renderCustomizedLabel}
+                        labelLine={{ stroke: '#9CA3AF', strokeWidth: 1 }}
+                      >
+                        {data.map((_, index) => (
+                          <Cell 
+                            key={index} 
+                            fill={CHART_COLORS[index % CHART_COLORS.length]} 
+                            stroke="#fff"
+                            strokeWidth={2}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip type={type} />} />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-                <div className="text-right">
-                  <div className={`font-bold ${
-                    hasData ? (title.includes('Pembelian') ? 'text-blue-600' : 'text-green-600') : 'text-red-600'
-                  }`}>
-                    {hasData ? `${item.value} ${title.includes('Pembelian') ? 'tiket' : 'check-in'}` : '0'}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {hasData && reportData.total_tickets_sold > 0 && title.includes('Pembelian') 
-                      ? `${((item.value / reportData.total_tickets_sold) * 100).toFixed(1)}%` 
-                      : hasData && reportData.total_checkins > 0 && title.includes('Check-in')
-                      ? `${((item.value / reportData.total_checkins) * 100).toFixed(1)}%`
-                      : '0%'}
-                  </div>
+              </div>
+
+              {/* Legend - Custom */}
+              <div className="w-full lg:w-1/2">
+                <div className="space-y-3">
+                  {data.map((item, index) => {
+                    const total = data.reduce((sum, d) => sum + d.value, 0);
+                    const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : 0;
+                    
+                    return (
+                      <div 
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-4 h-4 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                          />
+                          <span className="font-medium text-gray-700">{item.name}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className={`font-bold ${type === 'purchase' ? 'text-blue-600' : 'text-green-600'}`}>
+                            {item.value}
+                          </span>
+                          <span className="text-gray-400 text-sm ml-2">({percentage}%)</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
-          ))}
+          )}
         </div>
       </div>
     );
@@ -210,8 +231,11 @@ export default function LaporanEventPage() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen py-8 flex items-center justify-center pt-36">
-          <div className="text-lg">Memuat laporan event...</div>
+        <div className="min-h-screen flex items-center justify-center pt-36">
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
+            <p className="text-gray-600 font-medium">Memuat laporan event...</p>
+          </div>
         </div>
       </div>
     );
@@ -221,8 +245,18 @@ export default function LaporanEventPage() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen py-8 flex items-center justify-center pt-36">
-          <div className="text-lg text-red-600">{error}</div>
+        <div className="min-h-screen flex items-center justify-center pt-36">
+          <div className="text-center bg-white p-8 rounded-xl shadow-lg">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <p className="text-xl text-gray-800 font-semibold mb-2">Terjadi Kesalahan</p>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button 
+              onClick={() => navigate(-1)}
+              className="px-6 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
+            >
+              Kembali
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -232,141 +266,272 @@ export default function LaporanEventPage() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen py-8 flex items-center justify-center pt-36">
-          <div className="text-lg">Data laporan tidak ditemukan</div>
+        <div className="min-h-screen flex items-center justify-center pt-36">
+          <div className="text-center bg-white p-8 rounded-xl shadow-lg">
+            <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-xl text-gray-800 font-semibold mb-2">Data Tidak Ditemukan</p>
+            <p className="text-gray-600 mb-6">Laporan untuk event ini tidak tersedia</p>
+            <button 
+              onClick={() => navigate(-1)}
+              className="px-6 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
+            >
+              Kembali
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
+  const totalQuota = metrics?.total_quota || reportData.total_quota || 0;
+  const totalSold = reportData.total_tickets_sold || 0;
+  const totalCheckins = reportData.total_checkins || 0;
+  const totalIncome = reportData.total_income || 0;
+
   return (
-    <div>
+    <div className="min-h-screen bg-gray-50 mt-15">
       <Navbar />
 
-      <div className="min-h-screen py-8 px-4 py-6 flex justify-center">
-        <div className="w-full max-w-6xl bg-white shadow-xl rounded-xl p-10 mt-32">
-
-          {/* HEADER */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold">Laporan Event</h1>
-              <p className="text-gray-600 mt-2">{reportData.event?.name || 'N/A'}</p>
-              <p className="text-sm text-gray-500">
-                {reportData.event?.date_start ? new Date(reportData.event.date_start).toLocaleDateString('id-ID') : 'N/A'} - {reportData.event?.date_end ? new Date(reportData.event.date_end).toLocaleDateString('id-ID') : 'N/A'}
-              </p>
+      <div className="min-h-screen pt-28 pb-12 px-4">
+        <div className="max-w-6xl mx-auto">
+          
+          {/* HEADER CARD */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <p className="text-sm text-blue-600 font-medium mb-1">Laporan Event</p>
+                <h1 className="text-2xl font-bold text-gray-800">{reportData.event?.name || 'N/A'}</h1>
+                <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-600">
+                  <span className="flex items-center gap-1">
+                    <CalendarDays className="w-4 h-4"/>
+                     {reportData.event?.date_start 
+                      ? new Date(reportData.event.date_start).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) 
+                      : 'N/A'}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-4 h-4"/>
+                    {reportData.event?.venue || '-'}, {reportData.event?.location || '-'}
+                  </span>
+                </div>
+              </div>
+              <button 
+                onClick={() => navigate(-1)}
+                className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
+              >
+                ← Kembali
+              </button>
             </div>
+          </div>
+
+          {/* STATISTICS CARDS */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            {/* Tiket Terjual */}
+            <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Ticket className="w-4 h-4 text-blue-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-600">Tiket Terjual</span>
+              </div>
+              <p className="text-3xl font-bold text-gray-800">{totalSold}</p>
+              <p className="text-sm text-gray-500 mt-1">dari {totalQuota} kuota</p>
+              <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-500 rounded-full transition-all"
+                  style={{ width: `${totalQuota > 0 ? Math.min((totalSold / totalQuota) * 100, 100) : 0}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Check-in */}
+            <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-600">Check-in</span>
+              </div>
+              <p className="text-3xl font-bold text-gray-800">{totalCheckins}</p>
+              <p className="text-sm text-gray-500 mt-1">dari {totalSold} tiket</p>
+              <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-green-500 rounded-full transition-all"
+                  style={{ width: `${totalSold > 0 ? Math.min((totalCheckins / totalSold) * 100, 100) : 0}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Pendapatan */}
+            <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <DollarSign className="w-4 h-4 text-purple-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-600">Pendapatan</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">{formatRupiah(totalIncome)}</p>
+              <p className="text-sm text-gray-500 mt-1">total penjualan</p>
+            </div>
+
+            {/* Tingkat Kehadiran */}
+            <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <TrendingUp className="w-4 h-4 text-orange-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-600">Kehadiran</span>
+              </div>
+              <p className="text-3xl font-bold text-gray-800">{metrics?.attendance_rate || "0%"}</p>
+              <p className="text-sm text-gray-500 mt-1">tingkat kehadiran</p>
+            </div>
+
+            {/* Likes */}
+            <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 bg-pink-100 rounded-lg">
+                  <Heart className="w-4 h-4 text-pink-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-600">Likes</span>
+              </div>
+              <p className="text-3xl font-bold text-gray-800">{reportData.total_likes || 0}</p>
+              <p className="text-sm text-gray-500 mt-1">total likes</p>
+            </div>
+          </div>
+
+          {/* DETAIL TABLE */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-6 overflow-hidden">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+              <h2 className="font-semibold text-gray-800">Detail Penjualan per Kategori Tiket</h2>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="text-left px-6 py-4 font-semibold text-gray-700">Kategori</th>
+                    <th className="text-center px-4 py-4 font-semibold text-gray-700">Harga</th>
+                    <th className="text-center px-4 py-4 font-semibold text-gray-700">Kuota</th>
+                    <th className="text-center px-4 py-4 font-semibold text-gray-700">Terjual</th>
+                    <th className="text-center px-4 py-4 font-semibold text-gray-700">Check-in</th>
+                    <th className="text-right px-6 py-4 font-semibold text-gray-700">Pendapatan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(!reportData.purchase_data || reportData.purchase_data.length === 0) ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                        <Ticket className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                        <p>Tidak ada kategori tiket</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    reportData.purchase_data.map((item, index) => {
+                      const checkin = reportData.checkin_data?.find(c => c.name === item.name) || { value: 0 };
+                      const quota = item.quota || 0;
+                      const price = item.price || 0;
+                      const sold = item.value || 0;
+                      const checkinCount = checkin.value || 0;
+                      const income = sold * price;
+                      const soldPercent = quota > 0 ? ((sold / quota) * 100).toFixed(0) : 0;
+                      const checkinPercent = sold > 0 ? ((checkinCount / sold) * 100).toFixed(0) : 0;
+
+                      return (
+                        <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div 
+                                className="w-3 h-3 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                              />
+                              <span className="font-medium text-gray-800">{item.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-center text-gray-600">{formatRupiah(price)}</td>
+                          <td className="px-4 py-4 text-center text-gray-600">{quota}</td>
+                          <td className="px-4 py-4 text-center">
+                            <div className="flex flex-col items-center">
+                              <span className="font-semibold text-blue-600">{sold}</span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-blue-500 rounded-full"
+                                    style={{ width: `${Math.min(soldPercent, 100)}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs text-gray-500">{soldPercent}%</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <div className="flex flex-col items-center">
+                              <span className="font-semibold text-green-600">{checkinCount}</span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-green-500 rounded-full"
+                                    style={{ width: `${Math.min(checkinPercent, 100)}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs text-gray-500">{checkinPercent}%</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-right font-semibold text-purple-600">
+                            {formatRupiah(income)}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+                {reportData.purchase_data && reportData.purchase_data.length > 0 && (
+                  <tfoot>
+                    <tr className="bg-gray-50 font-semibold">
+                      <td className="px-6 py-4 text-gray-800">Total</td>
+                      <td className="px-4 py-4 text-center text-gray-600">-</td>
+                      <td className="px-4 py-4 text-center text-gray-800">{totalQuota}</td>
+                      <td className="px-4 py-4 text-center text-blue-600">{totalSold}</td>
+                      <td className="px-4 py-4 text-center text-green-600">{totalCheckins}</td>
+                      <td className="px-6 py-4 text-right text-purple-600">{formatRupiah(totalIncome)}</td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          </div>
+
+          {/* CHARTS SECTION */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <ChartWithLegend 
+              data={reportData.purchase_data}
+              title="Distribusi Penjualan Tiket"
+              subtitle="Persentase tiket terjual per kategori"
+              type="purchase"
+              icon={Ticket}
+              emptyMessage="Belum ada tiket yang terjual"
+            />
+            
+            <ChartWithLegend 
+              data={reportData.checkin_data}
+              title="Distribusi Check-in"
+              subtitle="Persentase kehadiran per kategori"
+              type="checkin"
+              icon={Users}
+              emptyMessage="Belum ada pengunjung check-in"
+            />
+          </div>
+
+          {/* DOWNLOAD BUTTON */}
+          <div className="flex justify-center">
             <button 
-              onClick={() => navigate(-1)}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg"
+              onClick={handleDownloadReport}
+              className="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all font-medium"
             >
-              Kembali
+              <Download size={20} />
+              Unduh Laporan (CSV)
             </button>
           </div>
 
-          {/* STATISTICS SUMMARY */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-blue-800">Total Tiket Terjual</h3>
-              <p className="text-2xl font-bold text-blue-600">{reportData.total_tickets_sold || 0}</p>
-            </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-green-800">Total Check-in</h3>
-              <p className="text-2xl font-bold text-green-600">{reportData.total_checkins || 0}</p>
-            </div>
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-purple-800">Total Pendapatan</h3>
-              <p className="text-2xl font-bold text-purple-600">{formatRupiah(reportData.total_income || 0)}</p>
-            </div>
-            <div className="bg-orange-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-orange-800">Tingkat Kehadiran</h3>
-              <p className="text-2xl font-bold text-orange-600">
-                {metrics?.attendance_rate || "0%"}
-              </p>
-            </div>
-            <div className="bg-pink-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-pink-800">Total Likes</h3>
-              <p className="text-2xl font-bold text-pink-600">{reportData.total_likes || 0}</p>
-            </div>
-          </div>
-
-          {/* PRESENTASE PEMBELIAN TIKET */}
-          <div className="mb-12">
-            <h2 className="text-xl font-semibold mb-4">Persentase Pembelian Tiket per Kategori</h2>
-
-            <div className="flex flex-col md:flex-row items-center justify-between">
-              {/* PIE CHART */}
-              {renderPieChart(
-                reportData.purchase_data, 
-                'Pembelian',
-                (value) => [`${value} tiket`, 'Terjual']
-              )}
-
-              {/* LEGEND & DETAILS */}
-              {renderLegend(reportData.purchase_data, 'Pembelian')}
-            </div>
-          </div>
-
-          {/* PRESENTASE CHECK-IN TIKET */}
-          <div className="mb-12">
-            <h2 className="text-xl font-semibold mb-4">Persentase Check-in Tiket per Kategori</h2>
-
-            <div className="flex flex-col md:flex-row items-center justify-between">
-              {/* PIE CHART */}
-              {renderPieChart(
-                reportData.checkin_data, 
-                'Check-in',
-                (value) => [`${value} check-in`, 'Hadir']
-              )}
-
-              {/* LEGEND & DETAILS */}
-              {renderLegend(reportData.checkin_data, 'Check-in')}
-            </div>
-          </div>
-
-          {/* METRICS TAMBAHAN */}
-          {metrics && (
-            <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="font-semibold text-gray-800">Persentase Tiket Terjual</h3>
-                <p className="text-xl font-bold text-gray-700">
-                  {metrics.sold_percentage || "0%"}
-                </p>
-                <p className="text-sm text-gray-500">Dari total kuota tiket</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="font-semibold text-gray-800">Tingkat Kehadiran</h3>
-                <p className="text-xl font-bold text-gray-700">
-                  {metrics.attendance_rate || "0%"}
-                </p>
-                <p className="text-sm text-gray-500">Dari total tiket terjual</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="font-semibold text-gray-800">Total Likes</h3>
-                <p className="text-xl font-bold text-gray-700">
-                  {reportData.total_likes || 0}
-                </p>
-                <p className="text-sm text-gray-500">Jumlah like yang diterima</p>
-              </div>
-            </div>
-          )}
-
-          {/* TOTAL PENDAPATAN */}
-          <div className="mb-8 p-4 bg-green-50 rounded-lg border border-green-200">
-            <p className="text-lg font-medium">
-              Total Pendapatan :{" "}
-              <span className="font-bold text-green-700 text-2xl">
-                {formatRupiah(reportData.total_income || 0)}
-              </span>
-            </p>
-          </div>
-
-          <button 
-            onClick={handleDownloadReport}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg shadow transition duration-200"
-          >
-            <Download size={19} />
-            Unduh Laporan (CSV)
-          </button>
         </div>
       </div>
     </div>

@@ -19,117 +19,11 @@ import {
   RefreshCw,
   Heart,
   ArrowRight,
+  ShoppingBag,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const CATEGORIES = {
-  Hiburan: [
-    "Musik",
-    "Konser",
-    "Festival",
-    "Stand Up Comedy",
-    "Film",
-    "Teater",
-    "K-Pop",
-    "Dance Performance",
-  ],
-  Teknologi: [
-    "Konferensi Teknologi",
-    "Workshop IT",
-    "Startup",
-    "Software Development",
-    "Artificial Intelligence",
-    "Data Science",
-    "Cybersecurity",
-    "Gaming & Esports",
-  ],
-  Edukasi: [
-    "Seminar",
-    "Workshop",
-    "Pelatihan",
-    "Webinar",
-    "Bootcamp",
-    "Kelas Online",
-    "Literasi Digital",
-    "Kelas Bisnis",
-  ],
-  Olahraga: [
-    "Marathon",
-    "Fun Run",
-    "Sepak Bola",
-    "Badminton",
-    "Gym & Fitness",
-    "Yoga",
-    "Esport",
-    "Cycling Event",
-  ],
-  "Bisnis & Profesional": [
-    "Konferensi Bisnis",
-    "Networking",
-    "Karir",
-    "Entrepreneurship",
-    "Leadership",
-    "Startup Meetup",
-    "Investor & Pitching",
-  ],
-  "Seni & Budaya": [
-    "Pameran Seni",
-    "Pentas Budaya",
-    "Fotografi",
-    "Seni Rupa",
-    "Crafting",
-    "Pameran Museum",
-    "Fashion Show",
-  ],
-  Komunitas: [
-    "Kegiatan Relawan",
-    "Kegiatan Sosial",
-    "Gathering Komunitas",
-    "Komunitas Hobi",
-    "Meetup",
-    "Charity Event",
-  ],
-  Kuliner: [
-    "Festival Kuliner",
-    "Food Tasting",
-    "Workshop Memasak",
-    "Street Food Event",
-  ],
-  Kesehatan: [
-    "Seminar Kesehatan",
-    "Medical Check Event",
-    "Workshop Kesehatan Mental",
-    "Donor Darah",
-  ],
-  "Agama & Spiritual": [
-    "Kajian",
-    "Retreat",
-    "Pengajian",
-    "Event Keagamaan",
-    "Meditasi",
-  ],
-  "Travel & Outdoor": [
-    "Camping",
-    "Hiking",
-    "Trip Wisata",
-    "Outdoor Gathering",
-    "Photography Trip",
-  ],
-  "Keluarga & Anak": [
-    "Family Gathering",
-    "Event Anak",
-    "Workshop Parenting",
-    "Pentas Anak",
-  ],
-  "Fashion & Beauty": [
-    "Fashion Expo",
-    "Beauty Class",
-    "Makeup Workshop",
-    "Brand Launching",
-  ],
-};
-
-// District options
+// Hapus CATEGORIES, pertahankan DISTRICTS
 const DISTRICTS = [
   "Tegalrejo",
   "Jetis",
@@ -149,20 +43,20 @@ const DISTRICTS = [
 
 // Warna untuk setiap parent category
 const CATEGORY_COLORS = {
-  Hiburan: "bg-purple-500",
-  Teknologi: "bg-blue-500",
-  Edukasi: "bg-cyan-500",
-  Olahraga: "bg-green-500",
+  "Hiburan": "bg-purple-500",
+  "Teknologi": "bg-blue-500",
+  "Edukasi": "bg-cyan-500",
+  "Olahraga": "bg-green-500",
   "Bisnis & Profesional": "bg-amber-500",
   "Seni & Budaya": "bg-pink-500",
-  Komunitas: "bg-indigo-500",
-  Kuliner: "bg-orange-500",
-  Kesehatan: "bg-red-500",
+  "Komunitas": "bg-indigo-500",
+  "Kuliner": "bg-orange-500",
+  "Kesehatan": "bg-red-500",
   "Agama & Spiritual": "bg-teal-500",
   "Travel & Outdoor": "bg-emerald-500",
   "Keluarga & Anak": "bg-rose-500",
   "Fashion & Beauty": "bg-fuchsia-500",
-  Lainnya: "bg-gray-500",
+  "Lainnya": "bg-gray-500"
 };
 
 export default function CalendarEventPage() {
@@ -172,7 +66,9 @@ export default function CalendarEventPage() {
 
   // State untuk data
   const [events, setEvents] = useState([]);
+  const [eventCategories, setEventCategories] = useState([]); // State untuk kategori dari API
   const [loading, setLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [viewMode, setViewMode] = useState("calendar");
@@ -207,6 +103,20 @@ export default function CalendarEventPage() {
 
   const dayNames = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
   const dayNamesFull = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+
+  // Format number function dari CariEventPage
+  const formatNumber = (num) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+    if (num >= 10000) {
+      return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    }
+    return num.toString();
+  };
 
   // Check login status and user role
   useEffect(() => {
@@ -244,22 +154,45 @@ export default function CalendarEventPage() {
     fetchLikedEvents();
   }, [isLoggedIn, userRole]);
 
-  useEffect(() => {
-    fetchEvents();
-  }, []);
-
-  const fetchEvents = async () => {
+  // Ambil data kategori event dari API
+  const fetchEventCategories = async () => {
     try {
-      setLoading(true);
-      const response = await eventAPI.getApprovedEvents();
-      setEvents(response.data || []);
+      setCategoriesLoading(true);
+      const response = await eventAPI.getEventCategories();
+      const categoriesData = response.data.event_category || [];
+      setEventCategories(categoriesData);
     } catch (error) {
-      console.error("Error fetching events:", error);
-      showNotification("Gagal memuat data event", "Error", "error");
+      console.error("Error fetching event categories:", error);
     } finally {
-      setLoading(false);
+      setCategoriesLoading(false);
     }
   };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Fetch events dan categories secara parallel
+        const [eventsResponse, categoriesResponse] = await Promise.all([
+          eventAPI.getApprovedEvents(),
+          eventAPI.getEventCategories()
+        ]);
+        
+        let eventsData = eventsResponse.data || [];
+        const categoriesData = categoriesResponse.data.event_category || [];
+        
+        setEvents(eventsData);
+        setEventCategories(categoriesData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        showNotification("Gagal memuat data event", "Error", "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
 
   // Handle like event - Hanya untuk role "user"
   const handleLikeEvent = async (eventId, e) => {
@@ -309,14 +242,17 @@ export default function CalendarEventPage() {
     }
   };
 
-  // Mendapatkan parent category dari child category
+  // Mendapatkan parent category dari child category menggunakan data API
   const getParentCategory = (category) => {
     if (!category) return "Lainnya";
-    if (CATEGORIES[category]) return category;
-    for (const [parent, children] of Object.entries(CATEGORIES)) {
-      if (children.includes(category)) return parent;
-    }
-    return "Lainnya";
+    
+    // Cari kategori parent dari data API
+    const parentCategory = eventCategories.find(cat => 
+      cat.event_category_name === category || 
+      cat.child_event_category?.some(sub => sub.child_event_category_name === category)
+    );
+    
+    return parentCategory ? parentCategory.event_category_name : "Lainnya";
   };
 
   // Get category color based on parent category
@@ -343,7 +279,7 @@ export default function CalendarEventPage() {
 
       return matchesSearch && matchesCategory && matchesDistrict;
     });
-  }, [events, searchTerm, categoryFilter, districtFilter]);
+  }, [events, searchTerm, categoryFilter, districtFilter, eventCategories]);
 
   // Mendapatkan events berdasarkan tanggal
   const getEventsForDate = (date) => {
@@ -537,7 +473,10 @@ export default function CalendarEventPage() {
     return Math.min(...prices);
   };
 
-  const parentCategoriesForLegend = Object.keys(CATEGORIES);
+  // Parent categories untuk legenda dari data API
+  const parentCategoriesForLegend = useMemo(() => {
+    return eventCategories.map(category => category.event_category_name);
+  }, [eventCategories]);
 
   return (
     <div className="min-h-screen py-8">
@@ -569,6 +508,7 @@ export default function CalendarEventPage() {
         isLoggedIn={isLoggedIn}
         userRole={userRole}
         dayNamesFull={dayNamesFull}
+        formatNumber={formatNumber}
       />
 
       <div className="py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
@@ -635,7 +575,10 @@ export default function CalendarEventPage() {
                   )}
 
                   <button
-                    onClick={fetchEvents}
+                    onClick={() => {
+                      fetchEvents();
+                      fetchEventCategories();
+                    }}
                     className="flex items-center gap-1.5 sm:gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-colors font-medium text-sm sm:text-base"
                   >
                     <RefreshCw
@@ -705,9 +648,9 @@ export default function CalendarEventPage() {
                           className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
                         >
                           <option value="">Semua Kategori</option>
-                          {parentCategoriesForLegend.map((category) => (
-                            <option key={category} value={category}>
-                              {category}
+                          {eventCategories.map((category) => (
+                            <option key={category.event_category_id} value={category.event_category_name}>
+                              {category.event_category_name}
                             </option>
                           ))}
                         </select>
@@ -941,6 +884,7 @@ export default function CalendarEventPage() {
                                 onLike={(e) => handleLikeEvent(event.event_id, e)}
                                 isLoggedIn={isLoggedIn}
                                 userRole={userRole}
+                                formatNumber={formatNumber}
                               />
                             </motion.div>
                           ))}
@@ -1014,6 +958,7 @@ export default function CalendarEventPage() {
                           isLoggedIn={isLoggedIn}
                           userRole={userRole}
                           showFullDate
+                          formatNumber={formatNumber}
                         />
                       </motion.div>
                     ))}
@@ -1043,7 +988,7 @@ export default function CalendarEventPage() {
                     }`}
                   >
                     <div
-                      className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${CATEGORY_COLORS[category]}`}
+                      className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${CATEGORY_COLORS[category] || CATEGORY_COLORS["Lainnya"]}`}
                     />
                     <span className="truncate max-w-[80px] sm:max-w-none">
                       {category}
@@ -1085,6 +1030,7 @@ function MobileEventModal({
   isLoggedIn,
   userRole,
   dayNamesFull,
+  formatNumber,
 }) {
   if (!isOpen || !selectedDate) return null;
 
@@ -1157,6 +1103,7 @@ function MobileEventModal({
                       isLiked={likedEvents.has(event.event_id)}
                       onLike={(e) => onLike(event.event_id, e)}
                       userRole={userRole}
+                      formatNumber={formatNumber}
                     />
                   ))}
                 </div>
@@ -1180,6 +1127,7 @@ function MobileEventCard({
   isLiked,
   onLike,
   userRole,
+  formatNumber,
 }) {
   const parentCategory = getParentCategory(event.category);
   const canLike = userRole === "user";
@@ -1244,7 +1192,15 @@ function MobileEventCard({
             >
               {getMinPrice(event) === 0 ? "GRATIS" : formatRupiah(getMinPrice(event))}
             </span>
-            <ArrowRight size={16} className="text-gray-400" />
+            <div className="flex items-center gap-2">
+              {event.total_likes > 0 && (
+                <span className="flex items-center gap-0.5 text-pink-500 text-[10px]">
+                  <Heart className="w-2.5 h-2.5 fill-current" />
+                  <span className="font-medium">{formatNumber(event.total_likes)}</span>
+                </span>
+              )}
+              <ArrowRight size={16} className="text-gray-400" />
+            </div>
           </div>
         </div>
       </div>
@@ -1266,6 +1222,7 @@ function EventCard({
   isLoggedIn,
   userRole,
   showFullDate = false,
+  formatNumber,
 }) {
   const parentCategory = getParentCategory(event.category);
   const canLike = userRole === "user";
@@ -1361,7 +1318,13 @@ function EventCard({
                 {event.total_likes > 0 && (
                   <span className="flex items-center gap-0.5 text-pink-500 text-[10px]">
                     <Heart className="w-3 h-3 fill-current" />
-                    {event.total_likes}
+                    <span className="font-medium">{formatNumber(event.total_likes)}</span>
+                  </span>
+                )}
+                {event.total_tickets_sold > 0 && (
+                  <span className="flex items-center gap-0.5 text-emerald-600 text-[10px]">
+                    <ShoppingBag className="w-2.5 h-2.5" />
+                    <span className="font-medium">{formatNumber(event.total_tickets_sold)}</span>
                   </span>
                 )}
                 <ArrowRight size={16} className="text-gray-400" />
@@ -1472,7 +1435,13 @@ function EventCard({
               {event.total_likes > 0 && (
                 <span className="flex items-center gap-1 text-pink-500 text-sm">
                   <Heart className="w-4 h-4 fill-current" />
-                  {event.total_likes}
+                  <span className="font-medium">{formatNumber(event.total_likes)}</span>
+                </span>
+              )}
+              {event.total_tickets_sold > 0 && (
+                <span className="flex items-center gap-1 text-emerald-600 text-sm">
+                  <ShoppingBag className="w-4 h-4" />
+                  <span className="font-medium">{formatNumber(event.total_tickets_sold)}</span>
                 </span>
               )}
               <button

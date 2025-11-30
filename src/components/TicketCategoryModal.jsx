@@ -24,6 +24,7 @@ export default function TicketCategoryModal({
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const dropdownRef = useRef(null);
 
   const { showNotification } = useNotification();
@@ -73,6 +74,7 @@ export default function TicketCategoryModal({
         });
         setSearchQuery("");
       }
+      setErrorMessage("");
     }
   }, [isOpen, editingTicket, eventDates]);
 
@@ -91,10 +93,43 @@ export default function TicketCategoryModal({
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+      
+      // Validasi real-time untuk tanggal dan waktu
+      if (name === "date_start" || name === "date_end" || name === "time_start" || name === "time_end") {
+        const dateStart = new Date(name === "date_start" ? value : prev.date_start);
+        const dateEnd = new Date(name === "date_end" ? value : prev.date_end);
+        const timeStart = name === "time_start" ? value : prev.time_start;
+        const timeEnd = name === "time_end" ? value : prev.time_end;
+
+        if (newData.date_start && newData.date_end) {
+          dateStart.setHours(0, 0, 0, 0);
+          dateEnd.setHours(0, 0, 0, 0);
+
+          if (dateStart > dateEnd) {
+            setErrorMessage("Tanggal mulai tidak boleh lebih besar dari tanggal selesai!");
+          } else if (dateStart.getTime() === dateEnd.getTime()) {
+            const [startHour, startMinute] = timeStart.split(':').map(Number);
+            const [endHour, endMinute] = timeEnd.split(':').map(Number);
+            const startTotalMinutes = startHour * 60 + startMinute;
+            const endTotalMinutes = endHour * 60 + endMinute;
+
+            if (startTotalMinutes > endTotalMinutes) {
+              setErrorMessage("Jam mulai tidak boleh lebih besar dari jam selesai pada tanggal yang sama!");
+            } else if (startTotalMinutes === endTotalMinutes) {
+              setErrorMessage("Jam mulai dan jam selesai tidak boleh sama!");
+            } else {
+              setErrorMessage("");
+            }
+          } else {
+            setErrorMessage("");
+          }
+        }
+      }
+
+      return newData;
+    });
 
     if (name === "name") {
       setSearchQuery(value);
@@ -141,6 +176,45 @@ export default function TicketCategoryModal({
       return { isValid: false, message: "Harap isi semua field yang wajib diisi!" };
     }
 
+    const dateStart = new Date(formData.date_start);
+    const dateEnd = new Date(formData.date_end);
+    
+    // Reset time untuk perbandingan tanggal saja
+    dateStart.setHours(0, 0, 0, 0);
+    dateEnd.setHours(0, 0, 0, 0);
+
+    // Validasi: tanggal mulai tidak boleh lebih besar dari tanggal selesai
+    if (dateStart > dateEnd) {
+      return { 
+        isValid: false, 
+        message: "Tanggal mulai tidak boleh lebih besar dari tanggal selesai!" 
+      };
+    }
+
+    // Validasi waktu jika tanggal sama
+    if (dateStart.getTime() === dateEnd.getTime()) {
+      const [startHour, startMinute] = formData.time_start.split(':').map(Number);
+      const [endHour, endMinute] = formData.time_end.split(':').map(Number);
+      
+      const startTotalMinutes = startHour * 60 + startMinute;
+      const endTotalMinutes = endHour * 60 + endMinute;
+
+      if (startTotalMinutes > endTotalMinutes) {
+        return { 
+          isValid: false, 
+          message: "Jam mulai tidak boleh lebih besar dari jam selesai pada tanggal yang sama!" 
+        };
+      }
+
+      if (startTotalMinutes === endTotalMinutes) {
+        return { 
+          isValid: false, 
+          message: "Jam mulai dan jam selesai tidak boleh sama!" 
+        };
+      }
+    }
+
+    // Validasi datetime lengkap (untuk kasus tanggal berbeda)
     const startDateTime = new Date(`${formData.date_start}T${formData.time_start}`);
     const endDateTime = new Date(`${formData.date_end}T${formData.time_end}`);
     
@@ -185,9 +259,12 @@ export default function TicketCategoryModal({
     
     const validation = validateForm();
     if (!validation.isValid) {
+      setErrorMessage(validation.message);
       showNotification(validation.message, "Validasi Gagal", "warning");
       return;
     }
+
+    setErrorMessage("");
 
     const ticketData = {
       ...formData,
@@ -495,6 +572,22 @@ export default function TicketCategoryModal({
               <p className="text-xs text-gray-500">
                 Tekan Enter untuk membuat baris baru. Baris baru akan tetap tersimpan dan ditampilkan.
               </p>
+              
+              {/* Error Message */}
+              <AnimatePresence>
+                {errorMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="bg-red-50 border border-red-300 rounded-lg p-3 mt-2"
+                  >
+                    <p className="text-sm text-red-600 font-medium">
+                      {errorMessage}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
 
             {/* Action Buttons */}

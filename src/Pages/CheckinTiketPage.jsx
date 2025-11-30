@@ -398,7 +398,7 @@ export default function CheckinTiketPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4"
+              className="mb-8 grid grid-cols-2 md:grid-cols-2 gap-4"
             >
               <StatCard
                 icon={<Users className="w-6 h-6" />}
@@ -412,19 +412,13 @@ export default function CheckinTiketPage() {
                 value={eventData?.total_tickets_sold || 0}
                 color="green"
               />
-              <StatCard
-                icon={<TicketCheck className="w-6 h-6" />}
-                label="Check-in Sesi Ini"
-                value={scanCount}
-                color="purple"
-              />
-              <StatCard
+              {/* <StatCard
                 icon={<CreditCard className="w-6 h-6" />}
                 label="Total Sales"
                 value={formatRupiah(eventData?.total_sales || 0)}
                 color="amber"
                 isSmallText
-              />
+              /> */}
             </motion.div>
 
             {/* Main Content */}

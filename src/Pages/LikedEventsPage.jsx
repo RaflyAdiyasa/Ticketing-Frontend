@@ -16,6 +16,7 @@ import {
   X,
   Sparkles,
   ArrowUpDown,
+  Filter,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -153,9 +154,10 @@ export default function LikedEventsPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [sortBy, setSortBy] = useState("date");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [showFilters, setShowFilters] = useState(false);
 
   // Check login status
   useEffect(() => {
@@ -256,30 +258,14 @@ export default function LikedEventsPage() {
     }));
   }, [likedEvents]);
 
-  // Category statistics
-  const categoryStats = useMemo(() => {
-    const stats = {
-      all: processedEvents.length,
-      ...Object.keys(CATEGORY_COLORS).reduce((acc, category) => {
-        acc[category] = 0;
-        return acc;
-      }, {})
-    };
-    
-    processedEvents.forEach(event => {
-      if (stats[event.parentCategory] !== undefined) {
-        stats[event.parentCategory]++;
-      }
-    });
-    
-    return stats;
-  }, [processedEvents]);
+  // Parent categories for dropdown
+  const parentCategoriesForFilter = Object.keys(CATEGORIES);
 
   // Filtered events
   const filteredEvents = useMemo(() => {
     let filtered = [...processedEvents];
 
-    if (selectedCategory !== "all") {
+    if (selectedCategory) {
       filtered = filtered.filter(event => event.parentCategory === selectedCategory);
     }
 
@@ -323,11 +309,13 @@ export default function LikedEventsPage() {
 
   const clearFilters = () => {
     setSearchTerm("");
-    setSelectedCategory("all");
+    setSelectedCategory("");
+    setSortBy("date");
+    setSortOrder("desc");
     showNotification("Filter berhasil direset", "Info", "info");
   };
 
-  const hasActiveFilters = searchTerm || selectedCategory !== "all";
+  const hasActiveFilters = searchTerm || selectedCategory;
 
   if (loading) {
     return (
@@ -414,113 +402,123 @@ export default function LikedEventsPage() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="bg-gray-50 rounded-xl p-6 mb-8"
             >
-              {/* Category Tabs */}
-              <div className="flex flex-wrap gap-2 mb-6">
-                {[
-                  { key: "all", label: "Semua", count: categoryStats.all },
-                  ...Object.entries(CATEGORY_COLORS)
-                    .filter(([category]) => categoryStats[category] > 0)
-                    .map(([category]) => ({
-                      key: category,
-                      label: category,
-                      count: categoryStats[category]
-                    }))
-                ].map((tab) => (
-                  <motion.button
-                    key={tab.key}
-                    onClick={() => setSelectedCategory(tab.key)}
-                    className={`
-                      flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all
-                      ${selectedCategory === tab.key 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      }
-                    `}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+              <div className="flex flex-row justify-between items-center gap-3 mb-4">
+                <h3 className="text-xl font-semibold text-gray-800">
+                  Filter & Pencarian
+                </h3>
+
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  <Filter size={18} />
+                  <span>{showFilters ? "Sembunyikan" : "Tampilkan"} Filter</span>
+                </button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Cari berdasarkan nama event, venue, atau kategori..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    {tab.key !== "all" && (
-                      <span 
-                        className={`w-2 h-2 rounded-full ${CATEGORY_COLORS[tab.key]}`}
-                      />
+                    <X size={18} />
+                  </button>
+                )}
+              </div>
+
+              {/* Filter Options */}
+              <AnimatePresence>
+                {showFilters && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Kategori
+                        </label>
+                        <select
+                          value={selectedCategory}
+                          onChange={(e) => setSelectedCategory(e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        >
+                          <option value="">Semua Kategori</option>
+                          {parentCategoriesForFilter.map((category) => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col gap-3">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Urutkan Berdasarkan
+                        </label>
+                        <div className="flex gap-2">
+                          <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                          >
+                            <option value="date">Tanggal Event</option>
+                            <option value="name">Nama Event</option>
+                            <option value="likes">Jumlah Like</option>
+                          </select>
+                          
+                          <motion.button
+                            onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                            className="px-4 py-3 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <ArrowUpDown size={20} className={`text-gray-600 ${sortOrder === "desc" ? "rotate-180" : ""}`} />
+                          </motion.button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Active Filters */}
+                    {hasActiveFilters && (
+                      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          Filter aktif:
+                          {searchTerm && ` Pencarian: "${searchTerm}"`}
+                          {selectedCategory && ` Kategori: ${selectedCategory}`}
+                        </p>
+                      </div>
                     )}
-                    {tab.label}
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      selectedCategory === tab.key ? 'bg-white/20' : 'bg-gray-300'
-                    }`}>
-                      {tab.count}
-                    </span>
-                  </motion.button>
-                ))}
-              </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {/* Search and Sort */}
-              <div className="flex flex-col lg:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                  <input
-                    type="text"
-                    placeholder="Cari berdasarkan nama event, venue, atau kategori..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  />
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm("")}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      <X size={18} />
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white min-w-[150px]"
-                  >
-                    <option value="date">Tanggal Event</option>
-                    <option value="name">Nama Event</option>
-                    <option value="likes">Jumlah Like</option>
-                  </select>
-                  
-                  <motion.button
-                    onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                    className="px-4 py-3 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <ArrowUpDown size={20} className={`text-gray-600 ${sortOrder === "desc" ? "rotate-180" : ""}`} />
-                  </motion.button>
-                </div>
-              </div>
-
-              {/* Active Filters */}
+              {/* Clear Filters Button */}
               {hasActiveFilters && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-200"
+                  className="flex justify-end mt-4"
                 >
-                  <span className="text-sm text-gray-500">Filter aktif:</span>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedCategory !== "all" && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                        Kategori: {selectedCategory}
-                        <button onClick={() => setSelectedCategory("all")}><X size={14} /></button>
-                      </span>
-                    )}
-                    {searchTerm && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
-                        "{searchTerm}"
-                        <button onClick={() => setSearchTerm("")}><X size={14} /></button>
-                      </span>
-                    )}
-                  </div>
-                  <button onClick={clearFilters} className="text-sm text-red-600 hover:text-red-700 font-medium ml-auto">
-                    Reset Semua
+                  <button 
+                    onClick={clearFilters}
+                    className="flex items-center gap-2 text-red-600 hover:text-red-800 font-medium text-sm"
+                  >
+                    <X size={16} />
+                    Hapus Semua Filter
                   </button>
                 </motion.div>
               )}
@@ -534,6 +532,7 @@ export default function LikedEventsPage() {
             >
               <p className="text-gray-600">
                 Menampilkan <span className="font-semibold text-gray-800">{sortedEvents.length}</span> event favorit
+                {selectedCategory && ` dalam kategori ${selectedCategory}`}
               </p>
             </motion.div>
 
@@ -547,15 +546,22 @@ export default function LikedEventsPage() {
                 >
                   <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-xl font-bold text-gray-900 mb-2">Tidak Ada Event Ditemukan</h3>
-                  <p className="text-gray-600 mb-6">Tidak ada event yang sesuai dengan filter</p>
-                  <motion.button
-                    onClick={clearFilters}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    Reset Filter
-                  </motion.button>
+                  <p className="text-gray-600 mb-6">
+                    {hasActiveFilters 
+                      ? "Tidak ada event yang sesuai dengan filter yang dipilih" 
+                      : "Belum ada event yang disukai"
+                    }
+                  </p>
+                  {hasActiveFilters && (
+                    <motion.button
+                      onClick={clearFilters}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Reset Filter
+                    </motion.button>
+                  )}
                 </motion.div>
               ) : (
                 sortedEvents.map((event, index) => (
@@ -576,7 +582,7 @@ export default function LikedEventsPage() {
   );
 }
 
-// Event Card Component
+// Event Card Component (tetap sama)
 function EventCard({ event, index, onClick, onUnlike }) {
   return (
     <motion.div

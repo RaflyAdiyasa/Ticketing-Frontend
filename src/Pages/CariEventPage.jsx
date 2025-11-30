@@ -5,65 +5,7 @@ import { eventAPI } from "../services/api";
 import { Search, Filter, Calendar, MapPin, X, RefreshCw, Heart, ChevronLeft, ChevronRight, TrendingUp, ShoppingBag, Clock, ArrowRight, Ticket } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Import CATEGORIES dan DISTRICTS dari mapping EventRegister
-const CATEGORIES = {
-  "Hiburan": [
-    "Musik", "Konser", "Festival", "Stand Up Comedy",
-    "Film", "Teater", "K-Pop", "Dance Performance"
-  ],
-  "Teknologi": [
-    "Konferensi Teknologi", "Workshop IT", "Startup",
-    "Software Development", "Artificial Intelligence",
-    "Data Science", "Cybersecurity", "Gaming & Esports"
-  ],
-  "Edukasi": [
-    "Seminar", "Workshop", "Pelatihan", "Webinar",
-    "Bootcamp", "Kelas Online", "Literasi Digital", "Kelas Bisnis"
-  ],
-  "Olahraga": [
-    "Marathon", "Fun Run", "Sepak Bola", "Badminton",
-    "Gym & Fitness", "Yoga", "Esport", "Cycling Event"
-  ],
-  "Bisnis & Profesional": [
-    "Konferensi Bisnis", "Networking", "Karir",
-    "Entrepreneurship", "Leadership", "Startup Meetup",
-    "Investor & Pitching"
-  ],
-  "Seni & Budaya": [
-    "Pameran Seni", "Pentas Budaya", "Fotografi",
-    "Seni Rupa", "Crafting", "Pameran Museum",
-    "Fashion Show"
-  ],
-  "Komunitas": [
-    "Kegiatan Relawan", "Kegiatan Sosial", "Gathering Komunitas",
-    "Komunitas Hobi", "Meetup", "Charity Event"
-  ],
-  "Kuliner": [
-    "Festival Kuliner", "Food Tasting", "Workshop Memasak",
-    "Street Food Event"
-  ],
-  "Kesehatan": [
-    "Seminar Kesehatan", "Medical Check Event",
-    "Workshop Kesehatan Mental", "Donor Darah"
-  ],
-  "Agama & Spiritual": [
-    "Kajian", "Retreat", "Pengajian", "Event Keagamaan",
-    "Meditasi"
-  ],
-  "Travel & Outdoor": [
-    "Camping", "Hiking", "Trip Wisata", "Outdoor Gathering",
-    "Photography Trip"
-  ],
-  "Keluarga & Anak": [
-    "Family Gathering", "Event Anak", "Workshop Parenting",
-    "Pentas Anak"
-  ],
-  "Fashion & Beauty": [
-    "Fashion Expo", "Beauty Class", "Makeup Workshop",
-    "Brand Launching"
-  ]
-};
-
+// Hapus CATEGORIES, pertahankan DISTRICTS
 const DISTRICTS = [
   "Tegalrejo", "Jetis", "Gondokusuman", "Danurejan", "Gedongtengen", "Ngampilan", "Wirobrajan", "Mantrijeron",
   "Kraton", "Gondomanan", "Pakualaman", "Mergangsan", "Umbulharjo", "Kotagede"
@@ -131,23 +73,28 @@ export default function CariEvent() {
     return Math.min(...prices);
   };
 
-  const getParentCategory = (category) => {
+  const getParentCategory = (category, eventCategories) => {
     if (!category) return "Lainnya";
-    if (CATEGORIES[category]) return category;
-    for (const [parent, children] of Object.entries(CATEGORIES)) {
-      if (children.includes(category)) return parent;
-    }
-    return "Lainnya";
+    
+    // Cari kategori parent dari data API
+    const parentCategory = eventCategories.find(cat => 
+      cat.event_category_name === category || 
+      cat.child_event_category?.some(sub => sub.child_event_category_name === category)
+    );
+    
+    return parentCategory ? parentCategory.event_category_name : "Lainnya";
   };
 
-  const getCategoryColor = (category) => {
-    const parentCategory = getParentCategory(category);
+  const getCategoryColor = (category, eventCategories) => {
+    const parentCategory = getParentCategory(category, eventCategories);
     return CATEGORY_COLORS[parentCategory] || CATEGORY_COLORS["Lainnya"];
   };
 
   const [events, setEvents] = useState([]);
+  const [eventCategories, setEventCategories] = useState([]); // State untuk kategori dari API
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true); // Loading state untuk kategori
   const [showFilters, setShowFilters] = useState(false);
   const [likedEvents, setLikedEvents] = useState(new Set());
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -163,6 +110,20 @@ export default function CariEvent() {
 
   const initialSort = searchParams.get('sort') || "popularitas";
   const [sortBy, setSortBy] = useState(initialSort);
+
+  // Ambil data kategori event dari API
+  const fetchEventCategories = async () => {
+    try {
+      setCategoriesLoading(true);
+      const response = await eventAPI.getEventCategories();
+      const categoriesData = response.data.event_category || [];
+      setEventCategories(categoriesData);
+    } catch (error) {
+      console.error("Error fetching event categories:", error);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
 
   useEffect(() => {
     const userData = sessionStorage.getItem("user");
@@ -198,20 +159,29 @@ export default function CariEvent() {
   }, [isLoggedIn]);
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await eventAPI.getApprovedEvents();
-        let eventsData = response.data || [];
+        // Fetch events dan categories secara parallel
+        const [eventsResponse, categoriesResponse] = await Promise.all([
+          eventAPI.getApprovedEvents(),
+          eventAPI.getEventCategories()
+        ]);
+        
+        let eventsData = eventsResponse.data || [];
+        const categoriesData = categoriesResponse.data.event_category || [];
+        
         setEvents(eventsData);
+        setEventCategories(categoriesData);
         setFilteredEvents(eventsData);
       } catch (error) {
-        console.error("Error fetching events:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchEvents();
+    
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -240,8 +210,8 @@ export default function CariEvent() {
 
     if (filters.category) {
       result = result.filter(event => {
-        const eventParent = getParentCategory(event.category);
-        return eventParent === filters.category || event.category === filters.category;
+        const eventParent = getParentCategory(event.category, eventCategories);
+        return eventParent === filters.category;
       });
     }
 
@@ -268,7 +238,7 @@ export default function CariEvent() {
 
     setFilteredEvents(result);
     setCurrentPage(1);
-  }, [filters, events, sortBy]);
+  }, [filters, events, sortBy, eventCategories]);
 
   const handleLikeEvent = async (eventId, e) => {
     e.stopPropagation();
@@ -464,99 +434,108 @@ export default function CariEvent() {
                 </button>
               </div>
 
-              {showFilters && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-3 sm:space-y-4 pt-4 border-t border-gray-200"
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {/* Search Input */}
-                    <div className="space-y-1.5 sm:space-y-2">
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700">
-                        Cari Nama Event
-                      </label>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                        <input
-                          type="text"
-                          placeholder="Cari event..."
-                          value={filters.keyword}
-                          onChange={(e) => handleFilterChange('keyword', e.target.value)}
-                          className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                        />
+              <AnimatePresence>
+                {showFilters && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="space-y-3 sm:space-y-4 pt-4 border-t border-gray-200"
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                      {/* Search Input */}
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700">
+                          Cari Nama Event
+                        </label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                          <input
+                            type="text"
+                            placeholder="Cari event..."
+                            value={filters.keyword}
+                            onChange={(e) => handleFilterChange('keyword', e.target.value)}
+                            className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                          />
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Date Filter */}
-                    <div className="space-y-1.5 sm:space-y-2">
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700">
-                        Filter Tanggal
-                      </label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                        <input
-                          type="date"
-                          value={filters.date}
-                          onChange={(e) => handleFilterChange('date', e.target.value)}
-                          className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                        />
+                      {/* Date Filter */}
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700">
+                          Filter Tanggal
+                        </label>
+                        <div className="relative">
+                          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                          <input
+                            type="date"
+                            value={filters.date}
+                            onChange={(e) => handleFilterChange('date', e.target.value)}
+                            className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                          />
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Category Filter */}
-                    <div className="space-y-1.5 sm:space-y-2">
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700">
-                        Kategori
-                      </label>
-                      <select 
-                        value={filters.category}
-                        onChange={(e) => handleFilterChange('category', e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 sm:py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                      >
-                        <option value="">Semua Kategori</option>
-                        {Object.keys(CATEGORIES).map((category) => (
-                          <option key={category} value={category}>{category}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* District Filter */}
-                    <div className="space-y-1.5 sm:space-y-2">
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700">
-                        Kecamatan
-                      </label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                      {/* Category Filter */}
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700">
+                          Kategori
+                        </label>
                         <select 
-                          value={filters.district}
-                          onChange={(e) => handleFilterChange('district', e.target.value)}
-                          className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                          value={filters.category}
+                          onChange={(e) => handleFilterChange('category', e.target.value)}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 sm:py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
                         >
-                          <option value="">Semua Kecamatan</option>
-                          {DISTRICTS.map((district) => (
-                            <option key={district} value={district}>{district}</option>
+                          <option value="">Semua Kategori</option>
+                          {eventCategories.map((category) => (
+                            <option key={category.event_category_id} value={category.event_category_name}>
+                              {category.event_category_name}
+                            </option>
                           ))}
                         </select>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Active Filter Info */}
-                  {hasActiveFilters && (
-                    <div className="p-2.5 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-xs sm:text-sm text-blue-800 break-words">
-                        <span className="font-medium">Filter aktif:</span>
-                        {filters.keyword && ` "${filters.keyword}"`}
-                        {filters.date && ` ${new Date(filters.date).toLocaleDateString("id-ID")}`}
-                        {filters.category && ` ${filters.category}`}
-                        {filters.district && ` ${filters.district}`}
-                      </p>
+                      {/* District Filter */}
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700">
+                          Kecamatan
+                        </label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                          <select 
+                            value={filters.district}
+                            onChange={(e) => handleFilterChange('district', e.target.value)}
+                            className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                          >
+                            <option value="">Semua Kecamatan</option>
+                            {DISTRICTS.map((district) => (
+                              <option key={district} value={district}>{district}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </motion.div>
-              )}
+
+                    {/* Active Filter Info */}
+                    {hasActiveFilters && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-2.5 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                      >
+                        <p className="text-xs sm:text-sm text-blue-800 break-words">
+                          <span className="font-medium">Filter aktif:</span>
+                          {filters.keyword && ` "${filters.keyword}"`}
+                          {filters.date && ` ${new Date(filters.date).toLocaleDateString("id-ID")}`}
+                          {filters.category && ` ${filters.category}`}
+                          {filters.district && ` ${filters.district}`}
+                        </p>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Event List */}
@@ -604,6 +583,7 @@ export default function CariEvent() {
                     >
                       <EventCard
                         event={event}
+                        eventCategories={eventCategories}
                         onClick={() => handleCardClick(event.event_id)}
                         formatRupiah={formatRupiah}
                         formatDate={formatDate}
@@ -688,21 +668,21 @@ export default function CariEvent() {
 
 // Event Card Component - Mobile Optimized
 function EventCard({ 
-  event, onClick, formatRupiah, formatDate, formatNumber, getLowestPrice,
+  event, eventCategories, onClick, formatRupiah, formatDate, formatNumber, getLowestPrice,
   getCategoryColor, getParentCategory, isLiked, onLike,
   isLoggedIn, sortBy, canLike
 }) {
   const minPrice = getLowestPrice(event.ticket_categories);
-  const parentCategory = getParentCategory(event.category);
+  const parentCategory = getParentCategory(event.category, eventCategories);
 
   return (
     <motion.div
       whileHover={{ y: -4 }}
       onClick={onClick}
-      className="group bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-xl border border-gray-200 overflow-hidden cursor-pointer transition-all duration-300"
+      className="group bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-xl border border-gray-200 overflow-hidden cursor-pointer transition-all duration-300 flex flex-col h-full"
     >
       {/* Image */}
-      <div className="relative aspect-square overflow-hidden bg-gray-100">
+      <div className="relative aspect-square overflow-hidden bg-gray-100 flex-shrink-0">
         <img
           src={event.image || "https://axistechindia.com/images/image%20not%20available.jpg"}
           alt={event.name}
@@ -713,7 +693,7 @@ function EventCard({
         />
         {/* Category Badge */}
         <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
-          <span className={`${getCategoryColor(event.category)} text-white text-[10px] sm:text-xs px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full font-medium`}>
+          <span className={`${getCategoryColor(event.category, eventCategories)} text-white text-[10px] sm:text-xs px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full font-medium`}>
             {parentCategory}
           </span>
         </div>
@@ -734,10 +714,13 @@ function EventCard({
       </div>
 
       {/* Content */}
-      <div className="p-2.5 sm:p-4">
-        <h3 className="font-semibold text-gray-900 text-sm sm:text-lg mb-1.5 sm:mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors leading-tight">
-          {event.name}
-        </h3>
+      <div className="flex flex-col flex-1 p-2.5 sm:p-4">
+        {/* Container judul dengan tinggi tetap */}
+        <div className="min-h-[3rem] sm:min-h-[3.5rem] mb-1.5 sm:mb-2 flex items-start">
+          <h3 className="font-semibold text-gray-900 text-sm sm:text-lg line-clamp-2 group-hover:text-blue-600 transition-colors leading-tight">
+            {event.name}
+          </h3>
+        </div>
         
         <div className="space-y-1 sm:space-y-1.5 mb-2 sm:mb-3">
           <div className="flex items-center gap-1 sm:gap-1.5 text-gray-700 text-[10px] sm:text-xs">
@@ -751,7 +734,7 @@ function EventCard({
           </div>
         </div>
         
-        <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100">
+        <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100 mt-auto">
           <div className="min-w-0 flex-1">
             <p className="text-[9px] sm:text-xs text-gray-400">Mulai dari</p>
             <p className={`font-bold text-xs sm:text-md ${minPrice === 0 ? 'text-emerald-600' : 'text-blue-600'} truncate`}>
