@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import { feedbackAPI } from "../services/api";
 import NotificationModal from "../components/NotificationModal";
 import useNotification from "../hooks/useNotification";
+import { Eye } from "lucide-react";
 
 export default function LaporkanMasalahPage() {
   const [activeTab, setActiveTab] = useState("buat"); // buat / riwayat
@@ -32,7 +33,11 @@ export default function LaporkanMasalahPage() {
     try {
       setLoading(true);
       const response = await feedbackAPI.getMyFeedback();
-      setReports(response.data.feedback || []);
+      // Urutkan data dari yang terbaru berdasarkan created_at
+      const sortedFeedback = (response.data.feedback || []).sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      );
+      setReports(sortedFeedback);
     } catch (err) {
       showNotification(
         err.response?.data?.error || "Gagal memuat riwayat laporan",
@@ -54,6 +59,45 @@ export default function LaporkanMasalahPage() {
     custom_category: "" // Field baru untuk kategori custom
   });
   const [proofFile, setProofFile] = useState(null);
+
+  // Fungsi untuk format waktu relatif
+  const getTimeAgo = (timestamp) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInSeconds = Math.floor((now - time) / 1000);
+    
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds} detik yang lalu`;
+    }
+    
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} menit yang lalu`;
+    }
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) {
+      return `${diffInHours} jam yang lalu`;
+    }
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) {
+      return `${diffInDays} hari yang lalu`;
+    }
+    
+    const diffInWeeks = Math.floor(diffInDays / 7);
+    if (diffInWeeks < 4) {
+      return `${diffInWeeks} minggu yang lalu`;
+    }
+    
+    const diffInMonths = Math.floor(diffInDays / 30);
+    if (diffInMonths < 12) {
+      return `${diffInMonths} bulan yang lalu`;
+    }
+    
+    const diffInYears = Math.floor(diffInDays / 365);
+    return `${diffInYears} tahun yang lalu`;
+  };
 
   const fileHandler = (e) => {
     const file = e.target.files[0];
@@ -139,7 +183,7 @@ export default function LaporkanMasalahPage() {
     { value: "other", label: "Lainnya" }
   ];
 
-  // Mapping status untuk tampilan
+  // Mapping status untuk tampilan - SESUAIKAN DENGAN ADMIN
   const statusMapping = {
     "waiting": { label: "Menunggu", class: "bg-yellow-100 text-yellow-700" },
     "processed": { label: "Diproses", class: "bg-blue-100 text-blue-700" },
@@ -159,7 +203,7 @@ export default function LaporkanMasalahPage() {
       />
 
       <div className="min-h-screen bg-[#E5E7EB] flex items-start justify-center p-4 overflow-auto">
-        <div className="min-h-screen w-full max-w-5xl mx-auto pt-40 bg-white shadow-xl p-8 rounded-2xl">
+        <div className="min-h-screen w-full max-w-6xl mx-auto pt-40 bg-white shadow-xl p-8 rounded-2xl">
           <h1 className="text-2xl font-bold mb-8">Laporkan Masalah</h1>
 
           {/* TOGGLE */}
@@ -321,6 +365,7 @@ export default function LaporkanMasalahPage() {
                       <th className="p-3">Kategori</th>
                       <th className="p-3">Deskripsi</th>
                       <th className="p-3">Status</th>
+                      <th className="p-3">Waktu Dibuat</th>
                       <th className="p-3 text-center">Aksi</th>
                     </tr>
                   </thead>
@@ -328,9 +373,14 @@ export default function LaporkanMasalahPage() {
                     {reports.map((report) => (
                       <tr key={report.feedback_id} className="border-b">
                         <td className="p-3">
-                          {feedbackCategories.find(cat => cat.value === report.feedback_category)?.label || report.feedback_category}
+                          {/* Tampilkan feedback_category sesuai input, tidak diterjemahkan */}
+                          {report.feedback_category}
                         </td>
-                        <td className="p-3 max-w-xs truncate">{report.comment}</td>
+                        <td className="p-3 max-w-xs">
+                          <div className="truncate" title={report.comment}>
+                            {report.comment}
+                          </div>
+                        </td>
                         <td className="p-3">
                           <span
                             className={`px-3 py-1 rounded-full text-sm ${
@@ -340,13 +390,21 @@ export default function LaporkanMasalahPage() {
                             {statusMapping[report.status]?.label || report.status}
                           </span>
                         </td>
+                        <td className="p-3">
+                          <div className="text-base text-gray-900">
+                            {getTimeAgo(report.created_at)}
+                          </div>
+                        </td>
                         <td className="p-3 text-center">
-                          <button
-                            onClick={() => setDetailModal({ open: true, data: report })}
-                            className="text-blue-600 hover:underline"
-                          >
-                            Detail
-                          </button>
+                          <div className="flex justify-center items-center h-full">
+                            <button
+                              onClick={() => setDetailModal({ open: true, data: report })}
+                              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
+                            >
+                              <Eye size={16} />
+                              Detail
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -361,13 +419,13 @@ export default function LaporkanMasalahPage() {
             <div className="fixed inset-0 bg-black/30 flex justify-center items-center z-50">
               <div className="bg-white p-6 rounded-lg w-full max-w-lg space-y-5 shadow-xl max-h-[90vh] overflow-y-auto">
                 <h2 className="text-xl font-semibold">
-                  Detail Laporan — {feedbackCategories.find(cat => cat.value === detailModal.data.feedback_category)?.label || detailModal.data.feedback_category}
+                  Detail Laporan — {detailModal.data.feedback_category}
                 </h2>
 
                 <div>
                   <p className="text-gray-600 text-sm">Kategori:</p>
                   <p className="font-medium">
-                    {feedbackCategories.find(cat => cat.value === detailModal.data.feedback_category)?.label || detailModal.data.feedback_category}
+                    {detailModal.data.feedback_category}
                   </p>
                 </div>
 
@@ -404,18 +462,23 @@ export default function LaporkanMasalahPage() {
                   </div>
                 )}
 
-                <div>
-                  <p className="text-gray-600 text-sm">Tanggapan Admin:</p>
-                  {detailModal.data.reply ? (
-                    <p className="border p-3 rounded bg-green-50 text-green-700 whitespace-pre-wrap">
-                      {detailModal.data.reply}
-                    </p>
-                  ) : (
-                    <p className="border p-3 rounded bg-yellow-50 text-yellow-700 italic">
-                      Admin belum memberikan tanggapan
-                    </p>
-                  )}
-                </div>
+                {/* Tanggapan Admin - Hanya tampilkan jika ada reply atau status waiting */}
+                {(detailModal.data.reply || detailModal.data.status === "waiting") && (
+                  <div>
+                    <p className="text-gray-600 text-sm">Tanggapan Admin:</p>
+                    {detailModal.data.reply ? (
+                      <p className="border p-3 rounded bg-green-50 text-green-700 whitespace-pre-wrap">
+                        {detailModal.data.reply}
+                      </p>
+                    ) : (
+                      detailModal.data.status === "waiting" && (
+                        <p className="border p-3 rounded bg-yellow-50 text-yellow-700 italic">
+                          Admin belum memberikan tanggapan
+                        </p>
+                      )
+                    )}
+                  </div>
+                )}
 
                 <div className="flex justify-end">
                   <button

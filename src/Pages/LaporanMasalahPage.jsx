@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar";
 import { feedbackAPI } from "../services/api";
 import NotificationModal from "../components/NotificationModal";
 import useNotification from "../hooks/useNotification";
+import { Eye } from "lucide-react";
 
 export default function LaporanMasalahPage() {
   const [reports, setReports] = useState([]);
@@ -22,6 +23,45 @@ export default function LaporanMasalahPage() {
     responseInput: "",
   });
 
+  // Fungsi untuk format waktu relatif
+  const getTimeAgo = (timestamp) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInSeconds = Math.floor((now - time) / 1000);
+    
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds} detik yang lalu`;
+    }
+    
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} menit yang lalu`;
+    }
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) {
+      return `${diffInHours} jam yang lalu`;
+    }
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) {
+      return `${diffInDays} hari yang lalu`;
+    }
+    
+    const diffInWeeks = Math.floor(diffInDays / 7);
+    if (diffInWeeks < 4) {
+      return `${diffInWeeks} minggu yang lalu`;
+    }
+    
+    const diffInMonths = Math.floor(diffInDays / 30);
+    if (diffInMonths < 12) {
+      return `${diffInMonths} bulan yang lalu`;
+    }
+    
+    const diffInYears = Math.floor(diffInDays / 365);
+    return `${diffInYears} tahun yang lalu`;
+  };
+
   // Fetch all feedback on component mount
   useEffect(() => {
     fetchAllFeedback();
@@ -31,7 +71,11 @@ export default function LaporanMasalahPage() {
     try {
       setLoading(true);
       const response = await feedbackAPI.getAllFeedback();
-      setReports(response.data.feedback || []);
+      // Urutkan data dari yang terbaru berdasarkan created_at
+      const sortedFeedback = (response.data.feedback || []).sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      );
+      setReports(sortedFeedback);
     } catch (err) {
       showNotification(
         err.response?.data?.error || "Gagal memuat laporan",
@@ -63,12 +107,10 @@ export default function LaporanMasalahPage() {
         reply: detailModal.responseInput.trim() || ""
       };
 
-      // Gunakan feedback_id dari data yang sedang dibuka
       await feedbackAPI.updateFeedbackStatus(detailModal.data.feedback_id, formData);
 
       showNotification("Status laporan berhasil diupdate!", "Sukses", "success");
       
-      // Refresh data
       await fetchAllFeedback();
       
       setDetailModal({ open: false, data: null, responseInput: "" });
@@ -87,11 +129,12 @@ export default function LaporanMasalahPage() {
   // Status mapping untuk UI
   const statusMapping = {
     "waiting": { label: "Menunggu", class: "bg-yellow-100 text-yellow-700" },
+    "processed": { label: "Diproses", class: "bg-blue-100 text-blue-700" },
     "completed": { label: "Diterima", class: "bg-green-100 text-green-700" },
     "rejected": { label: "Ditolak", class: "bg-red-100 text-red-700" }
   };
 
-  // Ambil daftar kategori unik untuk dropdown
+  // Ambil daftar kategori unik untuk dropdown (tampilkan sesuai input, tidak diterjemahkan)
   const categoryOptions = useMemo(() => {
     const categories = [...new Set(reports.map((r) => r.feedback_category))];
     return ["Semua Kategori", ...categories];
@@ -108,6 +151,7 @@ export default function LaporanMasalahPage() {
       const matchStatus =
         statusFilter === "Semua Status" || 
         (statusFilter === "Menunggu" && r.status === "waiting") ||
+        (statusFilter === "Diproses" && r.status === "processed") ||
         (statusFilter === "Diterima" && r.status === "completed") ||
         (statusFilter === "Ditolak" && r.status === "rejected");
 
@@ -169,6 +213,7 @@ export default function LaporanMasalahPage() {
                     >
                       <option>Semua Status</option>
                       <option>Menunggu</option>
+                      <option>Diproses</option>
                       <option>Diterima</option>
                       <option>Ditolak</option>
                     </select>
@@ -209,6 +254,7 @@ export default function LaporanMasalahPage() {
                   <th className="p-3">Pengirim</th>
                   <th className="p-3">Kategori</th>
                   <th className="p-3">Status</th>
+                  <th className="p-3">Waktu Dibuat</th>
                   <th className="p-3 text-center">Aksi</th>
                 </tr>
               </thead>
@@ -221,7 +267,10 @@ export default function LaporanMasalahPage() {
                         <p className="text-sm text-gray-500">{report.user?.email || "No email"}</p>
                       </div>
                     </td>
-                    <td className="p-3">{report.feedback_category}</td>
+                    <td className="p-3">
+                      {/* Tampilkan feedback_category sesuai input, tidak diterjemahkan */}
+                      {report.feedback_category}
+                    </td>
                     <td className="p-3">
                       <span
                         className={`px-3 py-1 rounded-full text-sm ${
@@ -231,13 +280,21 @@ export default function LaporanMasalahPage() {
                         {statusMapping[report.status]?.label || report.status}
                       </span>
                     </td>
+                    <td className="p-3">
+                      <div className="text-base text-gray-900">
+                        {getTimeAgo(report.created_at)}
+                      </div>
+                    </td>
                     <td className="p-3 text-center">
-                      <button
-                        onClick={() => openDetail(report)}
-                        className="text-blue-600 hover:underline"
-                      >
-                        Detail
-                      </button>
+                      <div className="flex justify-center items-center h-full">
+                        <button
+                          onClick={() => openDetail(report)}
+                          className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
+                        >
+                          <Eye size={16} />
+                          Tinjau
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -331,6 +388,20 @@ export default function LaporanMasalahPage() {
                         </>
                       ) : (
                         "Tolak"
+                      )}
+                    </button>
+                    <button
+                      className="px-5 py-2 bg-yellow-600 text-white rounded disabled:opacity-50 flex items-center gap-2"
+                      onClick={() => updateFeedbackStatus("processed")}
+                      disabled={updating}
+                    >
+                      {updating ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Memproses...
+                        </>
+                      ) : (
+                        "Diproses"
                       )}
                     </button>
                     <button
