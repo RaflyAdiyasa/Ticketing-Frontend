@@ -129,24 +129,29 @@ export default function LihatProfilPage() {
             transition={{ duration: 0.6 }}
             className="bg-white rounded-2xl shadow-xl overflow-hidden"
           >
-            {/* Header dengan Gradient */}
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
+            {/* Header tanpa gradient biru */}
+            <div className="p-6 border-b border-gray-200">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h1 className="text-2xl md:text-3xl font-bold">Profil Saya</h1>
-                  <p className="text-blue-100 mt-1">Kelola informasi profil Anda</p>
-                </div>
-                <div className="flex gap-3">
-                  <motion.button
-                    onClick={() => setShowEditModal(true)}
-                    className="flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg transition-all font-medium shadow-md"
-                    whileHover={{ scale: 1.05, y: -1 }}
-                    whileTap={{ scale: 0.95 }}
+                  <motion.h1 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-2xl md:text-3xl font-bold text-gray-900"
                   >
-                    <Edit size={18} />
-                    Edit Profil
-                  </motion.button>
+                    Profil Saya
+                  </motion.h1>
+                  <p className="text-gray-500 mt-1">Kelola informasi profil Anda</p>
                 </div>
+                <motion.button
+                  onClick={() => setShowEditModal(true)}
+                  className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 px-4 py-2 rounded-lg transition-all font-medium shadow-md"
+                  whileHover={{ scale: 1.05, y: -1 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Edit size={18} />
+                  Edit Profil
+                </motion.button>
               </div>
             </div>
 

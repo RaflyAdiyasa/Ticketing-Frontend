@@ -18,12 +18,6 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
     profile_pict: user.profile_pict || '',
   });
   const [loading, setLoading] = useState(false);
-  const [showCustomOrgType, setShowCustomOrgType] = useState(
-    user.organization_type && 
-    !["Perguruan Tinggi", "Sekolah", "Perusahaan Teknologi", "Perusahaan Manufaktur", 
-      "Perusahaan Jasa", "Perusahaan Retail", "Perusahaan Finansial", "Perusahaan Startup", 
-      "Organisasi Nirlaba", "Organisasi Sosial", "Komunitas"].includes(user.organization_type)
-  );
   const [showPassword, setShowPassword] = useState(false);
   
   const profilePictRef = useRef(null);
@@ -34,31 +28,6 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
     setFormData(prev => ({
       ...prev,
       [name]: value
-    }));
-  };
-
-  const handleOrgTypeChange = (e) => {
-    const value = e.target.value;
-    
-    if (value === "Lainnya") {
-      setShowCustomOrgType(true);
-      setFormData(prev => ({
-        ...prev,
-        organization_type: "",
-      }));
-    } else {
-      setShowCustomOrgType(false);
-      setFormData(prev => ({
-        ...prev,
-        organization_type: value,
-      }));
-    }
-  };
-
-  const handleCustomOrgTypeChange = (e) => {
-    setFormData(prev => ({
-      ...prev,
-      organization_type: e.target.value,
     }));
   };
 
@@ -113,21 +82,12 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
         }
       }
 
-      if (user.role === 'organizer') {
-        if (formData.organization !== user.organization) {
-          submitData.append('organization', formData.organization);
-        }
-        if (formData.organization_type !== user.organization_type) {
-          submitData.append('organization_type', formData.organization_type);
-        }
-        if (formData.organization_description !== user.organization_description) {
-          submitData.append('organization_description', formData.organization_description);
-        }
-      }
-
+      // Hanya password yang bisa diupdate untuk admin
       if (user.role === 'admin' && formData.password) {
         submitData.append('password', formData.password);
       }
+
+      // Field organisasi dihapus dari submitData karena sudah dikunci
 
       const response = await userAPI.updateProfile(submitData);
       onUpdate(response.data.user);
@@ -164,7 +124,7 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+        className="fixed inset-0 flex items-center justify-center p-4 z-50 bg-black/60 backdrop-blur-sm"
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -342,7 +302,7 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
                 <p className="text-xs text-gray-500 mt-1">Kosongkan jika tidak ingin mengubah</p>
               </motion.div>
 
-              {/* Organization Fields */}
+              {/* Organization Fields - Dikunci untuk organizer */}
               {user.role === 'organizer' && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -356,6 +316,7 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
                   </h4>
                   
                   <div className="space-y-4">
+                    {/* Nama Organisasi - Dikunci */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Nama Organisasi
@@ -364,57 +325,32 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
                         type="text"
                         name="organization"
                         value={formData.organization}
-                        onChange={handleInputChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        readOnly
+                        disabled
+                        className="w-full p-3 border border-gray-300 bg-gray-100 rounded-lg cursor-not-allowed"
                         placeholder="Masukkan nama organisasi"
                       />
+                      <p className="text-xs text-gray-500 mt-1">Nama organisasi tidak dapat diubah</p>
                     </div>
 
+                    {/* Jenis Organisasi - Dikunci */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Jenis Instansi
                       </label>
-                      <select
+                      <input
+                        type="text"
                         name="organization_type"
-                        value={showCustomOrgType ? "Lainnya" : formData.organization_type}
-                        onChange={handleOrgTypeChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-pointer"
-                        required
-                      >
-                        <option value="">-- Pilih Jenis Instansi --</option>
-                        <option value="Perguruan Tinggi">Perguruan Tinggi</option>
-                        <option value="Sekolah">Sekolah</option>
-                        <option value="Perusahaan Teknologi">Perusahaan Teknologi</option>
-                        <option value="Perusahaan Manufaktur">Perusahaan Manufaktur</option>
-                        <option value="Perusahaan Jasa">Perusahaan Jasa</option>
-                        <option value="Perusahaan Retail">Perusahaan Retail</option>
-                        <option value="Perusahaan Finansial">Perusahaan Finansial</option>
-                        <option value="Perusahaan Startup">Perusahaan Startup</option>
-                        <option value="Organisasi Nirlaba">Organisasi Nirlaba</option>
-                        <option value="Organisasi Sosial">Organisasi Sosial</option>
-                        <option value="Komunitas">Komunitas</option>
-                        <option value="Lainnya">Lainnya</option>
-                      </select>
-                      
-                      {showCustomOrgType && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="mt-2"
-                        >
-                          <input
-                            type="text"
-                            name="custom_organization_type"
-                            value={formData.organization_type}
-                            onChange={handleCustomOrgTypeChange}
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                            placeholder="Masukkan jenis instansi"
-                            required
-                          />
-                        </motion.div>
-                      )}
+                        value={formData.organization_type}
+                        readOnly
+                        disabled
+                        className="w-full p-3 border border-gray-300 bg-gray-100 rounded-lg cursor-not-allowed"
+                        placeholder="Jenis instansi"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Jenis instansi tidak dapat diubah</p>
                     </div>
 
+                    {/* Deskripsi Organisasi - Dikunci */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         <div className="flex items-center gap-2">
@@ -425,11 +361,13 @@ export default function EditProfileModal({ user, onClose, onUpdate }) {
                       <textarea
                         name="organization_description"
                         value={formData.organization_description}
-                        onChange={handleInputChange}
+                        readOnly
+                        disabled
                         rows="3"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                        placeholder="Deskripsikan organisasi Anda..."
+                        className="w-full p-3 border border-gray-300 bg-gray-100 rounded-lg cursor-not-allowed"
+                        placeholder="Deskripsi organisasi"
                       />
+                      <p className="text-xs text-gray-500 mt-1">Deskripsi organisasi tidak dapat diubah</p>
                     </div>
 
                     {/* KTP Information */}
