@@ -46,6 +46,7 @@ export default function CheckinTiketPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [scanCount, setScanCount] = useState(0);
   const [user, setUser] = useState(null);
+  const [showResult, setShowResult] = useState(false); // State baru untuk mengontrol tampilan hasil
   
   const scannerRef = useRef(null);
   const { notification, showNotification, hideNotification } = useNotification();
@@ -131,9 +132,9 @@ export default function CheckinTiketPage() {
       setIsProcessing(true);
       setScanResult(decodedText);
       
-      // Clear scanner
-      await newScanner.clear().catch(console.log);
-      setIsScanning(false);
+      // Jangan clear scanner di sini agar kamera tetap aktif
+      // await newScanner.clear().catch(console.log);
+      // setIsScanning(false);
       
       // Process check-in
       await processCheckIn(decodedText);
@@ -160,6 +161,7 @@ export default function CheckinTiketPage() {
         setTicketData(response.data.ticket);
         setCheckInStatus('success');
         setScanCount(prev => prev + 1);
+        setShowResult(true); // Tampilkan hasil
         showNotification("Tiket berhasil di check-in!", "Check-in Berhasil", "success");
       }
     } catch (error) {
@@ -170,15 +172,19 @@ export default function CheckinTiketPage() {
       
       if (errorMsg.includes("already used") || errorMsg.includes("sudah digunakan")) {
         setCheckInStatus('already_used');
+        setShowResult(true); // Tampilkan hasil
         showNotification("Tiket sudah pernah digunakan", "Check-in Gagal", "warning");
       } else if (errorMsg.includes("not found") || errorMsg.includes("tidak ditemukan") || errorMsg.includes("invalid")) {
         setCheckInStatus('error');
+        setShowResult(true); // Tampilkan hasil
         showNotification("Tiket tidak ditemukan atau tidak valid", "Check-in Gagal", "error");
       } else if (errorMsg.includes("not active")) {
         setCheckInStatus('error');
+        setShowResult(true); // Tampilkan hasil
         showNotification("Tiket tidak aktif", "Check-in Gagal", "error");
       } else {
         setCheckInStatus('error');
+        setShowResult(true); // Tampilkan hasil
         showNotification(errorMsg, "Check-in Gagal", "error");
       }
     } finally {
@@ -197,18 +203,26 @@ export default function CheckinTiketPage() {
     };
   }, [isLoaded, user, startScanner, cleanUpScanner]);
 
-  // Fungsi untuk scan ulang
+  // Fungsi untuk scan ulang (kembali ke mode scanning)
   const handleRescan = () => {
     setScanResult(null);
     setTicketData(null);
     setCheckInStatus(null);
     setErrorMessage("");
-    setIsScanning(true);
+    setShowResult(false); // Sembunyikan hasil, kembali ke scanning
     setIsProcessing(false);
     
-    setTimeout(() => {
-      startScanner();
-    }, 100);
+    // Scanner sudah aktif, tidak perlu start ulang
+  };
+
+  // Fungsi untuk scan tiket lain (clear result saja)
+  const handleScanAnother = () => {
+    setScanResult(null);
+    setTicketData(null);
+    setCheckInStatus(null);
+    setErrorMessage("");
+    setShowResult(false); // Sembunyikan hasil
+    setIsProcessing(false);
   };
 
   // Fungsi untuk kembali
@@ -382,9 +396,9 @@ export default function CheckinTiketPage() {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="bg-white rounded-2xl border border-gray-200 overflow-hidden"
             >
-              {/* Scanner Section */}
+              {/* Scanner Section - Tetap ditampilkan meskipun ada hasil */}
               <AnimatePresence mode="wait">
-                {isScanning && !scanResult && (
+                {!showResult && (
                   <motion.div
                     key="scanner"
                     initial={{ opacity: 0 }}
@@ -438,8 +452,8 @@ export default function CheckinTiketPage() {
                   </motion.div>
                 )}
 
-                {/* Result Section */}
-                {!isScanning && !isProcessing && scanResult && (
+                {/* Result Section - Ditampilkan di samping scanner atau menggantikan sementara */}
+                {showResult && !isProcessing && scanResult && (
                   <motion.div
                     key="result"
                     initial={{ opacity: 0, y: 20 }}
@@ -605,7 +619,7 @@ export default function CheckinTiketPage() {
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={handleRescan}
+                        onClick={handleScanAnother}
                         className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all"
                       >
                         <RefreshCw className="w-5 h-5" />

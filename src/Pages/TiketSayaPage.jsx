@@ -442,7 +442,7 @@ export default function TiketSaya() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen mt-15 bg-gray-100">
       <Navbar />
       
       <NotificationModal
@@ -892,11 +892,11 @@ export default function TiketSaya() {
                   </div>
                   <div className="flex justify-between items-center py-1.5 border-b border-gray-200">
                     <span className="text-gray-600 text-xs">Tanggal Event</span>
-                    <span className="font-medium text-xs">{selectedTicket.displayDate || selectedTicket.formattedTicketDate}</span>
+                    <span className="font-medium text-xs">{selectedTicket.displayDateRange}</span>
                   </div>
                   <div className="flex justify-between items-center py-1.5 border-b border-gray-200">
                     <span className="text-gray-600 text-xs">Waktu</span>
-                    <span className="font-medium text-xs">{selectedTicket.displayTimeRange || selectedTicket.timeRange}</span>
+                    <span className="font-medium text-xs">{selectedTicket.displayTimeRange}</span>
                   </div>
                   <div className="flex justify-between items-start py-1.5 border-b border-gray-200">
                     <span className="text-gray-600 text-xs">Venue</span>

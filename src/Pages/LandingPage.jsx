@@ -586,7 +586,7 @@ export default function LandingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
               className="relative rounded-2xl overflow-hidden shadow-2xl shadow-gray-300/30 bg-gray-900"
-              style={{ aspectRatio: "21/9" }}
+              style={{ aspectRatio: "16/6" }}
               onMouseEnter={() => setShowArrows(true)}
               onMouseLeave={() => setShowArrows(false)}
               onTouchStart={handleTouchStart}
@@ -1021,7 +1021,7 @@ function EventCard({
       className="group bg-white rounded-lg sm:rounded-2xl shadow-sm hover:shadow-md sm:hover:shadow-xl border border-gray-100 overflow-hidden cursor-pointer transition-all duration-300"
     >
       {/* Image */}
-      <div className="relative aspect-[4/3] sm:aspect-square overflow-hidden bg-gray-100">
+      <div className="relative aspect-square overflow-hidden bg-gray-100">
         {event.poster ? (
           <img
             src={event.poster}

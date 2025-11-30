@@ -1120,7 +1120,7 @@ export default function EditEventPage() {
               >
                 <motion.button
                   type="button"
-                  onClick={() => navigate(`/detailEvent/${id}`)}
+                  onClick={() => navigate(`/event-saya`)}
                   className="flex-1 border border-gray-300 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                   whileHover={{ scale: 1.02, y: -1 }}
                   whileTap={{ scale: 0.98 }}
@@ -1141,7 +1141,7 @@ export default function EditEventPage() {
                       Menyimpan Perubahan...
                     </div>
                   ) : (
-                    "Simpan Perubahan"
+                    "Simpan & Ajukan Kembali"
                   )}
                 </motion.button>
               </motion.div>
