@@ -178,13 +178,6 @@ const VenueDropdown = ({ value, onChange, onCustomVenueToggle, isCustomVenue }) 
   );
 };
 
-// Fungsi untuk mendapatkan tanggal minimal (3 hari dari sekarang)
-const getMinDate = () => {
-  const minDate = new Date();
-  minDate.setDate(minDate.getDate() + 3);
-  return minDate.toISOString().split('T')[0];
-};
-
 // Fungsi untuk memformat tanggal menjadi format yang mudah dibaca
 const formatDateForDisplay = (dateString) => {
   const date = new Date(dateString);
@@ -232,9 +225,8 @@ export default function EditEventPage() {
     type: ""
   });
   const [isCustomVenue, setIsCustomVenue] = useState(false);
-
-  // State untuk tanggal minimal
-  const minDate = getMinDate();
+  const [canOpenModal, setCanOpenModal] = useState(false);
+  const [minDate, setMinDate] = useState("");
 
   // Fetch categories dari API
   const fetchEventCategories = async () => {
@@ -283,6 +275,19 @@ export default function EditEventPage() {
 
         setEvent(eventData);
         
+        // Hitung tanggal minimal berdasarkan createdAt event (7 hari setelah createdAt)
+        if (eventData.created_at) {
+          const createdAt = new Date(eventData.created_at);
+          const minStartDate = new Date(createdAt);
+          minStartDate.setDate(minStartDate.getDate() + 7);
+          setMinDate(minStartDate.toISOString().split('T')[0]);
+        } else {
+          // Fallback jika createdAt tidak ada
+          const fallbackMinDate = new Date();
+          fallbackMinDate.setDate(fallbackMinDate.getDate() + 7);
+          setMinDate(fallbackMinDate.toISOString().split('T')[0]);
+        }
+        
         const isVenueCustom = !YOGYAKARTA_VENUES.some(venue => venue.name === eventData.venue);
         setIsCustomVenue(isVenueCustom);
         
@@ -329,6 +334,40 @@ export default function EditEventPage() {
       fetchEventData();
     }
   }, [id, navigate, showNotification]);
+
+  // Fungsi validasi tanggal tiket
+  const validateTicketDates = (ticketStart, ticketEnd) => {
+    if (!formData.date_start || !formData.date_end) {
+      return { isValid: false, message: "Harap tentukan tanggal event terlebih dahulu" };
+    }
+
+    const eventStart = new Date(formData.date_start);
+    const eventEnd = new Date(formData.date_end);
+    const ticketStartDate = new Date(ticketStart);
+    const ticketEndDate = new Date(ticketEnd);
+
+    // Set waktu untuk perbandingan yang akurat
+    eventStart.setHours(0, 0, 0, 0);
+    eventEnd.setHours(23, 59, 59, 999);
+    ticketStartDate.setHours(0, 0, 0, 0);
+    ticketEndDate.setHours(23, 59, 59, 999);
+
+    if (ticketStartDate < eventStart) {
+      return { 
+        isValid: false, 
+        message: `Tanggal mulai tiket tidak boleh sebelum tanggal event (${formatDateForDisplay(formData.date_start)})` 
+      };
+    }
+
+    if (ticketEndDate > eventEnd) {
+      return { 
+        isValid: false, 
+        message: `Tanggal selesai tiket tidak boleh setelah tanggal event (${formatDateForDisplay(formData.date_end)})` 
+      };
+    }
+
+    return { isValid: true };
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -424,12 +463,28 @@ export default function EditEventPage() {
     setPreviewImage({ isOpen: false, image: null, type: "" });
   };
 
+  // Perbaiki handleAddTicket dengan validasi
   const handleAddTicket = (ticket) => {
+    // Validasi tanggal tiket terhadap tanggal event
+    const validation = validateTicketDates(ticket.date_start, ticket.date_end);
+    if (!validation.isValid) {
+      showNotification(validation.message, "Validasi Gagal", "warning");
+      return;
+    }
+
     setTicketList((prev) => [...prev, ticket]);
     showNotification("Kategori tiket berhasil ditambahkan", "Sukses", "success");
   };
 
+  // Perbaiki handleUpdateTicket dengan validasi
   const handleUpdateTicket = (updatedTicket) => {
+    // Validasi tanggal tiket terhadap tanggal event
+    const validation = validateTicketDates(updatedTicket.date_start, updatedTicket.date_end);
+    if (!validation.isValid) {
+      showNotification(validation.message, "Validasi Gagal", "warning");
+      return;
+    }
+
     setTicketList((prev) =>
       prev.map((ticket) =>
         ticket.id === updatedTicket.id ? updatedTicket : ticket
@@ -449,14 +504,27 @@ export default function EditEventPage() {
     showNotification("Kategori tiket berhasil dihapus", "Sukses", "success");
   };
 
+  // Perbaiki handleAddTicketClick dengan validasi
   const handleAddTicketClick = () => {
+    // Validasi apakah tanggal event sudah diisi
+    if (!formData.date_start || !formData.date_end) {
+      showNotification(
+        "Harap tentukan tanggal event terlebih dahulu sebelum menambahkan kategori tiket",
+        "Validasi Gagal", 
+        "warning"
+      );
+      return;
+    }
+
     setEditingTicket(null);
     setIsModalOpen(true);
+    setCanOpenModal(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingTicket(null);
+    setCanOpenModal(false);
   };
 
   const handleSubmit = async (e) => {
@@ -464,17 +532,9 @@ export default function EditEventPage() {
     setLoading(true);
 
     // Validasi tanggal
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const startDate = new Date(formData.date_start);
-    const minStartDate = new Date();
-    minStartDate.setDate(minStartDate.getDate() + 3);
-    minStartDate.setHours(0, 0, 0, 0);
-
-    if (startDate < minStartDate) {
+    if (minDate && formData.date_start < minDate) {
       showNotification(
-        `Tanggal mulai event harus minimal 3 hari dari sekarang. Paling cepat ${formatDateForDisplay(minDate)}`,
+        `Tanggal mulai event harus minimal 7 hari setelah event dibuat. Paling cepat ${formatDateForDisplay(minDate)}`,
         "Validasi Gagal",
         "warning"
       );
@@ -887,9 +947,11 @@ export default function EditEventPage() {
                         required
                       />
                     </div>
-                    <p className="text-xs text-gray-800">
-                      Paling cepat 3 hari dari hari ini ({formatDateForDisplay(minDate)})
-                    </p>
+                    {minDate && (
+                      <p className="text-xs text-gray-800">
+                        Paling cepat 7 hari setelah event dibuat ({formatDateForDisplay(minDate)})
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">

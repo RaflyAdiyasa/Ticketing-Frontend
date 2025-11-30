@@ -141,7 +141,7 @@ function AdminVerificationSection({ onVerify, verifying }) {
   );
 }
 
-// Verification Modal
+// Verification Modal dengan Animasi
 function VerificationModal({
   isOpen,
   onClose,
@@ -155,13 +155,53 @@ function VerificationModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-gray-900">
-          Konfirmasi Verifikasi
-        </h3>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    >
+      {/* Backdrop dengan animasi */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/30"
+        onClick={onClose}
+      />
+      
+      {/* Modal Content dengan animasi */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        transition={{ 
+          type: "spring", 
+          damping: 25, 
+          stiffness: 300,
+          duration: 0.3
+        }}
+        className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto relative z-10"
+      >
+        {/* Header dengan animasi subtle */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-gray-900">
+            Konfirmasi Verifikasi
+          </h3>
+        </motion.div>
 
-        <div className="mb-4">
+        {/* Event Info dengan animasi */}
+        <motion.div
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mb-4"
+        >
           <p className="text-sm sm:text-base text-gray-700 mb-2">
             Anda akan{" "}
             <strong>
@@ -170,14 +210,20 @@ function VerificationModal({
             event:
           </p>
           <p className="font-semibold text-base sm:text-lg">{eventName}</p>
-        </div>
+        </motion.div>
 
-        <div className="mb-4">
+        {/* Comment Input dengan animasi */}
+        <motion.div
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-4"
+        >
           <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
             Komentar Verifikasi{" "}
             {action === "reject" ? "(Wajib untuk penolakan)" : "(Opsional)"}:
           </label>
-          <textarea
+          <motion.textarea
             value={comment}
             onChange={(e) => onCommentChange(e.target.value)}
             className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -186,18 +232,30 @@ function VerificationModal({
               action === "approve" ? "persetujuan" : "penolakan"
             }...`}
             required={action === "reject"}
+            whileFocus={{ 
+              scale: 1.01,
+              transition: { duration: 0.2 }
+            }}
           />
-        </div>
+        </motion.div>
 
-        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
-          <button
+        {/* Buttons dengan animasi */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3"
+        >
+          <motion.button
             onClick={onClose}
             className="px-4 py-2.5 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors font-medium text-sm sm:text-base"
             disabled={verifying}
+            whileHover={{ scale: verifying ? 1 : 1.02 }}
+            whileTap={{ scale: verifying ? 1 : 0.98 }}
           >
             Batal
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             onClick={onConfirm}
             className={`px-4 py-2.5 rounded-lg text-white transition-colors font-medium text-sm sm:text-base ${
               action === "approve"
@@ -205,16 +263,35 @@ function VerificationModal({
                 : "bg-red-600 hover:bg-red-700"
             }`}
             disabled={verifying || (action === "reject" && !comment.trim())}
+            whileHover={{ 
+              scale: (verifying || (action === "reject" && !comment.trim())) ? 1 : 1.02 
+            }}
+            whileTap={{ 
+              scale: (verifying || (action === "reject" && !comment.trim())) ? 1 : 0.98 
+            }}
           >
-            {verifying
-              ? "Memproses..."
-              : action === "approve"
-              ? "Setujui"
-              : "Tolak"}
-          </button>
-        </div>
-      </div>
-    </div>
+            {verifying ? (
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center gap-2"
+              >
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                />
+                Memproses...
+              </motion.span>
+            ) : action === "approve" ? (
+              "Setujui"
+            ) : (
+              "Tolak"
+            )}
+          </motion.button>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }
 

@@ -345,10 +345,10 @@ const VenueDropdown = ({
   );
 };
 
-// Fungsi untuk mendapatkan tanggal minimal (3 hari dari sekarang)
+// Fungsi untuk mendapatkan tanggal minimal (7 hari dari sekarang)
 const getMinDate = () => {
   const minDate = new Date();
-  minDate.setDate(minDate.getDate() + 3);
+  minDate.setDate(minDate.getDate() + 7);
   return minDate.toISOString().split("T")[0];
 };
 
@@ -608,12 +608,12 @@ const handleCloseModal = () => {
 
     const startDate = new Date(formData.date_start);
     const minStartDate = new Date();
-    minStartDate.setDate(minStartDate.getDate() + 3);
+    minStartDate.setDate(minStartDate.getDate() + 7);
     minStartDate.setHours(0, 0, 0, 0);
 
     if (startDate < minStartDate) {
       showNotification(
-        `Tanggal mulai event harus minimal 3 hari dari sekarang. Paling cepat ${formatDateForDisplay(
+        `Tanggal mulai event harus minimal 7 hari dari sekarang. Paling cepat ${formatDateForDisplay(
           minDate
         )}`,
         "Validasi Gagal",
@@ -1044,7 +1044,7 @@ const handleCloseModal = () => {
                       />
                     </div>
                     <p className="text-xs text-gray-800">
-                      Paling cepat 3 hari dari hari ini (
+                      Paling cepat 7 hari dari hari ini (
                       {formatDateForDisplay(minDate)})
                     </p>
                   </div>

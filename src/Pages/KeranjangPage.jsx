@@ -19,6 +19,7 @@ import {
   Loader2,
   RefreshCw,
   Sparkles,
+  Ticket,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -41,6 +42,9 @@ export default function KeranjangPage() {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [showDecrementModal, setShowDecrementModal] = useState(false);
   const [itemToDecrement, setItemToDecrement] = useState(null);
+
+  // State untuk modal tiket gratis
+  const [showFreeTicketModal, setShowFreeTicketModal] = useState(false);
 
   const formatRupiah = (angka) => {
     return new Intl.NumberFormat("id-ID", {
@@ -136,6 +140,20 @@ export default function KeranjangPage() {
     }
   };
 
+  // === Check if all items in cart are free ===
+  const isAllFreeTickets = () => {
+    if (cart.length === 0) return false;
+    
+    for (const event of cart) {
+      for (const ticket of event.tickets) {
+        if (ticket.price > 0) {
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
   // === Modal handlers ===
   const confirmDelete = async () => {
     if (!itemToDelete) return;
@@ -166,6 +184,32 @@ export default function KeranjangPage() {
     } finally {
       setShowDecrementModal(false);
       setItemToDecrement(null);
+    }
+  };
+
+  // === Handler untuk konfirmasi tiket gratis ===
+  const confirmFreeTicketCheckout = async () => {
+    setShowFreeTicketModal(false);
+    setCheckoutLoading(true);
+    
+    try {
+      const response = await paymentAPI.createPayment();
+      
+      if (response.data) {
+        showNotification("Tiket gratis berhasil diklaim!", "Sukses", "success");
+        await fetchCart();
+        // Redirect ke halaman tiket saya
+        navigate('/tiket-saya');
+      } else {
+        throw new Error("Gagal memproses tiket gratis");
+      }
+      
+    } catch (err) {
+      console.error("Error during free ticket checkout:", err);
+      const errorMessage = err.response?.data?.error || "Gagal memproses tiket gratis";
+      showNotification(errorMessage, "Error", "error");
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -235,6 +279,13 @@ export default function KeranjangPage() {
       return;
     }
 
+    // Cek apakah semua tiket gratis
+    if (isAllFreeTickets()) {
+      setShowFreeTicketModal(true);
+      return;
+    }
+
+    // Jika ada tiket berbayar, lanjutkan dengan pembayaran biasa
     setCheckoutLoading(true);
     
     try {
@@ -445,6 +496,60 @@ export default function KeranjangPage() {
         )}
       </AnimatePresence>
 
+      {/* Modal Konfirmasi Tiket Gratis */}
+      <AnimatePresence>
+        {showFreeTicketModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          >
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-2xl max-w-sm w-full p-6 border border-gray-100 shadow-2xl"
+            >
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                  <Ticket className="h-6 w-6 text-green-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Konfirmasi Tiket Gratis
+                </h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Anda akan mengklaim tiket gratis. Setelah dikonfirmasi, tiket akan langsung muncul di halaman "Tiket Saya" dan Anda akan langsung diarahkan ke sana.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowFreeTicketModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+                    disabled={checkoutLoading}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={confirmFreeTicketCheckout}
+                    disabled={checkoutLoading}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium flex items-center justify-center gap-2"
+                  >
+                    {checkoutLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Memproses...
+                      </>
+                    ) : (
+                      "Konfirmasi"
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Checkout Success Modal */}
       <AnimatePresence>
         {showCheckoutModal && paymentData && (
@@ -586,33 +691,6 @@ export default function KeranjangPage() {
                 Refresh
               </motion.button>
             </motion.div>
-
-            {/* Stats Card */}
-            {cart.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="bg-blue-600 text-white p-6 rounded-xl mb-8"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm font-medium">Ringkasan Keranjang</p>
-                    <p className="text-3xl font-bold mt-1">{cartStats.totalQuantity} Tiket</p>
-                    <p className="text-blue-100 text-sm mt-2">
-                      {cartStats.totalEvents} event • {cartStats.totalItems} jenis tiket
-                    </p>
-                  </div>
-                  <motion.div 
-                    className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center"
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  >
-                    <ShoppingCart size={32} className="text-blue-600"/>
-                  </motion.div>
-                </div>
-              </motion.div>
-            )}
 
             {cart.length === 0 ? (
               <motion.div 
@@ -773,19 +851,37 @@ export default function KeranjangPage() {
                         </div>
                       </div>
                       
-                      {/* Informasi Checkout */}
+                      {/* Informasi Checkout - Conditional based on free tickets */}
                       <div className="mt-4 text-sm text-gray-600 space-y-1">
-                        <p className="flex items-center gap-2">
-                          <Check className="w-4 h-4 text-green-500" />
-                          Pembayaran akan dilakukan secara aman melalui Midtrans
-                        </p>
-                        <p className="flex items-center gap-2">
-                          <Check className="w-4 h-4 text-green-500" />
-                          Anda akan dibawa ke tab baru untuk pembayaran
-                        </p>
-                        <p className="mt-2 text-xs text-gray-500">
-                          Setelah pembayaran selesai, Anda bisa menutup tab pembayaran dan kembali ke halaman ini
-                        </p>
+                        {isAllFreeTickets() ? (
+                          <>
+                            <p className="flex items-center gap-2">
+                              <Check className="w-4 h-4 text-green-500" />
+                              Untuk tiket gratis, tiket akan langsung muncul di "Tiket Saya"
+                            </p>
+                            <p className="flex items-center gap-2">
+                              <Check className="w-4 h-4 text-green-500" />
+                              Anda akan langsung diarahkan ke halaman tiket Anda
+                            </p>
+                            <p className="mt-2 text-xs text-gray-500">
+                              Klik tombol checkout untuk mengklaim tiket gratis Anda
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="flex items-center gap-2">
+                              <Check className="w-4 h-4 text-green-500" />
+                              Pembayaran akan dilakukan secara aman melalui Midtrans
+                            </p>
+                            <p className="flex items-center gap-2">
+                              <Check className="w-4 h-4 text-green-500" />
+                              Anda akan dibawa ke tab baru untuk pembayaran
+                            </p>
+                            <p className="mt-2 text-xs text-gray-500">
+                              Setelah pembayaran selesai, Anda bisa menutup tab pembayaran dan kembali ke halaman ini
+                            </p>
+                          </>
+                        )}
                       </div>
                     </div>
                     
