@@ -86,6 +86,11 @@ export const eventAPI = {
   },
   likeEvent: (eventId) => api.post(`/api/events/${eventId}/like`),
   getMyLikedEvents: () => api.get('/api/events/like'),
+  getEventCategories: () => api.get('/api/events/category'),
+  addEventCategory: (categoryData) => api.post('/api/events/category/new', categoryData),
+  addSubEventCategory: (subCategoryData) => api.post('/api/events/category/new/sub', subCategoryData),
+  deleteCategoryEvent: (categoryData) => api.delete('/api/events/category/delete', { data: categoryData }),
+  deleteSubCategoryEvent: (subCategoryData) => api.delete('/api/events/category/delete/sub', { data: subCategoryData }),
 };
 
 export const cartAPI = {

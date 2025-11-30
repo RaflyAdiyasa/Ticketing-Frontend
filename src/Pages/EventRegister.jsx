@@ -1,28 +1,12 @@
 import Navbar from "../components/Navbar";
-import { Calendar, Folder, Plus, Pencil, Trash2, Eye, X, Search } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Calendar, Folder, Plus, Pencil, Trash2, Eye, X, Search, RefreshCw } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { eventAPI } from "../services/api";
 import TicketCategoryModal from "../components/TicketCategoryModal";
 import NotificationModal from "../components/NotificationModal";
 import useNotification from "../hooks/useNotification";
 import { motion } from "framer-motion";
-
-const CATEGORIES = {
-  "Hiburan": ["Musik", "Konser", "Festival", "Stand Up Comedy", "Film", "Teater", "K-Pop", "Dance Performance"],
-  "Teknologi": ["Konferensi Teknologi", "Workshop IT", "Startup", "Software Development", "Artificial Intelligence", "Data Science", "Cybersecurity", "Gaming & Esports"],
-  "Edukasi": ["Seminar", "Workshop", "Pelatihan", "Webinar", "Bootcamp", "Kelas Online", "Literasi Digital", "Kelas Bisnis"],
-  "Olahraga": ["Marathon", "Fun Run", "Sepak Bola", "Badminton", "Gym & Fitness", "Yoga", "Esport", "Cycling Event"],
-  "Bisnis & Profesional": ["Konferensi Bisnis", "Networking", "Karir", "Entrepreneurship", "Leadership", "Startup Meetup", "Investor & Pitching"],
-  "Seni & Budaya": ["Pameran Seni", "Pentas Budaya", "Fotografi", "Seni Rupa", "Crafting", "Pameran Museum", "Fashion Show"],
-  "Komunitas": ["Kegiatan Relawan", "Kegiatan Sosial", "Gathering Komunitas", "Komunitas Hobi", "Meetup", "Charity Event"],
-  "Kuliner": ["Festival Kuliner", "Food Tasting", "Workshop Memasak", "Street Food Event"],
-  "Kesehatan": ["Seminar Kesehatan", "Medical Check Event", "Workshop Kesehatan Mental", "Donor Darah"],
-  "Agama & Spiritual": ["Kajian", "Retreat", "Pengajian", "Event Keagamaan", "Meditasi"],
-  "Travel & Outdoor": ["Camping", "Hiking", "Trip Wisata", "Outdoor Gathering", "Photography Trip"],
-  "Keluarga & Anak": ["Family Gathering", "Event Anak", "Workshop Parenting", "Pentas Anak"],
-  "Fashion & Beauty": ["Fashion Expo", "Beauty Class", "Makeup Workshop", "Brand Launching"]
-};
 
 const DISTRICTS = [
   "Tegalrejo", "Jetis", "Gondokusuman", "Danurejan", "Gedongtengen", "Ngampilan", "Wirobrajan", "Mantrijeron",
@@ -232,6 +216,8 @@ export default function EventRegister() {
     rules: "",
   });
 
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [posterFile, setPosterFile] = useState(null);
   const [bannerFile, setBannerFile] = useState(null);
   const [ticketList, setTicketList] = useState([]);
@@ -247,6 +233,25 @@ export default function EventRegister() {
 
   // State untuk tanggal minimal
   const minDate = getMinDate();
+
+  // Fetch categories dari API
+  const fetchEventCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      const response = await eventAPI.getEventCategories();
+      const categoriesData = response.data.event_category || [];
+      setCategories(categoriesData);
+    } catch (error) {
+      console.error("Error fetching event categories:", error);
+      showNotification("Gagal memuat kategori event", "Error", "error");
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEventCategories();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -461,7 +466,14 @@ export default function EventRegister() {
 
   const getPosterFileName = () => posterFile ? posterFile.name : "Pilih file";
   const getBannerFileName = () => bannerFile ? bannerFile.name : "Pilih file";
-  const getChildCategories = () => CATEGORIES[formData.category] || [];
+
+  // Fungsi untuk mendapatkan subkategori berdasarkan kategori yang dipilih
+  const getChildCategories = () => {
+    const selectedCategory = categories.find(cat => 
+      cat.event_category_name === formData.category
+    );
+    return selectedCategory?.child_event_category || [];
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -543,6 +555,17 @@ export default function EventRegister() {
                   <h1 className="text-2xl md:text-3xl font-bold">Daftarkan Event</h1>
                   <p className="text-blue-100 mt-1">Isi informasi event Anda dengan lengkap dan benar</p>
                 </div>
+                <motion.button
+                  type="button"
+                  onClick={fetchEventCategories}
+                  disabled={loadingCategories}
+                  className="flex items-center gap-2 bg-blue-400 hover:bg-blue-300 text-white px-4 py-2 rounded-lg transition-colors font-medium disabled:opacity-50"
+                  whileHover={{ scale: loadingCategories ? 1 : 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <RefreshCw size={18} className={loadingCategories ? "animate-spin" : ""} />
+                  {loadingCategories ? "Memuat..." : "Refresh Kategori"}
+                </motion.button>
               </div>
             </div>
 
@@ -578,12 +601,18 @@ export default function EventRegister() {
                       value={formData.category}
                       onChange={handleInputChange}
                       required
+                      disabled={loadingCategories}
                     >
-                      <option value="">Pilih kategori event</option>
-                      {Object.keys(CATEGORIES).map((category) => (
-                        <option key={category} value={category}>{category}</option>
+                      <option value="">{loadingCategories ? "Memuat kategori..." : "Pilih kategori event"}</option>
+                      {categories.map((category) => (
+                        <option key={category.event_category_id} value={category.event_category_name}>
+                          {category.event_category_name}
+                        </option>
                       ))}
                     </select>
+                    {loadingCategories && (
+                      <p className="text-xs text-gray-500">Sedang memuat kategori...</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -594,13 +623,20 @@ export default function EventRegister() {
                       value={formData.child_category}
                       onChange={handleInputChange}
                       required
-                      disabled={!formData.category}
+                      disabled={!formData.category || loadingCategories}
                     >
-                      <option value="">Pilih sub kategori</option>
+                      <option value="">
+                        {!formData.category ? "Pilih kategori terlebih dahulu" : "Pilih sub kategori"}
+                      </option>
                       {getChildCategories().map((childCategory) => (
-                        <option key={childCategory} value={childCategory}>{childCategory}</option>
+                        <option key={childCategory.child_event_category_id} value={childCategory.child_event_category_name}>
+                          {childCategory.child_event_category_name}
+                        </option>
                       ))}
                     </select>
+                    {formData.category && getChildCategories().length === 0 && (
+                      <p className="text-xs text-yellow-600">Tidak ada subkategori untuk kategori ini</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">

@@ -9,7 +9,8 @@ export default function TicketCategoryModal({
   onAddTicket,
   editingTicket,
   onUpdateTicket,
-  eventDates 
+  eventDates,
+  minDate 
 }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -45,6 +46,27 @@ export default function TicketCategoryModal({
   const filteredCategories = predefinedCategories.filter(category =>
     category.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Fungsi untuk mendapatkan tanggal minimal (3 hari dari sekarang)
+  const getMinDate = () => {
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + 3);
+    return minDate.toISOString().split('T')[0];
+  };
+
+  // Fungsi untuk memformat tanggal menjadi format yang mudah dibaca
+  const formatDateForDisplay = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  // Gunakan minDate dari props atau hitung sendiri
+  const ticketMinDate = minDate || getMinDate();
 
   useEffect(() => {
     if (isOpen) {
@@ -99,6 +121,14 @@ export default function TicketCategoryModal({
     if (name === "name") {
       setSearchQuery(value);
     }
+
+    // Validasi tanggal selesai harus setelah tanggal mulai
+    if (name === "date_start" && formData.date_end && value > formData.date_end) {
+      setFormData(prev => ({
+        ...prev,
+        date_end: value
+      }));
+    }
   };
 
   const handleTextareaChange = (e) => {
@@ -144,12 +174,47 @@ export default function TicketCategoryModal({
       return;
     }
 
+    // Validasi tanggal mulai minimal 3 hari dari sekarang
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const startDate = new Date(formData.date_start);
+    const minStartDate = new Date();
+    minStartDate.setDate(minStartDate.getDate() + 3);
+    minStartDate.setHours(0, 0, 0, 0);
+
+    if (startDate < minStartDate) {
+      showNotification(
+        `Tanggal mulai tiket harus minimal 3 hari dari sekarang. Paling cepat ${formatDateForDisplay(ticketMinDate)}`,
+        "Validasi Gagal",
+        "warning"
+      );
+      return;
+    }
+
+    // Validasi tanggal mulai dan selesai
     const startDateTime = new Date(`${formData.date_start}T${formData.time_start}`);
     const endDateTime = new Date(`${formData.date_end}T${formData.time_end}`);
     
     if (endDateTime <= startDateTime) {
       showNotification("Tanggal/waktu selesai harus setelah tanggal/waktu mulai!", "Validasi Gagal", "warning");
       return;
+    }
+
+    // Validasi tanggal tiket tidak boleh melebihi tanggal event
+    if (eventDates?.start && eventDates?.end) {
+      const eventStartDate = new Date(eventDates.start);
+      const eventEndDate = new Date(eventDates.end);
+      
+      if (startDateTime < eventStartDate) {
+        showNotification("Tanggal mulai tiket tidak boleh sebelum tanggal mulai event!", "Validasi Gagal", "warning");
+        return;
+      }
+      
+      if (endDateTime > eventEndDate) {
+        showNotification("Tanggal selesai tiket tidak boleh setelah tanggal selesai event!", "Validasi Gagal", "warning");
+        return;
+      }
     }
 
     const ticketData = {
@@ -357,8 +422,8 @@ export default function TicketCategoryModal({
                         className="w-full outline-none bg-transparent" 
                         value={formData.date_start}
                         onChange={handleInputChange}
+                        min={ticketMinDate}
                         required
-                        min={eventDates?.start || undefined}
                       />
                     </div>
                     <div className="flex items-center border border-gray-300 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-colors">
@@ -378,6 +443,9 @@ export default function TicketCategoryModal({
                       </select>
                     </div>
                   </div>
+                  <p className="text-xs text-gray-800">
+                    Paling cepat 3 hari dari hari ini ({formatDateForDisplay(ticketMinDate)})
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -391,8 +459,8 @@ export default function TicketCategoryModal({
                         className="w-full outline-none bg-transparent" 
                         value={formData.date_end}
                         onChange={handleInputChange}
+                        min={formData.date_start || ticketMinDate}
                         required
-                        min={formData.date_start || eventDates?.start || undefined}
                       />
                     </div>
                     <div className="flex items-center border border-gray-300 rounded-lg px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-colors">
@@ -412,6 +480,9 @@ export default function TicketCategoryModal({
                       </select>
                     </div>
                   </div>
+                  <p className="text-xs text-gray-800">
+                    Harus setelah tanggal mulai
+                  </p>
                 </div>
               </div>
               
@@ -419,6 +490,9 @@ export default function TicketCategoryModal({
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm text-blue-800">
                     <strong>Info:</strong> Tanggal event utama: {new Date(eventDates.start).toLocaleDateString('id-ID')} hingga {new Date(eventDates.end).toLocaleDateString('id-ID')}
+                  </p>
+                  <p className="text-sm text-blue-800 mt-1">
+                    <strong>Catatan:</strong> Tanggal tiket harus berada dalam rentang tanggal event utama.
                   </p>
                 </div>
               )}
