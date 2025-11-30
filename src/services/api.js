@@ -122,7 +122,7 @@ export const transactionAPI = {
 };
 
 //FeedbackAPI
-export const FeedbackAPI = {
+export const feedbackAPI = {
   getAllFeedback: () => api.get('/api/feedback/all'),
   createFeedback: (formData) => {
     const token = sessionStorage.getItem('token');
@@ -133,9 +133,9 @@ export const FeedbackAPI = {
       },
     });
   },
-  updateFeedbackStatus: (formData) => {
+  updateFeedbackStatus: (id,formData) => {
     const token = sessionStorage.getItem('token');
-    return axios.put(`${API_BASE_URL}/api/feedback/${id}/status`, formData, {
+    return axios.put(`${API_BASE_URL}/api/feedback/detail/${id}/status`, formData, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
