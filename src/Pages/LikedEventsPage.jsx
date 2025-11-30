@@ -331,7 +331,7 @@ export default function LikedEventsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen py-8">
         <Navbar />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
@@ -348,7 +348,7 @@ export default function LikedEventsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen py-8">
       <Navbar />
       
       <NotificationModal

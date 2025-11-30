@@ -325,7 +325,7 @@ export default function RiwayatTransaksi() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen py-8 mt-15">
         <Navbar />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
@@ -343,7 +343,7 @@ export default function RiwayatTransaksi() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen py-8 mt-15">
         <Navbar />
         <div className="flex items-center justify-center min-h-[60vh] p-4">
           <motion.div 
@@ -373,7 +373,7 @@ export default function RiwayatTransaksi() {
 
   if (transactions.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen py-8 mt-15">
         <Navbar />
         <div className="flex items-center justify-center min-h-[60vh] p-4">
           <motion.div 
@@ -402,7 +402,7 @@ export default function RiwayatTransaksi() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 mt-15">
+    <div className="min-h-screen py-8 mt-15 mt-15">
       <Navbar />
       
       <NotificationModal

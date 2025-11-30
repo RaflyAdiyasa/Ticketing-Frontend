@@ -93,6 +93,19 @@ export default function CariEvent() {
   const { namaEvent } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   
+  const formatNumber = (num) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+    if (num >= 10000) {
+      return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    }
+    return num.toString();
+  };
+
   const formatRupiah = (angka) => {
     if (angka === 0) return "GRATIS";
     return new Intl.NumberFormat("id-ID", {
@@ -354,7 +367,7 @@ export default function CariEvent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
+    <div className="min-h-screen py-8">
       <Navbar />
 
       <div className="py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
@@ -594,6 +607,7 @@ export default function CariEvent() {
                         onClick={() => handleCardClick(event.event_id)}
                         formatRupiah={formatRupiah}
                         formatDate={formatDate}
+                        formatNumber={formatNumber}
                         getLowestPrice={getLowestPrice}
                         getCategoryColor={getCategoryColor}
                         getParentCategory={getParentCategory}
@@ -674,7 +688,7 @@ export default function CariEvent() {
 
 // Event Card Component - Mobile Optimized
 function EventCard({ 
-  event, onClick, formatRupiah, formatDate, getLowestPrice,
+  event, onClick, formatRupiah, formatDate, formatNumber, getLowestPrice,
   getCategoryColor, getParentCategory, isLiked, onLike,
   isLoggedIn, sortBy, canLike
 }) {
@@ -690,11 +704,11 @@ function EventCard({
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-gray-100">
         <img
-          src={event.image || "https://cdn2.steamgriddb.com/icon_thumb/63872edc3fa52d645b3d48f6d98caf2c.png"}
+          src={event.image || "https://axistechindia.com/images/image%20not%20available.jpg"}
           alt={event.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           onError={(e) => {
-            e.target.src = "https://cdn2.steamgriddb.com/icon_thumb/63872edc3fa52d645b3d48f6d98caf2c.png";
+            e.target.src = "https://axistechindia.com/images/image%20not%20available.jpg";
           }}
         />
         {/* Category Badge */}
@@ -749,13 +763,13 @@ function EventCard({
             {sortBy === 'terlaris' && event.total_tickets_sold > 0 && (
               <div className="flex items-center gap-0.5 sm:gap-1 text-emerald-600 text-[10px] sm:text-xs">
                 <ShoppingBag className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                <span className="font-medium">{event.total_tickets_sold}</span>
+                <span className="font-medium">{formatNumber(event.total_tickets_sold)}</span>
               </div>
             )}
             {sortBy === 'popularitas' && event.total_likes > 0 && (
               <div className="flex items-center gap-0.5 sm:gap-1 text-pink-500 text-[10px] sm:text-xs">
                 <Heart className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" />
-                <span className="font-medium">{event.total_likes}</span>
+                <span className="font-medium">{formatNumber(event.total_likes)}</span>
               </div>
             )}
             <div className="w-5 h-5 sm:w-7 sm:h-7 bg-blue-50 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">

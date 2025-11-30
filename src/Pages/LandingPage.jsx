@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
 import {
@@ -27,6 +27,13 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { eventAPI } from "../services/api";
+
+// Style for hiding scrollbar
+const scrollbarHideStyle = `
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+`;
 
 // Category dengan icon dan warna yang konsisten dengan CalendarEventPage
 const CATEGORY_DATA = {
@@ -251,7 +258,54 @@ export default function LandingPage() {
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
 
+  // Slider refs for horizontal scroll
+  const bestSellingSliderRef = useRef(null);
+  const popularSliderRef = useRef(null);
+  const [canScrollLeftBestSelling, setCanScrollLeftBestSelling] = useState(false);
+  const [canScrollRightBestSelling, setCanScrollRightBestSelling] = useState(true);
+  const [canScrollLeftPopular, setCanScrollLeftPopular] = useState(false);
+  const [canScrollRightPopular, setCanScrollRightPopular] = useState(true);
+
+  // Check scroll position for showing/hiding arrows
+  const checkScrollPosition = useCallback((ref, setCanScrollLeft, setCanScrollRight) => {
+    if (ref.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = ref.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  }, []);
+
+  // Scroll handler for slider
+  const handleSliderScroll = useCallback((ref, direction) => {
+    if (ref.current) {
+      const scrollAmount = ref.current.clientWidth * 0.8;
+      ref.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  }, []);
+
+  // Update scroll indicators when content changes
+  useEffect(() => {
+    checkScrollPosition(bestSellingSliderRef, setCanScrollLeftBestSelling, setCanScrollRightBestSelling);
+    checkScrollPosition(popularSliderRef, setCanScrollLeftPopular, setCanScrollRightPopular);
+  }, [bestSellingEvents, popularEvents, checkScrollPosition]);
+
   // Utility functions
+  const formatNumber = (num) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+    if (num >= 10000) {
+      return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    }
+    return num.toString();
+  };
+
   const formatRupiah = (angka) => {
     if (angka === 0) return "GRATIS";
     return new Intl.NumberFormat("id-ID", {
@@ -576,6 +630,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 mt-20">
+      <style>{scrollbarHideStyle}</style>
       <Navbar />
       <section className="pt-20 pb-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
@@ -786,23 +841,53 @@ export default function LandingPage() {
             </div>
 
             {bestSellingEvents.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-                {bestSellingEvents.slice(0, 8).map((event, index) => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    index={index}
-                    onClick={() => navigate(`/detailEvent/${event.id}`)}
-                    formatRupiah={formatRupiah}
-                    getCategoryData={getCategoryData}
-                    getParentCategory={getParentCategory}
-                    isLiked={likedEvents.has(event.id)}
-                    onLike={(e) => handleLikeEvent(event.id, e)}
-                    isLoggedIn={isLoggedIn}
-                    canLike={canLike}
-                    showSales
-                  />
-                ))}
+              <div className="relative group/slider">
+                {/* Left Arrow */}
+                <button
+                  onClick={() => handleSliderScroll(bestSellingSliderRef, 'left')}
+                  className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 sm:w-10 sm:h-10 bg-white shadow-lg rounded-full flex items-center justify-center transition-all duration-300 hover:bg-emerald-50 hover:scale-110 -ml-3 sm:-ml-4 ${
+                    canScrollLeftBestSelling ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  }`}
+                >
+                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+                </button>
+
+                {/* Right Arrow */}
+                <button
+                  onClick={() => handleSliderScroll(bestSellingSliderRef, 'right')}
+                  className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 sm:w-10 sm:h-10 bg-white shadow-lg rounded-full flex items-center justify-center transition-all duration-300 hover:bg-emerald-50 hover:scale-110 -mr-3 sm:-mr-4 ${
+                    canScrollRightBestSelling ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  }`}
+                >
+                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+                </button>
+
+                {/* Scrollable Container */}
+                <div
+                  ref={bestSellingSliderRef}
+                  onScroll={() => checkScrollPosition(bestSellingSliderRef, setCanScrollLeftBestSelling, setCanScrollRightBestSelling)}
+                  className="flex gap-3 sm:gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-2"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {bestSellingEvents.slice(0, 8).map((event, index) => (
+                    <div key={event.id} className="flex-shrink-0 w-[calc(50%-6px)] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] xl:w-[calc(25%-18px)]">
+                      <EventCard
+                        event={event}
+                        index={index}
+                        onClick={() => navigate(`/detailEvent/${event.id}`)}
+                        formatRupiah={formatRupiah}
+                        formatNumber={formatNumber}
+                        getCategoryData={getCategoryData}
+                        getParentCategory={getParentCategory}
+                        isLiked={likedEvents.has(event.id)}
+                        onLike={(e) => handleLikeEvent(event.id, e)}
+                        isLoggedIn={isLoggedIn}
+                        canLike={canLike}
+                        showSales
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
               <EmptyState
@@ -848,23 +933,53 @@ export default function LandingPage() {
             </div>
 
             {popularEvents.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-                {popularEvents.slice(0, 8).map((event, index) => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    index={index}
-                    onClick={() => navigate(`/detailEvent/${event.id}`)}
-                    formatRupiah={formatRupiah}
-                    getCategoryData={getCategoryData}
-                    getParentCategory={getParentCategory}
-                    isLiked={likedEvents.has(event.id)}
-                    onLike={(e) => handleLikeEvent(event.id, e)}
-                    isLoggedIn={isLoggedIn}
-                    canLike={canLike}
-                    showLikes
-                  />
-                ))}
+              <div className="relative group/slider">
+                {/* Left Arrow */}
+                <button
+                  onClick={() => handleSliderScroll(popularSliderRef, 'left')}
+                  className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 sm:w-10 sm:h-10 bg-white shadow-lg rounded-full flex items-center justify-center transition-all duration-300 hover:bg-pink-50 hover:scale-110 -ml-3 sm:-ml-4 ${
+                    canScrollLeftPopular ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  }`}
+                >
+                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-pink-600" />
+                </button>
+
+                {/* Right Arrow */}
+                <button
+                  onClick={() => handleSliderScroll(popularSliderRef, 'right')}
+                  className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 sm:w-10 sm:h-10 bg-white shadow-lg rounded-full flex items-center justify-center transition-all duration-300 hover:bg-pink-50 hover:scale-110 -mr-3 sm:-mr-4 ${
+                    canScrollRightPopular ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  }`}
+                >
+                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-pink-600" />
+                </button>
+
+                {/* Scrollable Container */}
+                <div
+                  ref={popularSliderRef}
+                  onScroll={() => checkScrollPosition(popularSliderRef, setCanScrollLeftPopular, setCanScrollRightPopular)}
+                  className="flex gap-3 sm:gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-2"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {popularEvents.slice(0, 8).map((event, index) => (
+                    <div key={event.id} className="flex-shrink-0 w-[calc(50%-6px)] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] xl:w-[calc(25%-18px)]">
+                      <EventCard
+                        event={event}
+                        index={index}
+                        onClick={() => navigate(`/detailEvent/${event.id}`)}
+                        formatRupiah={formatRupiah}
+                        formatNumber={formatNumber}
+                        getCategoryData={getCategoryData}
+                        getParentCategory={getParentCategory}
+                        isLiked={likedEvents.has(event.id)}
+                        onLike={(e) => handleLikeEvent(event.id, e)}
+                        isLoggedIn={isLoggedIn}
+                        canLike={canLike}
+                        showLikes
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
               <EmptyState
@@ -919,6 +1034,7 @@ export default function LandingPage() {
                     index={index}
                     onClick={() => navigate(`/detailEvent/${event.id}`)}
                     formatRupiah={formatRupiah}
+                    formatNumber={formatNumber}
                     getCategoryData={getCategoryData}
                     getParentCategory={getParentCategory}
                     isLiked={likedEvents.has(event.id)}
@@ -998,6 +1114,7 @@ function EventCard({
   index,
   onClick,
   formatRupiah,
+  formatNumber,
   getCategoryData,
   getParentCategory,
   isLiked,
@@ -1018,10 +1135,10 @@ function EventCard({
       transition={{ duration: 0.4, delay: index * 0.05 }}
       whileHover={{ y: -2 }}
       onClick={onClick}
-      className="group bg-white rounded-lg sm:rounded-2xl shadow-sm hover:shadow-md sm:hover:shadow-xl border border-gray-100 overflow-hidden cursor-pointer transition-all duration-300"
+      className="group bg-white rounded-lg sm:rounded-2xl shadow-sm hover:shadow-md sm:hover:shadow-xl border border-gray-100 overflow-hidden cursor-pointer transition-all duration-300 flex flex-col h-full" // Tambahkan flex flex-col h-full
     >
       {/* Image */}
-      <div className="relative aspect-square overflow-hidden bg-gray-100">
+      <div className="relative aspect-square overflow-hidden bg-gray-100 flex-shrink-0"> {/* Tambahkan flex-shrink-0 */}
         {event.poster ? (
           <img
             src={event.poster}
@@ -1079,10 +1196,13 @@ function EventCard({
       </div>
 
       {/* Content */}
-      <div className="p-2.5 sm:p-4">
-        <h3 className="font-semibold text-gray-900 text-sm sm:text-base mb-1.5 sm:mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors leading-tight">
-          {event.name}
-        </h3>
+      <div className="flex flex-col flex-1 p-2.5 sm:p-4"> {/* Tambahkan flex flex-col flex-1 */}
+        {/* Judul dengan tinggi tetap */}
+        <div className="min-h-[3.5rem] sm:min-h-[4rem] mb-1.5 sm:mb-2 flex items-start"> {/* Container dengan tinggi minimum */}
+          <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2 group-hover:text-blue-600 transition-colors leading-tight">
+            {event.name}
+          </h3>
+        </div>
 
         <div className="space-y-1 sm:space-y-1.5 mb-2 sm:mb-3">
           <div className="flex items-center gap-1.5 text-gray-500 text-xs sm:text-sm">
@@ -1097,7 +1217,7 @@ function EventCard({
           )}
         </div>
 
-        <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100">
+        <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100 mt-auto"> {/* Tambahkan mt-auto */}
           <div>
             <p className="text-xs text-gray-400">Mulai dari</p>
             <p
@@ -1112,13 +1232,13 @@ function EventCard({
             {showSales && event.totalTicketsSold > 0 && (
               <div className="flex items-center gap-1 text-emerald-600 text-xs sm:text-sm">
                 <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="font-medium">{event.totalTicketsSold}</span>
+                <span className="font-medium">{formatNumber(event.totalTicketsSold)}</span>
               </div>
             )}
             {showLikes && event.totalLikes > 0 && (
               <div className="flex items-center gap-1 text-pink-500 text-xs sm:text-sm">
                 <Heart className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
-                <span className="font-medium">{event.totalLikes}</span>
+                <span className="font-medium">{formatNumber(event.totalLikes)}</span>
               </div>
             )}
             <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-50 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
@@ -1137,6 +1257,7 @@ function UpcomingEventCard({
   index,
   onClick,
   formatRupiah,
+  formatNumber,
   getCategoryData,
   getParentCategory,
   isLiked,
@@ -1162,9 +1283,9 @@ function UpcomingEventCard({
       transition={{ duration: 0.4, delay: index * 0.05 }}
       whileHover={{ y: -2 }}
       onClick={onClick}
-      className="group bg-white rounded-lg sm:rounded-2xl shadow-sm hover:shadow-md sm:hover:shadow-xl border border-gray-100 overflow-hidden cursor-pointer transition-all duration-300"
+      className="group bg-white rounded-lg sm:rounded-2xl shadow-sm hover:shadow-md sm:hover:shadow-xl border border-gray-100 overflow-hidden cursor-pointer transition-all duration-300 h-full" // Tambahkan h-full
     >
-      <div className="flex">
+      <div className="flex h-full"> {/* Tambahkan h-full */}
         {/* Date Badge */}
         <div className="w-16 sm:w-20 bg-gradient-to-b from-blue-600 to-blue-700 flex flex-col items-center justify-center text-white py-3 sm:py-4 flex-shrink-0">
           {event.dateStart && (
@@ -1182,7 +1303,7 @@ function UpcomingEventCard({
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-2.5 sm:p-4">
+        <div className="flex-1 p-2.5 sm:p-4 flex flex-col"> {/* Tambahkan flex flex-col */}
           <div className="flex items-start justify-between gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
             <div className="flex-1 min-w-0">
               {event.category && (
@@ -1192,9 +1313,12 @@ function UpcomingEventCard({
                   {parentCategory}
                 </span>
               )}
-              <h3 className="font-semibold text-gray-900 mt-1 sm:mt-1.5 line-clamp-2 group-hover:text-blue-600 transition-colors text-sm sm:text-base leading-tight">
-                {event.name}
-              </h3>
+              {/* Container judul dengan tinggi tetap */}
+              <div className="min-h-[3rem] sm:min-h-[3.5rem] mt-1 sm:mt-1.5 flex items-start"> {/* Container dengan tinggi minimum */}
+                <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors text-sm sm:text-base leading-tight">
+                  {event.name}
+                </h3>
+              </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               {daysUntil !== null && daysUntil >= 0 && (
@@ -1240,7 +1364,7 @@ function UpcomingEventCard({
             </div>
           )}
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mt-auto"> {/* Tambahkan mt-auto */}
             <p
               className={`font-bold text-sm sm:text-base ${
                 event.price === 0 ? "text-emerald-600" : "text-blue-600"
@@ -1252,7 +1376,7 @@ function UpcomingEventCard({
               {event.totalLikes > 0 && (
                 <span className="flex items-center gap-0.5 text-pink-500 text-xs">
                   <Heart className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" />
-                  {event.totalLikes}
+                  {formatNumber(event.totalLikes)}
                 </span>
               )}
               <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />

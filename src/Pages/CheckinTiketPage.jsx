@@ -1,4 +1,3 @@
-// Pages/CheckinTiketPage.jsx
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -42,11 +41,11 @@ export default function CheckinTiketPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [ticketData, setTicketData] = useState(null);
   const [eventData, setEventData] = useState(null);
-  const [checkInStatus, setCheckInStatus] = useState(null); // 'success', 'error', 'already_used'
+  const [checkInStatus, setCheckInStatus] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [scanCount, setScanCount] = useState(0);
   const [user, setUser] = useState(null);
-  const [showResult, setShowResult] = useState(false); // State baru untuk mengontrol tampilan hasil
+  const [showResult, setShowResult] = useState(false);
   
   const scannerRef = useRef(null);
   const { notification, showNotification, hideNotification } = useNotification();
@@ -58,7 +57,6 @@ export default function CheckinTiketPage() {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
       
-      // Hanya organizer dan admin yang bisa akses halaman ini
       if (parsedUser.role !== "organizer" && parsedUser.role !== "admin") {
         showNotification("Anda tidak memiliki akses ke halaman ini", "Akses Ditolak", "error");
         navigate("/");
@@ -105,7 +103,6 @@ export default function CheckinTiketPage() {
 
     cleanUpScanner();
 
-    // Pastikan container ada
     const containerElement = document.getElementById('scanner-container');
     if (!containerElement) return;
 
@@ -126,22 +123,16 @@ export default function CheckinTiketPage() {
     });
 
     async function onScanSuccess(decodedText) {
-      // Prevent multiple scans
       if (isProcessing) return;
       
       setIsProcessing(true);
       setScanResult(decodedText);
       
-      // Jangan clear scanner di sini agar kamera tetap aktif
-      // await newScanner.clear().catch(console.log);
-      // setIsScanning(false);
-      
-      // Process check-in
       await processCheckIn(decodedText);
     }
 
     function onScanError(err) {
-      // Ignore scan errors (normal when no QR code is visible)
+      // Ignore scan errors
     }
 
     newScanner.render(onScanSuccess, onScanError);
@@ -158,10 +149,16 @@ export default function CheckinTiketPage() {
       const response = await ticketAPI.checkInTicket(eventId, ticketCode);
       
       if (response.data) {
+        // Simpan data tiket dari response
         setTicketData(response.data.ticket);
         setCheckInStatus('success');
         setScanCount(prev => prev + 1);
-        setShowResult(true); // Tampilkan hasil
+        setShowResult(true);
+        
+        // Refresh data event untuk update jumlah presensi terbaru
+        const updatedEventData = await eventAPI.getEvent(eventId);
+        setEventData(updatedEventData.data);
+        
         showNotification("Tiket berhasil di check-in!", "Check-in Berhasil", "success");
       }
     } catch (error) {
@@ -172,19 +169,19 @@ export default function CheckinTiketPage() {
       
       if (errorMsg.includes("already used") || errorMsg.includes("sudah digunakan")) {
         setCheckInStatus('already_used');
-        setShowResult(true); // Tampilkan hasil
+        setShowResult(true);
         showNotification("Tiket sudah pernah digunakan", "Check-in Gagal", "warning");
       } else if (errorMsg.includes("not found") || errorMsg.includes("tidak ditemukan") || errorMsg.includes("invalid")) {
         setCheckInStatus('error');
-        setShowResult(true); // Tampilkan hasil
+        setShowResult(true);
         showNotification("Tiket tidak ditemukan atau tidak valid", "Check-in Gagal", "error");
       } else if (errorMsg.includes("not active")) {
         setCheckInStatus('error');
-        setShowResult(true); // Tampilkan hasil
+        setShowResult(true);
         showNotification("Tiket tidak aktif", "Check-in Gagal", "error");
       } else {
         setCheckInStatus('error');
-        setShowResult(true); // Tampilkan hasil
+        setShowResult(true);
         showNotification(errorMsg, "Check-in Gagal", "error");
       }
     } finally {
@@ -203,16 +200,9 @@ export default function CheckinTiketPage() {
     };
   }, [isLoaded, user, startScanner, cleanUpScanner]);
 
-  // Fungsi untuk scan ulang (kembali ke mode scanning)
+  // Fungsi untuk scan ulang (refresh halaman)
   const handleRescan = () => {
-    setScanResult(null);
-    setTicketData(null);
-    setCheckInStatus(null);
-    setErrorMessage("");
-    setShowResult(false); // Sembunyikan hasil, kembali ke scanning
-    setIsProcessing(false);
-    
-    // Scanner sudah aktif, tidak perlu start ulang
+    window.location.reload();
   };
 
   // Fungsi untuk scan tiket lain (clear result saja)
@@ -221,7 +211,7 @@ export default function CheckinTiketPage() {
     setTicketData(null);
     setCheckInStatus(null);
     setErrorMessage("");
-    setShowResult(false); // Sembunyikan hasil
+    setShowResult(false);
     setIsProcessing(false);
   };
 
@@ -250,6 +240,20 @@ export default function CheckinTiketPage() {
     return date.toLocaleTimeString('id-ID', {
       hour: '2-digit',
       minute: '2-digit'
+    });
+  };
+
+  // Format waktu lengkap
+  const formatDateTime = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleString('id-ID', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
     });
   };
 
@@ -389,14 +393,48 @@ export default function CheckinTiketPage() {
               </motion.div>
             )}
 
-            {/* Main Content */}
+            {/* Quick Stats - DIPERTAHANKAN */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
+              className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4"
+            >
+              <StatCard
+                icon={<Users className="w-6 h-6" />}
+                label="Total Presensi"
+                value={eventData?.total_attendant || 0}
+                color="blue"
+              />
+              <StatCard
+                icon={<Ticket className="w-6 h-6" />}
+                label="Tiket Terjual"
+                value={eventData?.total_tickets_sold || 0}
+                color="green"
+              />
+              <StatCard
+                icon={<TicketCheck className="w-6 h-6" />}
+                label="Check-in Sesi Ini"
+                value={scanCount}
+                color="purple"
+              />
+              <StatCard
+                icon={<CreditCard className="w-6 h-6" />}
+                label="Total Sales"
+                value={formatRupiah(eventData?.total_sales || 0)}
+                color="amber"
+                isSmallText
+              />
+            </motion.div>
+
+            {/* Main Content */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
               className="bg-white rounded-2xl border border-gray-200 overflow-hidden"
             >
-              {/* Scanner Section - Tetap ditampilkan meskipun ada hasil */}
+              {/* Scanner Section */}
               <AnimatePresence mode="wait">
                 {!showResult && (
                   <motion.div
@@ -452,7 +490,7 @@ export default function CheckinTiketPage() {
                   </motion.div>
                 )}
 
-                {/* Result Section - Ditampilkan di samping scanner atau menggantikan sementara */}
+                {/* Result Section */}
                 {showResult && !isProcessing && scanResult && (
                   <motion.div
                     key="result"
@@ -462,7 +500,7 @@ export default function CheckinTiketPage() {
                     className="p-6"
                   >
                     {/* Success State */}
-                    {checkInStatus === 'success' && (
+                    {checkInStatus === 'success' && ticketData && (
                       <div className="space-y-6">
                         {/* Success Header */}
                         <motion.div 
@@ -483,55 +521,59 @@ export default function CheckinTiketPage() {
                         </motion.div>
 
                         {/* Ticket Details */}
-                        {ticketData && (
-                          <div className="bg-gray-50 rounded-xl p-6 space-y-4 border border-gray-200">
-                            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                              <Ticket className="w-5 h-5 text-blue-600" />
-                              Detail Tiket
-                            </h3>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <DetailItem
-                                icon={<QrCode className="w-5 h-5 text-gray-500" />}
-                                label="Kode Tiket"
-                                value={ticketData.code}
-                              />
-                              <DetailItem
-                                icon={<Tag className="w-5 h-5 text-gray-500" />}
-                                label="ID Tiket"
-                                value={ticketData.ticket_id?.slice(0, 12) + "..."}
-                              />
-                              <DetailItem
-                                icon={<Shield className="w-5 h-5 text-gray-500" />}
-                                label="Status"
-                                value={
-                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    Sudah Check-in
-                                  </span>
-                                }
-                              />
-                              <DetailItem
-                                icon={<Clock className="w-5 h-5 text-gray-500" />}
-                                label="Waktu Check-in"
-                                value={new Date().toLocaleTimeString('id-ID', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  second: '2-digit'
-                                })}
-                              />
-                            </div>
-
-                            {ticketData.tag && (
-                              <div className="pt-4 border-t border-gray-200">
-                                <DetailItem
-                                  icon={<User className="w-5 h-5 text-gray-500" />}
-                                  label="Tag Pemilik"
-                                  value={ticketData.tag}
-                                />
-                              </div>
-                            )}
+                        <div className="bg-gray-50 rounded-xl p-6 space-y-4 border border-gray-200">
+                          <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <Ticket className="w-5 h-5 text-blue-600" />
+                            Detail Tiket yang Dipresensi
+                          </h3>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DetailItem
+                              icon={<QrCode className="w-5 h-5 text-gray-500" />}
+                              label="Kode Tiket"
+                              value={ticketData.code}
+                            />
+                            <DetailItem
+                              icon={<Tag className="w-5 h-5 text-gray-500" />}
+                              label="ID Tiket"
+                              value={ticketData.ticket_id}
+                            />
+                            <DetailItem
+                              icon={<Shield className="w-5 h-5 text-gray-500" />}
+                              label="Status"
+                              value={
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  {ticketData.status === 'used' ? 'Sudah Check-in' : ticketData.status}
+                                </span>
+                              }
+                            />
+                            <DetailItem
+                              icon={<Calendar className="w-5 h-5 text-gray-500" />}
+                              label="Kategori Tiket"
+                              value={ticketData.ticket_category}
+                            />
+                            <DetailItem
+                              icon={<Building2 className="w-5 h-5 text-gray-500" />}
+                              label="Nama Event"
+                              value={ticketData.event_name}
+                            />
+                            <DetailItem
+                              icon={<Clock className="w-5 h-5 text-gray-500" />}
+                              label="Waktu Mulai"
+                              value={formatDateTime(ticketData.date_start)}
+                            />
+                            <DetailItem
+                              icon={<Clock className="w-5 h-5 text-gray-500" />}
+                              label="Waktu Berakhir"
+                              value={formatDateTime(ticketData.date_end)}
+                            />
+                            <DetailItem
+                              icon={<Clock className="w-5 h-5 text-gray-500" />}
+                              label="Waktu Check-in"
+                              value={formatDateTime(ticketData.checked_in_at)}
+                            />
                           </div>
-                        )}
+                        </div>
                       </div>
                     )}
 
@@ -619,11 +661,11 @@ export default function CheckinTiketPage() {
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={handleScanAnother}
+                        onClick={handleRescan}
                         className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all"
                       >
                         <RefreshCw className="w-5 h-5" />
-                        Scan Tiket Lain
+                        Scan Ulang
                       </motion.button>
                       
                       <motion.button
@@ -640,42 +682,6 @@ export default function CheckinTiketPage() {
                 )}
               </AnimatePresence>
             </motion.div>
-
-            {/* Quick Stats */}
-            {isScanning && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.5 }}
-                className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4"
-              >
-                <StatCard
-                  icon={<Users className="w-6 h-6" />}
-                  label="Total Attendant"
-                  value={eventData?.total_attendant || 0}
-                  color="blue"
-                />
-                <StatCard
-                  icon={<Ticket className="w-6 h-6" />}
-                  label="Tiket Terjual"
-                  value={eventData?.total_tickets_sold || 0}
-                  color="green"
-                />
-                <StatCard
-                  icon={<TicketCheck className="w-6 h-6" />}
-                  label="Check-in Sesi Ini"
-                  value={scanCount}
-                  color="purple"
-                />
-                <StatCard
-                  icon={<CreditCard className="w-6 h-6" />}
-                  label="Total Sales"
-                  value={formatRupiah(eventData?.total_sales || 0)}
-                  color="amber"
-                  isSmallText
-                />
-              </motion.div>
-            )}
 
             {/* Footer Tips */}
             <motion.div
@@ -766,7 +772,7 @@ function DetailItem({ icon, label, value }) {
   );
 }
 
-// Stat Card Component
+// Stat Card Component - DIPERTAHANKAN
 function StatCard({ icon, label, value, color, isSmallText = false }) {
   const colorClasses = {
     blue: "bg-blue-50 text-blue-600 border-blue-200",

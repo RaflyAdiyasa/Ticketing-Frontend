@@ -93,7 +93,7 @@ export default function DaftarPage() {
     <div>
       <Navbar />
       
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center py-8">
+      <div className="min-h-screen flex items-center justify-center py-8">
         <NotificationModal
           isOpen={notification.isOpen}
           onClose={hideNotification}

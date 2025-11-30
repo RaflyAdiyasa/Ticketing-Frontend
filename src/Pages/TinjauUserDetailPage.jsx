@@ -104,7 +104,7 @@ export default function TinjauUserDetailPage() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="min-h-screen py-8 flex items-center justify-center">
           <motion.div 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -134,7 +134,7 @@ export default function TinjauUserDetailPage() {
         type={notification.type}
       />
 
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
+      <div className="min-h-screen py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-32">
           <motion.div
             initial={{ opacity: 0, y: 30 }}

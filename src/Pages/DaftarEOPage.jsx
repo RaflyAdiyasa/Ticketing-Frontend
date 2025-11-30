@@ -1,7 +1,16 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, Shield, Building, FileText, Upload, ArrowRight, Eye, EyeOff } from "lucide-react";
+import {
+  User,
+  Shield,
+  Building,
+  FileText,
+  Upload,
+  ArrowRight,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import Navbar from "../components/Navbar";
 import { authAPI } from "../services/api";
 import NotificationModal from "../components/NotificationModal";
@@ -30,7 +39,8 @@ export default function DaftarEOPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const navigate = useNavigate();
-  const { notification, showNotification, hideNotification } = useNotification();
+  const { notification, showNotification, hideNotification } =
+    useNotification();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -42,7 +52,7 @@ export default function DaftarEOPage() {
 
   const handleOrgTypeChange = (e) => {
     const value = e.target.value;
-    
+
     if (value === "Lainnya") {
       setShowCustomOrgType(true);
       setFormData((prev) => ({
@@ -141,7 +151,10 @@ export default function DaftarEOPage() {
       submitData.append("role", formData.role);
       submitData.append("organization", formData.organization);
       submitData.append("organization_type", formData.organization_type);
-      submitData.append("organization_description", formData.organization_description);
+      submitData.append(
+        "organization_description",
+        formData.organization_description
+      );
       submitData.append("ktp", ktpFile);
 
       const response = await authAPI.register(submitData);
@@ -172,9 +185,9 @@ export default function DaftarEOPage() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
-      }
-    }
+        staggerChildren: 0.1,
+      },
+    },
   };
 
   const itemVariants = {
@@ -183,16 +196,16 @@ export default function DaftarEOPage() {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.5
-      }
-    }
+        duration: 0.5,
+      },
+    },
   };
 
   return (
     <div>
       <Navbar />
 
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center py-8">
+      <div className="min-h-screen flex items-center justify-center py-8">
         <NotificationModal
           isOpen={notification.isOpen}
           onClose={hideNotification}
@@ -212,8 +225,12 @@ export default function DaftarEOPage() {
             <div className="bg-blue-600 p-6 text-white">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h1 className="text-2xl md:text-3xl font-bold">Daftar Sebagai Penyelenggara Event</h1>
-                  <p className="text-blue-100 mt-1">Mulai adakan event Anda bersama kami</p>
+                  <h1 className="text-2xl md:text-3xl font-bold">
+                    Daftar Sebagai Penyelenggara Event
+                  </h1>
+                  <p className="text-blue-100 mt-1">
+                    Mulai adakan event Anda bersama kami
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 text-blue-100">
                   <Building size={20} />
@@ -257,26 +274,118 @@ export default function DaftarEOPage() {
                       </label>
                       <select
                         name="organization_type"
-                        value={showCustomOrgType ? "Lainnya" : formData.organization_type}
+                        value={
+                          showCustomOrgType
+                            ? "Lainnya"
+                            : formData.organization_type
+                        }
                         onChange={handleOrgTypeChange}
                         className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all cursor-pointer"
                         required
                       >
                         <option value="">-- Pilih Jenis Instansi --</option>
-                        <option value="Perguruan Tinggi">Perguruan Tinggi</option>
+                        <option value="Perguruan Tinggi">
+                          Perguruan Tinggi
+                        </option>
                         <option value="Sekolah">Sekolah</option>
-                        <option value="Perusahaan Teknologi">Perusahaan Teknologi</option>
-                        <option value="Perusahaan Manufaktur">Perusahaan Manufaktur</option>
+                        <option value="Lembaga Kursus & Pelatihan">
+                          Lembaga Kursus & Pelatihan
+                        </option>
+                        <option value="Pusat Riset / Laboratorium">
+                          Pusat Riset / Laboratorium
+                        </option>
+                        <option value="Instansi Pemerintah">
+                          Instansi Pemerintah
+                        </option>
+                        <option value="BUMN">BUMN</option>
+                        <option value="BUMD">BUMD</option>
+                        <option value="Lembaga Pemerintah Non Departemen">
+                          LPND
+                        </option>
+                        <option value="Lembaga Legislatif">
+                          Lembaga Legislatif
+                        </option>
+                        <option value="Lembaga Yudikatif">
+                          Lembaga Yudikatif
+                        </option>
+                        <option value="Pemerintah Daerah">
+                          Pemerintah Daerah
+                        </option>
+                        <option value="Perusahaan Teknologi">
+                          Perusahaan Teknologi
+                        </option>
+                        <option value="Perusahaan Startup">
+                          Perusahaan Startup
+                        </option>
+                        <option value="Perusahaan Manufaktur">
+                          Perusahaan Manufaktur
+                        </option>
                         <option value="Perusahaan Jasa">Perusahaan Jasa</option>
-                        <option value="Perusahaan Retail">Perusahaan Retail</option>
-                        <option value="Perusahaan Finansial">Perusahaan Finansial</option>
-                        <option value="Perusahaan Startup">Perusahaan Startup</option>
-                        <option value="Organisasi Nirlaba">Organisasi Nirlaba</option>
-                        <option value="Organisasi Sosial">Organisasi Sosial</option>
+                        <option value="Perusahaan Retail">
+                          Perusahaan Retail
+                        </option>
+                        <option value="Perusahaan Finansial">
+                          Perusahaan Finansial
+                        </option>
+                        <option value="Perusahaan Konsultan">
+                          Perusahaan Konsultan
+                        </option>
+                        <option value="Perusahaan Logistik">
+                          Perusahaan Logistik
+                        </option>
+                        <option value="Perusahaan Konstruksi">
+                          Perusahaan Konstruksi
+                        </option>
+                        <option value="Perusahaan Telekomunikasi">
+                          Perusahaan Telekomunikasi
+                        </option>
+                        <option value="Perusahaan Energi">
+                          Perusahaan Energi
+                        </option>
+                        <option value="Perusahaan Pertambangan">
+                          Perusahaan Pertambangan
+                        </option>
+                        <option value="Perusahaan Perkebunan">
+                          Perusahaan Perkebunan
+                        </option>
+                        <option value="Perusahaan Agrikultur">
+                          Perusahaan Agrikultur
+                        </option>
+                        <option value="Perusahaan Media">
+                          Perusahaan Media
+                        </option>
+                        <option value="Fasilitas Kesehatan">
+                          Fasilitas Kesehatan
+                        </option>
+                        <option value="Rumah Sakit">Rumah Sakit</option>
+                        <option value="Puskesmas / Klinik">
+                          Puskesmas / Klinik
+                        </option>
+                        <option value="Organisasi Nirlaba">
+                          Organisasi Nirlaba
+                        </option>
+                        <option value="Organisasi Sosial">
+                          Organisasi Sosial
+                        </option>
+                        <option value="Yayasan">Yayasan</option>
+                        <option value="Lembaga Kemanusiaan">
+                          Lembaga Kemanusiaan
+                        </option>
                         <option value="Komunitas">Komunitas</option>
+                        <option value="Event Organizer">Event Organizer</option>
+                        <option value="Lembaga Keagamaan">
+                          Lembaga Keagamaan
+                        </option>
+                        <option value="Lembaga Internasional">
+                          Lembaga Internasional
+                        </option>
+                        <option value="Media Massa">Media Massa</option>
+                        <option value="Freelancer / Individu Profesional">
+                          Freelancer / Individu Profesional
+                        </option>
                         <option value="Lainnya">Lainnya</option>
                       </select>
-                      
+
                       {showCustomOrgType && (
                         <div className="mt-2">
                           <input
@@ -390,7 +499,11 @@ export default function DaftarEOPage() {
                           onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                         >
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          {showPassword ? (
+                            <EyeOff size={18} />
+                          ) : (
+                            <Eye size={18} />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -410,10 +523,16 @@ export default function DaftarEOPage() {
                         />
                         <button
                           type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          onClick={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                         >
-                          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          {showConfirmPassword ? (
+                            <EyeOff size={18} />
+                          ) : (
+                            <Eye size={18} />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -437,7 +556,7 @@ export default function DaftarEOPage() {
                       className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white hover:bg-gray-50 cursor-pointer transition-colors"
                       required
                     />
-                    
+
                     {errorMsg && (
                       <p className="text-red-600 text-sm mt-2">{errorMsg}</p>
                     )}
@@ -450,13 +569,17 @@ export default function DaftarEOPage() {
                             style={{ width: `${uploadProgress}%` }}
                           ></div>
                         </div>
-                        <p className="text-xs text-gray-600 mt-1">Mengunggah: {uploadProgress}%</p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Mengunggah: {uploadProgress}%
+                        </p>
                       </div>
                     )}
 
                     {ktpPreview && (
                       <div className="mt-4">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Preview KTP:</p>
+                        <p className="text-sm font-medium text-gray-700 mb-2">
+                          Preview KTP:
+                        </p>
                         <img
                           src={ktpPreview}
                           alt="Preview KTP"

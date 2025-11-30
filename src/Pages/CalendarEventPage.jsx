@@ -540,7 +540,7 @@ export default function CalendarEventPage() {
   const parentCategoriesForLegend = Object.keys(CATEGORIES);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
+    <div className="min-h-screen py-8">
       <Navbar />
 
       <NotificationModal
@@ -1192,7 +1192,7 @@ function MobileEventCard({
       <div className="flex gap-3">
         {/* Image */}
         {event.image && (
-          <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+          <div className="w-20 h-20 aspect-square rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
             <img
               src={event.image}
               alt={event.name}

@@ -19,6 +19,8 @@ import {
   Heart,
   Eye,
   Ticket,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api, { eventAPI } from "../services/api";
@@ -69,6 +71,20 @@ const formatDescriptionWithNewlines = (text) => {
       {index < text.split("\n").length - 1 && <br />}
     </span>
   ));
+};
+
+// Format number untuk like count (sama seperti LandingPage)
+const formatNumber = (num) => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 10000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  }
+  return num.toString();
 };
 
 // ==================== SUB COMPONENTS ====================
@@ -469,7 +485,7 @@ function EventImageSection({ event, onImageClick }) {
         onClick={() =>
           onImageClick(
             event.image ||
-              "https://cdn2.steamgriddb.com/icon_thumb/63872edc3fa52d645b3d48f6d98caf2c.png",
+              "https://axistechindia.com/images/image%20not%20available.jpg",
             event.name,
             "square"
           )
@@ -478,13 +494,13 @@ function EventImageSection({ event, onImageClick }) {
         <img
           src={
             event.image ||
-            "https://cdn2.steamgriddb.com/icon_thumb/63872edc3fa52d645b3d48f6d98caf2c.png"
+            "https://axistechindia.com/images/image%20not%20available.jpg"
           }
           alt={event.name}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           onError={(e) => {
             e.target.src =
-              "https://cdn2.steamgriddb.com/icon_thumb/63872edc3fa52d645b3d48f6d98caf2c.png";
+              "https://axistechindia.com/images/image%20not%20available.jpg";
           }}
         />
         {/* Hover/Tap overlay */}
@@ -502,7 +518,7 @@ function EventImageSection({ event, onImageClick }) {
       {/* Event Flyer - aspect-video (16:9) */}
       {event.flyer && (
         <div
-          className="rounded-xl overflow-hidden shadow-lg aspect-square sm:aspect-video border border-gray-200 relative group cursor-pointer"
+          className="rounded-xl overflow-hidden shadow-lg aspect-16/6 border border-gray-200 relative group cursor-pointer"
           onClick={() =>
             onImageClick(event.flyer, `Flyer ${event.name}`, "video")
           }
@@ -572,6 +588,65 @@ function OrganizerInfo({ owner }) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Expandable Rules Component
+function ExpandableRules({ rules, maxLines = 5 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [needsExpand, setNeedsExpand] = useState(false);
+  const contentRef = useState(null);
+
+  // Check if content exceeds maxLines
+  useEffect(() => {
+    if (!rules) return;
+    const lineCount = rules.split('\n').length;
+    const charCount = rules.length;
+    // Jika lebih dari maxLines atau lebih dari ~300 karakter, tampilkan tombol
+    setNeedsExpand(lineCount > maxLines || charCount > 300);
+  }, [rules, maxLines]);
+
+  if (!rules) return null;
+
+  return (
+    <div className="relative">
+      <div
+        className={`prose prose-sm sm:prose-base lg:prose-lg max-w-none text-gray-700 leading-relaxed transition-all duration-300 ${
+          !isExpanded && needsExpand ? 'max-h-32 sm:max-h-40 overflow-hidden' : ''
+        }`}
+      >
+        {formatDescriptionWithNewlines(rules)}
+      </div>
+      
+      {/* Gradient overlay when collapsed */}
+      {needsExpand && !isExpanded && (
+        <div className="absolute bottom-0 left-0 right-0 h-16 sm:h-20 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none" />
+      )}
+      
+      {/* Toggle Button */}
+      {needsExpand && (
+        <motion.button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className={`flex items-center gap-1.5 text-orange-600 hover:text-orange-700 font-medium text-sm sm:text-base transition-colors ${
+            !isExpanded ? 'relative -mt-2 sm:-mt-4' : 'mt-3 sm:mt-4'
+          }`}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          {isExpanded ? (
+            <>
+              <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5" />
+              Sembunyikan
+            </>
+          ) : (
+            <>
+              <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />
+              Lihat selengkapnya
+            </>
+          )}
+        </motion.button>
+      )}
     </div>
   );
 }
@@ -922,7 +997,7 @@ export default function EventDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen py-8">
         <Navbar />
         <div className="flex items-center justify-center h-[calc(100vh-80px)]">
           <div className="flex flex-col items-center gap-3 sm:gap-4">
@@ -943,7 +1018,7 @@ export default function EventDetail() {
 
   if (error || !event) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen py-8">
         <Navbar />
         <div className="flex items-center justify-center h-[calc(100vh-80px)]">
           <div className="text-center px-4">
@@ -984,7 +1059,7 @@ export default function EventDetail() {
     isOwner || isAdmin || (isEO && event.status !== "approved");
 
   return (
-    <div className="min-h-screen bg-gray-50 mt-30">
+    <div className="min-h-screen py-8 mt-30">
       <Navbar />
 
       <NotificationModal
@@ -1036,7 +1111,7 @@ export default function EventDetail() {
                           isLiked ? "fill-current" : ""
                         } ${likeLoading ? "animate-pulse" : ""}`}
                       />
-                      <span className="font-semibold text-sm sm:text-base">{totalLikes}</span>
+                      <span className="font-semibold text-sm sm:text-base">{formatNumber(totalLikes)}</span>
                     </motion.button>
                   </div>
 
@@ -1168,9 +1243,7 @@ export default function EventDetail() {
                         </h2>
                       </div>
                       <div className="p-4 sm:p-6">
-                        <div className="prose prose-sm sm:prose-base lg:prose-lg max-w-none text-gray-700 leading-relaxed">
-                          {formatDescriptionWithNewlines(event.rules)}
-                        </div>
+                        <ExpandableRules rules={event.rules} maxLines={5} />
                       </div>
                     </div>
                   )}

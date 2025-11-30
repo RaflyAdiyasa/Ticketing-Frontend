@@ -35,173 +35,104 @@ const DISTRICTS = [
 ];
 
 const YOGYAKARTA_VENUES = [
-  {
-    name: "Benteng Vredeburg",
-    district: "Gondomanan",
-    address: "Jl. Margo Mulyo No.6, Ngupasan, Gondomanan",
-  },
-  {
-    name: "Taman Pintar Yogyakarta",
-    district: "Gondomanan",
-    address: "Jl. Panembahan Senopati No.1-3, Ngupasan, Gondomanan",
-  },
-  {
-    name: "Titik Nol Kilometer Yogyakarta",
-    district: "Gondomanan",
-    address: "Jl. Pangurakan, Ngupasan, Gondomanan",
-  },
-  {
-    name: "Museum Sonobudoyo",
-    district: "Gondomanan",
-    address: "Jl. Pangurakan No.6, Ngupasan, Gondomanan",
-  },
-  {
-    name: "Gedung Societet Militer",
-    district: "Gondomanan",
-    address: "Jl. Malioboro No.60, Suryatmajan, Danurejan",
-  },
-  {
-    name: "Keraton Ngayogyakarta Hadiningrat",
-    district: "Kraton",
-    address: "Jl. Rotowijayan Blok No. 1, Panembahan, Kraton",
-  },
-  {
-    name: "Alun-Alun Utara Yogyakarta",
-    district: "Kraton",
-    address: "Jl. Alun-Alun Utara, Panembahan, Kraton",
-  },
-  {
-    name: "Alun-Alun Selatan Yogyakarta",
-    district: "Kraton",
-    address: "Jl. Sultan Agung, Patehan, Kraton",
-  },
-  {
-    name: "Taman Sari Water Castle",
-    district: "Kraton",
-    address: "Jl. Taman, Patehan, Kraton",
-  },
-  {
-    name: "Malioboro Street",
-    district: "Gedongtengen",
-    address: "Jl. Malioboro, Suryatmajan, Danurejan",
-  },
-  {
-    name: "Pasar Beringharjo",
-    district: "Gedongtengen",
-    address: "Jl. Margo Mulyo No.16, Ngupasan, Gondomanan",
-  },
-  {
-    name: "Taman Budaya Yogyakarta",
-    district: "Gondokusuman",
-    address: "Jl. Sri Wedari No.1, Baciro, Gondokusuman",
-  },
-  {
-    name: "Stadion Mandala Krida",
-    district: "Gondokusuman",
-    address: "Jl. Bintaran Kulon No.14, Bintaran, Gondokusuman",
-  },
-  {
-    name: "Saphir Hall",
-    district: "Gondokusuman",
-    address: "Jl. Laksda Adisucipto No.38, Demangan, Gondokusuman",
-  },
-  {
-    name: "Museum Diponegoro",
-    district: "Jetis",
-    address: "Jl. HOS Cokroaminoto No.67, Jetis",
-  },
-  {
-    name: "GOR Kridosono Indoor",
-    district: "Jetis",
-    address: "Jl. Yos Sudarso, Kotabaru, Jetis",
-  },
-  {
-    name: "Hotel Tentrem Ballroom",
-    district: "Tegalrejo",
-    address: "Jl. P. Mangkubumi No.72A, Gowongan, Tegalrejo",
-  },
-  {
-    name: "Grand Serela Ballroom",
-    district: "Tegalrejo",
-    address: "Jl. Magelang No.8, Kricak, Tegalrejo",
-  },
-  {
-    name: "Museum Kereta Keraton",
-    district: "Ngampilan",
-    address: "Jl. Rotowijayan, Kadipaten, Ngampilan",
-  },
-  {
-    name: "Pusat Dagadu Djokdja",
-    district: "Ngampilan",
-    address: "Jl. IKIP PGRI I No.13, Ngampilan",
-  },
-  {
-    name: "Wirobrajan Convention Hall",
-    district: "Wirobrajan",
-    address: "Jl. Kapten Piere Tendean, Wirobrajan",
-  },
-  {
-    name: "XT Square Outdoor Stage",
-    district: "Umbulharjo",
-    address: "Jl. Veteran, Pandeyan, Umbulharjo",
-  },
-  {
-    name: "Jogja National Museum",
-    district: "Mantrijeron",
-    address: "Jl. Prof. Dr. Ki Amri Yahya No.1, Pakuncen, Mantrijeron",
-  },
-  {
-    name: "Hotel Brongto Convention Hall",
-    district: "Mantrijeron",
-    address: "Jl. Sisingamangaraja No.38, Mantrijeron",
-  },
-  {
-    name: "Pura Pakualaman",
-    district: "Pakualaman",
-    address: "Jl. Sultan Agungan, Purwanggan, Pakualaman",
-  },
-  {
-    name: "Museum Pura Pakualaman",
-    district: "Pakualaman",
-    address: "Jl. Sultan Agungan, Pakualaman",
-  },
-  {
-    name: "Hotel Indies Heritage Hall",
-    district: "Mergangsan",
-    address: "Jl. Prawirotaman No.3, Mergangsan",
-  },
-  {
-    name: "Prawirotaman Art Space",
-    district: "Mergangsan",
-    address: "Jl. Prawirotaman, Mergangsan",
-  },
-  {
-    name: "Jogja Expo Center",
-    district: "Umbulharjo",
-    address: "Dekat Kota, Banguntapan, Bantul",
-  },
-  {
-    name: "GOR Amongrogo",
-    district: "Umbulharjo",
-    address: "Jl. Kenari, Semaki, Umbulharjo",
-  },
-  {
-    name: "Balai Kota Yogyakarta",
-    district: "Umbulharjo",
-    address: "Jl. Kenari No.56, Semaki, Umbulharjo",
-  },
-  {
-    name: "Pusat Kerajinan Perak Kotagede",
-    district: "Kotagede",
-    address: "Jl. Kemasan, Kotagede",
-  },
-  {
-    name: "Masjid Agung Kotagede",
-    district: "Kotagede",
-    address: "Jl. Masjid Agung, Kotagede",
-  },
-  { name: "Lainnya", district: "", address: "" },
+  { name: "Benteng Vredeburg", district: "Gondomanan", address: "Jl. Margo Mulyo No.6, Ngupasan, Gondomanan" },
+  { name: "Taman Pintar Yogyakarta", district: "Gondomanan", address: "Jl. Panembahan Senopati No.1-3, Gondomanan" },
+  { name: "Titik Nol Kilometer Yogyakarta", district: "Gondomanan", address: "Jl. Pangurakan, Gondomanan" },
+  { name: "Museum Sonobudoyo", district: "Gondomanan", address: "Jl. Pangurakan No.6, Gondomanan" },
+  { name: "Kantor Pos Besar Yogyakarta Hall", district: "Gondomanan", address: "Jl. Senopati, Gondomanan" },
+  { name: "Jogja Gallery", district: "Gondomanan", address: "Jl. Pekapalan No.7, Gondomanan" },
+  { name: "Pendapa Art Space Ngupasan", district: "Gondomanan", address: "Jl. KH Ahmad Dahlan, Gondomanan" },
+  { name: "Sasana Hinggil Malioboro", district: "Gondomanan", address: "Jl. Malioboro, Gondomanan" },
+
+  { name: "Gedung Societet Militer", district: "Danurejan", address: "Jl. Malioboro No.60, Danurejan" },
+  { name: "GPIB Margamulya Hall", district: "Danurejan", address: "Jl. Malioboro No.62, Danurejan" },
+  { name: "St. Carolus Hall", district: "Danurejan", address: "Jl. Bausasran No.21, Danurejan" },
+  { name: "Sasana Krida Bausasran", district: "Danurejan", address: "Jl. Bausasran, Danurejan" },
+  { name: "Gedung PDHI Hall", district: "Danurejan", address: "Jl. Bausasran No.47, Danurejan" },
+
+  { name: "Keraton Ngayogyakarta Hadiningrat", district: "Kraton", address: "Jl. Rotowijayan No.1, Kraton" },
+  { name: "Alun-Alun Utara", district: "Kraton", address: "Panembahan, Kraton" },
+  { name: "Alun-Alun Selatan", district: "Kraton", address: "Patehan, Kraton" },
+  { name: "Taman Sari Water Castle", district: "Kraton", address: "Patehan, Kraton" },
+  { name: "Sasono Hinggil Dwi Abad", district: "Kraton", address: "Patehan, Kraton" },
+  { name: "Paguyuban Sasono Purnomo", district: "Kraton", address: "Jl. Patehan Lor, Kraton" },
+  { name: "Museum Hamengkubuwono IX", district: "Kraton", address: "Kompleks Keraton, Kraton" },
+  { name: "Bangsal Kencana", district: "Kraton", address: "Komplek Keraton, Kraton" },
+
+  { name: "Malioboro Street", district: "Gedongtengen", address: "Gedongtengen" },
+  { name: "Pasar Beringharjo", district: "Gedongtengen", address: "Gedongtengen" },
+  { name: "Grand Inna Malioboro Ballroom", district: "Gedongtengen", address: "Jl. Malioboro No.60, Gedongtengen" },
+  { name: "Istana Batik Ratna Hall", district: "Gedongtengen", address: "Jl. Pasar Kembang No.29" },
+  { name: "Hotel Horaios Malioboro Hall", district: "Gedongtengen", address: "Jl. Gowongan Lor No.29" },
+  { name: "Kedai Kebun Malioboro Creative Space", district: "Gedongtengen", address: "Jl. Sosrowijayan" },
+
+  { name: "Taman Budaya Yogyakarta", district: "Gondokusuman", address: "Jl. Sri Wedari No.1" },
+  { name: "Stadion Mandala Krida", district: "Gondokusuman", address: "Jl. Bintaran Kidul" },
+  { name: "Saphir Hall", district: "Gondokusuman", address: "Jl. Laksda Adisucipto No.38" },
+  { name: "Auditorium Sanata Dharma", district: "Gondokusuman", address: "Jl. Affandi, Mrican" },
+  { name: "Jogja Digital Valley", district: "Gondokusuman", address: "Jl. Kartini No.7" },
+  { name: "Universitas Ahmad Dahlan Hall", district: "Gondokusuman", address: "Jl. Kapas No.9" },
+  { name: "Graha Sarina Vidi Hall", district: "Gondokusuman", address: "Jl. Magelang No.18" },
+
+  { name: "Museum Diponegoro", district: "Jetis", address: "Jl. HOS Cokroaminoto No.67" },
+  { name: "GOR Kridosono", district: "Jetis", address: "Jl. Yos Sudarso" },
+  { name: "Museum Jenderal Sudirman", district: "Jetis", address: "Jl. Bintaran" },
+  { name: "Kotabaru Heritage Zone", district: "Jetis", address: "Kotabaru" },
+  { name: "Balai RW Kotabaru Hall", district: "Jetis", address: "Kotabaru" },
+  { name: "Kotabaru Creative Hub", district: "Jetis", address: "Jl. Sudirman" },
+
+  { name: "Hotel Tentrem Ballroom", district: "Tegalrejo", address: "Jl. Mangkubumi No.72A" },
+  { name: "Grand Serela Hall", district: "Tegalrejo", address: "Jl. Magelang No.8" },
+  { name: "Auditorium BPKP DIY", district: "Tegalrejo", address: "Jl. Kenari" },
+  { name: "Tegalrejo Meeting Point", district: "Tegalrejo", address: "Jl. P. Senopati" },
+  { name: "Griya Persada Mini Hall", district: "Tegalrejo", address: "Jl. Kyai Mojo" },
+
+  { name: "Museum Kereta Keraton", district: "Ngampilan", address: "Kadipaten, Ngampilan" },
+  { name: "Pusat Dagadu Djokdja", district: "Ngampilan", address: "Jl. IKIP PGRI I" },
+  { name: "Ketandan Cultural Hall", district: "Ngampilan", address: "Jl. Ketandan" },
+  { name: "Ngampilan Art Studio", district: "Ngampilan", address: "Jl. Ngadiwinatan" },
+
+  { name: "Wirobrajan Convention Hall", district: "Wirobrajan", address: "Jl. Kapten Piere Tendean" },
+  { name: "Pendhapa Wirobrajan", district: "Wirobrajan", address: "Jl. Wirobrajan No.5" },
+  { name: "Wirobrajan Creative Hub", district: "Wirobrajan", address: "Jl. Letjen Suprapto" },
+  { name: "Sasana Wirobrajan", district: "Wirobrajan", address: "Jl. Kemetiran" },
+
+  { name: "Jogja National Museum", district: "Mantrijeron", address: "Jl. Ki Amri Yahya No.1" },
+  { name: "Hotel Brongto Hall", district: "Mantrijeron", address: "Jl. Sisingamangaraja No.38" },
+  { name: "Pendhapa Art Space", district: "Mantrijeron", address: "Ringroad Selatan" },
+  { name: "ViaVia Event Space", district: "Mantrijeron", address: "Jl. Prawirotaman" },
+  { name: "Lokal Creative Room", district: "Mantrijeron", address: "Jl. Parangtritis" },
+
+  { name: "Pura Pakualaman", district: "Pakualaman", address: "Jl. Sultan Agungan" },
+  { name: "Museum Pakualaman", district: "Pakualaman", address: "Jl. Sultan Agungan" },
+  { name: "Pendhapa Pakualaman", district: "Pakualaman", address: "Jl. Masjid Pakualaman" },
+  { name: "Graha Eksotika Hall", district: "Pakualaman", address: "Jl. Ireda" },
+
+  { name: "Indies Heritage Hall", district: "Mergangsan", address: "Jl. Prawirotaman No.3" },
+  { name: "Prawirotaman Art Space", district: "Mergangsan", address: "Jl. Prawirotaman" },
+  { name: "Greenhost Atrium", district: "Mergangsan", address: "Jl. Prawirotaman II" },
+  { name: "Gulma Creative Space", district: "Mergangsan", address: "Jl. Parangtritis" },
+  { name: "Mergangsan Cultural Hall", district: "Mergangsan", address: "Jl. Sisingamangaraja" },
+
+  { name: "XT Square Stage", district: "Umbulharjo", address: "Jl. Veteran" },
+  { name: "GOR Amongrogo", district: "Umbulharjo", address: "Jl. Kenari" },
+  { name: "Balai Kota Yogyakarta", district: "Umbulharjo", address: "Jl. Kenari No.56" },
+  { name: "JEC (Jogja Expo Center)", district: "Umbulharjo", address: "Wonocatur, Umbulharjo" },
+  { name: "UNY Sport Center Hall", district: "Umbulharjo", address: "Jl. Colombo" },
+  { name: "Auditorium RRI", district: "Umbulharjo", address: "Jl. MGMW 103" },
+  { name: "Galleria Mall Atrium", district: "Umbulharjo", address: "Jl. Sudirman" },
+
+  { name: "Pusat Kerajinan Perak Kotagede", district: "Kotagede", address: "Jl. Kemasan" },
+  { name: "Masjid Agung Kotagede", district: "Kotagede", address: "Jl. Masjid Agung" },
+  { name: "Bangunan Cagar Budaya Kotagede", district: "Kotagede", address: "Jl. Mondorakan" },
+  { name: "Kotagede Silver Hall", district: "Kotagede", address: "Jl. Tegal Gendu" },
+  { name: "Kotagede Cultural Center", district: "Kotagede", address: "Jl. Kemasan" },
+
+  { name: "SSA (Stadion Sultan Agung)", district: "Umbulharjo", address: "Jl. Stadion Sultan Agung, Bantul" },
+
+  { name: "Lainnya", district: "", address: "" }
 ];
+
 
 const DescriptionWithNewlines = ({ text }) => {
   if (!text) return null;
@@ -569,6 +500,23 @@ const handleUpdateTicket = (updatedTicket) => {
   showNotification("Kategori tiket berhasil diperbarui", "Sukses", "success");
 };
 
+// Fungsi untuk menangani edit tiket - INI YANG DITAMBAHKAN
+const handleEditTicket = (ticket) => {
+  // Validasi apakah tanggal event sudah diisi
+  if (!formData.date_start || !formData.date_end) {
+    showNotification(
+      "Harap tentukan tanggal event terlebih dahulu sebelum mengedit kategori tiket",
+      "Validasi Gagal", 
+      "warning"
+    );
+    return;
+  }
+
+  setEditingTicket(ticket);
+  setIsModalOpen(true);
+  setCanOpenModal(true);
+};
+
 const handleAddTicketClick = () => {
   // Validasi apakah tanggal event sudah diisi
   if (!formData.date_start || !formData.date_end) {
@@ -790,7 +738,7 @@ const handleCloseModal = () => {
         minDate={minDate}
       />
 
-      <div className="min-h-screen bg-gray-100 py-8">
+      <div className="min-h-screen py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

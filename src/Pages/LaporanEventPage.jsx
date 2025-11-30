@@ -210,7 +210,7 @@ export default function LaporanEventPage() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen bg-[#E5E7EB] flex items-center justify-center pt-36">
+        <div className="min-h-screen py-8 flex items-center justify-center pt-36">
           <div className="text-lg">Memuat laporan event...</div>
         </div>
       </div>
@@ -221,7 +221,7 @@ export default function LaporanEventPage() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen bg-[#E5E7EB] flex items-center justify-center pt-36">
+        <div className="min-h-screen py-8 flex items-center justify-center pt-36">
           <div className="text-lg text-red-600">{error}</div>
         </div>
       </div>
@@ -232,7 +232,7 @@ export default function LaporanEventPage() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen bg-[#E5E7EB] flex items-center justify-center pt-36">
+        <div className="min-h-screen py-8 flex items-center justify-center pt-36">
           <div className="text-lg">Data laporan tidak ditemukan</div>
         </div>
       </div>
@@ -243,7 +243,7 @@ export default function LaporanEventPage() {
     <div>
       <Navbar />
 
-      <div className="min-h-screen bg-[#E5E7EB] px-4 py-6 flex justify-center">
+      <div className="min-h-screen py-8 px-4 py-6 flex justify-center">
         <div className="w-full max-w-6xl bg-white shadow-xl rounded-xl p-10 mt-32">
 
           {/* HEADER */}

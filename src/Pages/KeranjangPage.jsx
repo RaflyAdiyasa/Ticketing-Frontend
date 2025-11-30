@@ -341,7 +341,7 @@ export default function KeranjangPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen py-8">
         <Navbar />
         <div className="flex items-center justify-center min-h-[60vh] pt-24">
           <div className="text-center">
@@ -359,7 +359,7 @@ export default function KeranjangPage() {
 
   if (error && cart.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen py-8">
         <Navbar />
         <div className="flex items-center justify-center min-h-[60vh] pt-24 p-4">
           <motion.div 
@@ -388,7 +388,7 @@ export default function KeranjangPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen py-8">
       <Navbar />
 
       {/* Notification Modal */}

@@ -367,7 +367,7 @@ export default function TiketSaya() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen py-8">
         <Navbar />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
@@ -385,7 +385,7 @@ export default function TiketSaya() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen py-8">
         <Navbar />
         <div className="flex items-center justify-center min-h-[60vh] p-4">
           <motion.div 
@@ -414,7 +414,7 @@ export default function TiketSaya() {
 
   if (processedTickets.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen py-8">
         <Navbar />
         <div className="flex items-center justify-center min-h-[60vh] p-4 pt-24">
           <motion.div 
@@ -442,7 +442,7 @@ export default function TiketSaya() {
   }
 
   return (
-    <div className="min-h-screen mt-15 bg-gray-100">
+    <div className="min-h-screen py-8 mt-15">
       <Navbar />
       
       <NotificationModal

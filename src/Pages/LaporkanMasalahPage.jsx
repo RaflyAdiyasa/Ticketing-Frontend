@@ -202,7 +202,7 @@ export default function LaporkanMasalahPage() {
         type={notification.type}
       />
 
-      <div className="min-h-screen bg-[#E5E7EB] flex items-start justify-center p-4 overflow-auto">
+      <div className="min-h-screen py-8 flex items-start justify-center p-4 overflow-auto">
         <div className="min-h-screen w-full max-w-6xl mx-auto pt-40 bg-white shadow-xl p-8 rounded-2xl">
           <h1 className="text-2xl font-bold mb-8">Laporkan Masalah</h1>
 

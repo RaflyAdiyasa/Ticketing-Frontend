@@ -320,7 +320,7 @@ export default function EventSayaPage() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center pt-36">
+        <div className="min-h-screen py-8 flex items-center justify-center pt-36">
           <motion.div 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -338,7 +338,7 @@ export default function EventSayaPage() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center pt-36">
+        <div className="min-h-screen py-8 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center pt-36">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -362,7 +362,7 @@ export default function EventSayaPage() {
   return (
     <div>
       <Navbar />
-      <div className="min-h-screen bg-gray-100 py-8">
+      <div className="min-h-screen py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
