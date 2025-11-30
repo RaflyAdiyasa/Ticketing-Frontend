@@ -116,4 +116,29 @@ export const transactionAPI = {
   getTransactionDetail: (transactionId) => api.get(`/api/transactions/${transactionId}`),
 };
 
+//FeedbackAPI
+export const FeedbackAPI = {
+  getAllFeedback: () => api.get('/api/feedback/all'),
+  createFeedback: (formData) => {
+    const token = sessionStorage.getItem('token');
+    return axios.post(`${API_BASE_URL}/api/feedback/`, formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  updateFeedbackStatus: (formData) => {
+    const token = sessionStorage.getItem('token');
+    return axios.put(`${API_BASE_URL}/api/feedback/${id}/status`, formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  },
+  getMyFeedback: () => api.get('/api/feedback/mine'),
+  
+};
+
 export default api;
