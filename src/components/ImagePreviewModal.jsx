@@ -1,4 +1,4 @@
-import { X, ZoomIn, ZoomOut, Download, Eye } from "lucide-react";
+import { X, ZoomIn, ZoomOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 
@@ -7,9 +7,7 @@ export default function ImagePreviewModal({
   onClose,
   imageSrc,
   imageAlt,
-  aspectRatio = "square", // "square" (1:1) untuk poster/profil, "video" (16:9) untuk flyer
-  showDownloadButton = false, // Prop baru untuk menampilkan tombol download
-  onDownload, // Callback untuk download
+  aspectRatio = "square", // "square" (1:1) untuk poster, "video" (16:9) untuk flyer
 }) {
   const [scale, setScale] = useState(1);
 
@@ -30,19 +28,6 @@ export default function ImagePreviewModal({
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       handleClose();
-    }
-  };
-
-  // Handle download
-  const handleDownloadClick = () => {
-    if (onDownload) {
-      onDownload();
-    } else {
-      // Default download behavior
-      const link = document.createElement('a');
-      link.href = imageSrc;
-      link.download = imageAlt || 'image.jpg';
-      link.click();
     }
   };
 
@@ -75,7 +60,7 @@ export default function ImagePreviewModal({
             <X size={20} className="sm:w-6 sm:h-6" />
           </motion.button>
 
-          {/* Zoom Controls */}
+          {/* Zoom Controls - Hidden on mobile, use pinch to zoom instead */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -101,21 +86,6 @@ export default function ImagePreviewModal({
               <ZoomIn size={20} />
             </button>
           </motion.div>
-
-          {/* Download Button (optional) */}
-          {showDownloadButton && (
-            <motion.button
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2, delay: 0.15 }}
-              onClick={handleDownloadClick}
-              className="absolute top-3 right-12 sm:top-4 sm:right-16 p-2 sm:p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-10 flex items-center gap-2"
-            >
-              <Download size={20} className="sm:w-5 sm:h-5" />
-              <span className="hidden sm:inline text-sm">Download</span>
-            </motion.button>
-          )}
 
           {/* Image Container */}
           <motion.div
@@ -160,12 +130,9 @@ export default function ImagePreviewModal({
               transition={{ duration: 0.2, delay: 0.15 }}
               className="absolute top-3 left-3 sm:top-4 sm:left-4 max-w-[50%] sm:max-w-[60%]"
             >
-              <div className="flex items-center gap-2 bg-black/30 backdrop-blur-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg">
-                <Eye size={16} className="text-white/80" />
-                <p className="text-white/90 text-sm sm:text-lg font-medium truncate">
-                  {imageAlt}
-                </p>
-              </div>
+              <p className="text-white/90 text-sm sm:text-lg font-medium truncate bg-black/30 backdrop-blur-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg">
+                {imageAlt}
+              </p>
             </motion.div>
           )}
 

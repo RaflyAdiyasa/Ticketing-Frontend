@@ -738,7 +738,7 @@ export default function EventSayaPage() {
                                 </motion.button>
                               )}
 
-                              {event.status === "approved" && (
+                              {(event.status === "approved" || event.status === "active") && (
                                 <motion.button
                                   onClick={() => handleScan(event.event_id)}
                                   className="flex items-center gap-2 bg-gray-800 hover:bg-black text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors min-w-[100px] justify-center"
