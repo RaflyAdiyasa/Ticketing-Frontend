@@ -11,8 +11,9 @@ steps:
     entrypoint: bash
     args:
       - -c
-      - |
-        gcloud app deploy --quiet
+      - gcloud app deploy --quiet
 
 options:
   logging: CLOUD_LOGGING_ONLY
+
+timeout: 1200s
