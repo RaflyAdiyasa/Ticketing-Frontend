@@ -3,12 +3,13 @@ import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
 import { userAPI } from "../services/api";
 import EditProfileModal from "../components/EditProfileModal";
+import ImagePreviewModal from "../components/ImagePreviewModal"; // IMPORT BARU
 import { motion } from "framer-motion";
 import { 
   User, Mail, Building, MapPin, FileText, 
   Calendar, Shield, Edit, RefreshCw, CheckCircle, 
-  Clock, XCircle 
-} from "lucide-react";
+  Clock, XCircle, Download, Eye
+} from "lucide-react"; // TAMBAH IMPORT Download dan Eye
 
 export default function LihatProfilPage() {
   const navigate = useNavigate();
@@ -16,6 +17,12 @@ export default function LihatProfilPage() {
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showImagePreview, setShowImagePreview] = useState(false); // STATE BARU
+  const [previewImageData, setPreviewImageData] = useState({ // STATE BARU
+    src: "",
+    alt: "",
+    type: "profile" // "profile" atau "ktp"
+  });
 
   useEffect(() => {
     fetchUserProfile();
@@ -47,6 +54,30 @@ export default function LihatProfilPage() {
     setUser(updatedUser);
     sessionStorage.setItem("user", JSON.stringify(updatedUser));
     setShowEditModal(false);
+  };
+
+  // FUNGSI BARU: Untuk membuka preview foto profil
+  const handleViewProfilePicture = () => {
+    if (user?.profile_pict) {
+      setPreviewImageData({
+        src: user.profile_pict,
+        alt: `Foto Profil - ${user.name || user.username}`,
+        type: "profile"
+      });
+      setShowImagePreview(true);
+    }
+  };
+
+  // FUNGSI BARU: Untuk membuka preview KTP
+  const handleViewKTP = () => {
+    if (user?.ktp) {
+      setPreviewImageData({
+        src: user.ktp,
+        alt: `KTP - ${user.name || user.username}`,
+        type: "ktp"
+      });
+      setShowImagePreview(true);
+    }
   };
 
   const getRoleDisplayName = (role) => {
@@ -170,20 +201,45 @@ export default function LihatProfilPage() {
                   <div className="relative">
                     <motion.div
                       whileHover={{ scale: 1.05 }}
-                      className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 overflow-hidden shadow-lg"
+                      className="relative w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 overflow-hidden shadow-lg group cursor-pointer"
+                      onClick={handleViewProfilePicture}
                     >
                       {user.profile_pict ? (
-                        <img
-                          src={user.profile_pict}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
-                        />
+                        <>
+                          <img
+                            src={user.profile_pict}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Overlay untuk preview */}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                            <Eye className="text-white" size={24} />
+                          </div>
+                        </>
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-300">
+                        <div 
+                          className="w-full h-full flex items-center justify-center bg-gray-300 cursor-pointer"
+                          onClick={handleViewProfilePicture}
+                        >
                           <User className="text-white" size={32} />
                         </div>
                       )}
                     </motion.div>
+                    
+                    {/* Tombol Lihat Foto (selalu tampil di bawah foto) */}
+                    {user.profile_pict && (
+                      <motion.button
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        onClick={handleViewProfilePicture}
+                        className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 justify-center w-full"
+                      >
+                        <Eye size={12} />
+                        Lihat Foto
+                      </motion.button>
+                    )}
+
                     {user.role === "organizer" && statusInfo && (
                       <motion.div
                         initial={{ opacity: 0, scale: 0 }}
@@ -348,15 +404,24 @@ export default function LihatProfilPage() {
                       {user.ktp ? (
                         <div className="bg-white rounded-lg p-4 border border-blue-200">
                           <p className="text-sm text-gray-600 mb-3">KTP telah diunggah dan diverifikasi</p>
-                          <a
-                            href={user.ktp}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            <FileText size={16} />
-                            Lihat Dokumen KTP
-                          </a>
+                          <div className="flex flex-wrap gap-3">
+                            <button
+                              onClick={handleViewKTP}
+                              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium px-3 py-1.5 hover:bg-blue-50 rounded-lg transition-colors"
+                            >
+                              <Eye size={16} />
+                              Lihat KTP
+                            </button>
+                            <a
+                              href={user.ktp}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 text-green-600 hover:text-green-800 font-medium px-3 py-1.5 hover:bg-green-50 rounded-lg transition-colors"
+                            >
+                              <Download size={16} />
+                              Download KTP
+                            </a>
+                          </div>
                         </div>
                       ) : (
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -406,6 +471,27 @@ export default function LihatProfilPage() {
           user={user}
           onClose={() => setShowEditModal(false)}
           onUpdate={handleProfileUpdate}
+        />
+      )}
+
+      {/* Image Preview Modal */}
+      {showImagePreview && (
+        <ImagePreviewModal
+          isOpen={showImagePreview}
+          onClose={() => setShowImagePreview(false)}
+          imageSrc={previewImageData.src}
+          imageAlt={previewImageData.alt}
+          aspectRatio="square" // Foto profil selalu square
+          showDownloadButton={true} // Opsional: tampilkan tombol download
+          onDownload={() => {
+            // Fungsi untuk download gambar
+            const link = document.createElement('a');
+            link.href = previewImageData.src;
+            link.download = previewImageData.type === 'profile' 
+              ? `profile-${user.username}.jpg` 
+              : `ktp-${user.username}.jpg`;
+            link.click();
+          }}
         />
       )}
     </div>

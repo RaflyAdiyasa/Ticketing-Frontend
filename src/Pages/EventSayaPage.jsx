@@ -259,7 +259,8 @@ export default function EventSayaPage() {
       pending: "Ditinjau",
       rejected: "Ditolak",
       approved: "Diterima",
-      completed: "Selesai",
+      active: "Berlangsung",
+      endeed: "Selesai",
     };
     return statusMap[status] || status;
   };
@@ -272,7 +273,9 @@ export default function EventSayaPage() {
         return "bg-red-50 text-red-700 border border-red-200";
       case "approved":
         return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-      case "completed":
+      case "active":
+        return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+      case "ended":
         return "bg-slate-100 text-slate-700 border border-slate-300";
       default:
         return "bg-gray-100 text-gray-700 border border-gray-200";
@@ -489,7 +492,7 @@ export default function EventSayaPage() {
                             <option value="pending">Menunggu Review</option>
                             <option value="approved">Diterima</option>
                             <option value="rejected">Ditolak</option>
-                            <option value="completed">Selesai</option>
+                            <option value="ended">Selesai</option>
                           </select>
                         </motion.div>
 
@@ -722,7 +725,7 @@ export default function EventSayaPage() {
                                 </motion.button>
                               )}
 
-                              {(event.status === "approved" || event.status === "completed") && (
+                              {(event.status === "approved" || event.status === "ended" || event.status === "active") && (
                                 <motion.button
                                   onClick={() => handleLaporan(event.event_id)}
                                   className="flex items-center gap-2 bg-purple-50 hover:bg-purple-100 text-purple-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors min-w-[100px] justify-center"
