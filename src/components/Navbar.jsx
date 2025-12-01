@@ -18,6 +18,8 @@ import {
   Settings,
   Flag,
   FileText,
+  ChevronDown,
+  CheckCircle,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
@@ -28,8 +30,10 @@ export default function Navbar() {
   const [mobileMenuIsOpen, setMobileMenuIsOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [verificationDropdownOpen, setVerificationDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const dropdownRef = useRef(null);
+  const verificationRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -48,6 +52,9 @@ export default function Navbar() {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setProfileDropdownOpen(false);
+      }
+      if (verificationRef.current && !verificationRef.current.contains(event.target)) {
+        setVerificationDropdownOpen(false);
       }
     };
 
@@ -79,6 +86,10 @@ export default function Navbar() {
 
   const handleProfileClick = () => {
     setProfileDropdownOpen(!profileDropdownOpen);
+  };
+
+  const handleVerificationClick = () => {
+    setVerificationDropdownOpen(!verificationDropdownOpen);
   };
 
   const handleShoppingCartClick = () => {
@@ -114,8 +125,18 @@ export default function Navbar() {
     navigate("/laporkan-masalah");
   };
 
-  const handleViewReportIssueAdmin = () => {
-    setProfileDropdownOpen(false);
+  const handleVerificationUser = () => {
+    setVerificationDropdownOpen(false);
+    navigate("/verifikasiUser");
+  };
+
+  const handleVerificationEvent = () => {
+    setVerificationDropdownOpen(false);
+    navigate("/verifikasi-event");
+  };
+
+  const handleReportIssuesAdmin = () => {
+    setVerificationDropdownOpen(false);
     navigate("/laporanMasalah");
   };
 
@@ -187,9 +208,10 @@ export default function Navbar() {
       case "/daftar-event":
       case "/event-saya":
         return <Calendar size={18} />;
-      case "/verifikasiUser":
-      case "/verifikasi-event":
+      case "/verifikasi":
         return <ShieldCheck size={18} />;
+      case "/laporanMasalah":
+        return <FileText size={18} />;
       default:
         return null;
     }
@@ -246,6 +268,24 @@ export default function Navbar() {
     const inactiveClasses = "text-white hover:bg-white/20 hover:shadow-lg";
     
     return `${baseClasses} ${isActive ? activeClasses : inactiveClasses} ${additionalClasses}`;
+  };
+
+  // Fungsi untuk menangani status aktif pada Verification dropdown
+  const getVerificationNavClass = (isActive) => {
+    const baseClasses = "flex items-center space-x-2 px-6 py-3 rounded-t-lg font-medium transition-all relative group";
+    const activeClasses = "bg-white text-blue-600 shadow-lg";
+    const inactiveClasses = "text-white hover:bg-white/20 hover:shadow-lg";
+    
+    return `${baseClasses} ${isActive ? activeClasses : inactiveClasses}`;
+  };
+
+  // Check if verification related pages are active
+  const isVerificationActive = () => {
+    return location.pathname === "/verifikasiUser" || location.pathname === "/verifikasi-event";
+  };
+
+  const isReportActive = () => {
+    return location.pathname === "/laporanMasalah";
   };
 
   return (
@@ -407,6 +447,7 @@ export default function Navbar() {
                           </button>
                         )}
 
+                        {/* Laporan Masalah - Hanya untuk user dan organizer (admin sudah dipindah ke bottom navbar) */}
                         {(getUserRole() === "user" || getUserRole() === "organizer") && (
                           <button
                             onClick={handleViewReportIssue}
@@ -416,18 +457,6 @@ export default function Navbar() {
                               <Flag className="w-4 h-4 text-yellow-600" />
                             </div>
                             <span className="font-medium text-gray-700 group-hover:text-yellow-600 transition-colors">Laporkan Masalah</span>
-                          </button>
-                        )}
-
-                        { getUserRole() === "admin" && (
-                          <button
-                            onClick={handleViewReportIssueAdmin}
-                            className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-yellow-50 rounded-lg transition-colors group"
-                          >
-                            <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center group-hover:bg-yellow-200 transition-colors">
-                              <FileText className="w-4 h-4 text-yellow-600" />
-                            </div>
-                            <span className="font-medium text-gray-700 group-hover:text-yellow-600 transition-colors">Laporan Masalah</span>
                           </button>
                         )}
                         
@@ -459,127 +488,181 @@ export default function Navbar() {
       </nav>
 
       {/* NAVBAR BOTTOM - Secondary Nav */}
-      <nav className="hidden md:block fixed top-20 w-full z-40 bg-[#044888] shadow-md' : 'bg-[#044888] border-t border-white/20 shadow-md">
+      <nav className="hidden md:block fixed top-20 w-full z-40 bg-[#044888] border-t border-white/20 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-1">
-            <NavLink
-              to="/"
-              className={({ isActive }) => getNavLinkClass(isActive)}
-            >
-              <Home size={16} />
-              <span>Beranda</span>
-              {/* Hover effect */}
-              <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
-                location.pathname === "/" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
-              }`} />
-            </NavLink>
-
-            <NavLink
-              to="/cariEvent"
-              className={({ isActive }) => getNavLinkClass(isActive)}
-            >
-              <Search size={16} />
-              <span>Cari Event</span>
-              {/* Hover effect */}
-              <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
-                location.pathname.startsWith("/cariEvent") ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
-              }`} />
-            </NavLink>
-
-            {/* Kalender Event - Accessible by all users */}
-            <NavLink
-              to="/kalender-event"
-              className={({ isActive }) => getNavLinkClass(isActive)}
-            >
-              <CalendarDays size={16} />
-              <span>Kalender Event</span>
-              {/* Hover effect */}
-              <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
-                location.pathname === "/kalender-event" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
-              }`} />
-            </NavLink>
-
-            {/* Menu untuk User */}
-            {isLoggedIn() && getUserRole() === "user" && (
+          <div className="flex items-center">
+            {/* Semua menu dalam satu baris tanpa justify-between */}
+            <div className="flex items-center">
               <NavLink
-                to="/tiket-saya"
+                to="/"
                 className={({ isActive }) => getNavLinkClass(isActive)}
               >
-                <Ticket size={16} />
-                <span>Tiket Saya</span>
+                <Home size={16} />
+                <span>Beranda</span>
                 {/* Hover effect */}
                 <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
-                  location.pathname === "/tiket-saya" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                  location.pathname === "/" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
                 }`} />
               </NavLink>
-            )}
 
-            {/* Menu untuk Organizer */}
-            {isLoggedIn() && getUserRole() === "organizer" && (
-              <>
-                <NavLink
-                  to="/daftar-event"
-                  className={({ isActive }) => getNavLinkClass(isActive)}
-                >
-                  <Calendar size={16} />
-                  <span>Buat Event</span>
-                  {/* Hover effect */}
-                  <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
-                    location.pathname === "/daftar-event" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
-                  }`} />
-                </NavLink>
-                <NavLink
-                  to="/event-saya"
-                  className={({ isActive }) => getNavLinkClass(isActive)}
-                >
-                  <Calendar size={16} />
-                  <span>Event Saya</span>
-                  {/* Hover effect */}
-                  <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
-                    location.pathname === "/event-saya" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
-                  }`} />
-                </NavLink>
-              </>
-            )}
+              <NavLink
+                to="/cariEvent"
+                className={({ isActive }) => getNavLinkClass(isActive)}
+              >
+                <Search size={16} />
+                <span>Cari Event</span>
+                {/* Hover effect */}
+                <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                  location.pathname.startsWith("/cariEvent") ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                }`} />
+              </NavLink>
 
-            {/* Menu untuk Admin */}
-            {isLoggedIn() && getUserRole() === "admin" && (
-              <>
+              {/* Kalender Event - Accessible by all users */}
+              <NavLink
+                to="/kalender-event"
+                className={({ isActive }) => getNavLinkClass(isActive)}
+              >
+                <CalendarDays size={16} />
+                <span>Kalender Event</span>
+                {/* Hover effect */}
+                <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                  location.pathname === "/kalender-event" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                }`} />
+              </NavLink>
+
+              {/* Menu untuk User */}
+              {isLoggedIn() && getUserRole() === "user" && (
                 <NavLink
-                  to="/verifikasiUser"
+                  to="/tiket-saya"
                   className={({ isActive }) => getNavLinkClass(isActive)}
                 >
-                  <ShieldCheck size={16} />
-                  <span>Verifikasi User</span>
+                  <Ticket size={16} />
+                  <span>Tiket Saya</span>
                   {/* Hover effect */}
                   <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
-                    location.pathname === "/verifikasiUser" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                    location.pathname === "/tiket-saya" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
                   }`} />
                 </NavLink>
-                <NavLink
-                  to="/verifikasi-event"
-                  className={({ isActive }) => getNavLinkClass(isActive)}
-                >
-                  <ShieldCheck size={16} />
-                  <span>Verifikasi Event</span>
-                  {/* Hover effect */}
-                  <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
-                    location.pathname === "/verifikasi-event" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
-                  }`} />
-                </NavLink>
-                <NavLink
-                  to="/atur-event"
-                  className={({ isActive }) => getNavLinkClass(isActive)}
-                >
-                  <Settings size={16} />
-                  <span>Atur Event</span>
-                  {/* Hover effect */}
-                  <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
-                    location.pathname === "/verifikasi-event" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
-                  }`} />
-                </NavLink>
-              </>
-            )}
+              )}
+
+              {/* Menu untuk Organizer */}
+              {isLoggedIn() && getUserRole() === "organizer" && (
+                <>
+                  <NavLink
+                    to="/daftar-event"
+                    className={({ isActive }) => getNavLinkClass(isActive)}
+                  >
+                    <Calendar size={16} />
+                    <span>Buat Event</span>
+                    {/* Hover effect */}
+                    <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                      location.pathname === "/daftar-event" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                    }`} />
+                  </NavLink>
+                  <NavLink
+                    to="/event-saya"
+                    className={({ isActive }) => getNavLinkClass(isActive)}
+                  >
+                    <Calendar size={16} />
+                    <span>Event Saya</span>
+                    {/* Hover effect */}
+                    <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                      location.pathname === "/event-saya" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                    }`} />
+                  </NavLink>
+                </>
+              )}
+
+              {/* Menu untuk Admin - Ditambahkan langsung tanpa pemisah */}
+              {isLoggedIn() && getUserRole() === "admin" && (
+                <>
+                  <NavLink
+                    to="/atur-event"
+                    className={({ isActive }) => getNavLinkClass(isActive)}
+                  >
+                    <Settings size={16} />
+                    <span>Konfigurasi Event</span>
+                    {/* Hover effect */}
+                    <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                      location.pathname === "/atur-event" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                    }`} />
+                  </NavLink>
+
+                  <NavLink
+                    to="/laporanMasalah"
+                    className={({ isActive }) => getNavLinkClass(isActive)}
+                  >
+                    <FileText size={16} />
+                    <span>Laporan Masalah</span>
+                    {/* Hover effect */}
+                    <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                      isReportActive() ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                    }`} />
+                  </NavLink>
+
+                  {/* Verifikasi Dropdown */}
+                  <div className="relative" ref={verificationRef}>
+                    <button
+                      className={getVerificationNavClass(isVerificationActive())}
+                      onClick={handleVerificationClick}
+                    >
+                      <ShieldCheck size={16} />
+                      <span>Verifikasi</span>
+                      <ChevronDown size={14} className={`transition-transform ${verificationDropdownOpen ? 'rotate-180' : ''}`} />
+                      {/* Hover effect */}
+                      <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-amber-400 transform origin-left transition-transform ${
+                        isVerificationActive() ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                      }`} />
+                    </button>
+
+                    {/* Verification Dropdown Menu */}
+                    {verificationDropdownOpen && (
+                      <div className="absolute right-0 top-full w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
+                        <button
+                          onClick={handleVerificationUser}
+                          className={`w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-blue-50 transition-colors group ${
+                            location.pathname === "/verifikasiUser" ? "bg-blue-50 text-blue-600" : "text-gray-700"
+                          }`}
+                        >
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            location.pathname === "/verifikasiUser" ? "bg-blue-100" : "bg-gray-100 group-hover:bg-blue-100"
+                          } transition-colors`}>
+                            <Users className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1">
+                            <span className="font-medium">Verifikasi User</span>
+                            <p className="text-xs text-gray-500">Verifikasi akun organizer</p>
+                          </div>
+                          {location.pathname === "/verifikasiUser" && (
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                          )}
+                        </button>
+                        
+                        <button
+                          onClick={handleVerificationEvent}
+                          className={`w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-blue-50 transition-colors group ${
+                            location.pathname === "/verifikasi-event" ? "bg-blue-50 text-blue-600" : "text-gray-700"
+                          }`}
+                        >
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            location.pathname === "/verifikasi-event" ? "bg-blue-100" : "bg-gray-100 group-hover:bg-blue-100"
+                          } transition-colors`}>
+                            <CheckCircle className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1">
+                            <span className="font-medium">Verifikasi Event</span>
+                            <p className="text-xs text-gray-500">Verifikasi event baru</p>
+                          </div>
+                          {location.pathname === "/verifikasi-event" && (
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </nav>
@@ -778,34 +861,6 @@ export default function Navbar() {
             {isLoggedIn() && getUserRole() === "admin" && (
               <>
                 <NavLink
-                  to="/verifikasiUser"
-                  className={({ isActive }) => 
-                    `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
-                      isActive 
-                        ? "bg-blue-50 text-blue-600 font-bold" 
-                        : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                    }`
-                  }
-                  onClick={() => setMobileMenuIsOpen(false)}
-                >
-                  <ShieldCheck size={20} />
-                  <span className="font-semibold">Verifikasi User</span>
-                </NavLink>
-                <NavLink
-                  to="/verifikasi-event"
-                  className={({ isActive }) => 
-                    `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
-                      isActive 
-                        ? "bg-blue-50 text-blue-600 font-bold" 
-                        : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                    }`
-                  }
-                  onClick={() => setMobileMenuIsOpen(false)}
-                >
-                  <ShieldCheck size={20} />
-                  <span className="font-semibold">Verifikasi Event</span>
-                </NavLink>
-                <NavLink
                   to="/atur-event"
                   className={({ isActive }) => 
                     `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
@@ -817,8 +872,58 @@ export default function Navbar() {
                   onClick={() => setMobileMenuIsOpen(false)}
                 >
                   <Settings size={20} />
-                  <span className="font-semibold">Atur Event</span>
+                  <span className="font-semibold">Konfigurasi Event</span>
                 </NavLink>
+
+                <NavLink
+                  to="/laporanMasalah"
+                  className={({ isActive }) => 
+                    `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
+                      isActive 
+                        ? "bg-blue-50 text-blue-600 font-bold" 
+                        : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                    }`
+                  }
+                  onClick={() => setMobileMenuIsOpen(false)}
+                >
+                  <FileText size={20} />
+                  <span className="font-semibold">Laporan Masalah</span>
+                </NavLink>
+
+                {/* Verifikasi Menu dengan Submenu di Mobile */}
+                <div className="border-t border-gray-200 mt-2 pt-2">
+                  <div className="px-4 py-2 text-sm font-semibold text-gray-500">
+                    VERIFIKASI
+                  </div>
+                  <NavLink
+                    to="/verifikasiUser"
+                    className={({ isActive }) => 
+                      `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
+                        isActive 
+                          ? "bg-blue-50 text-blue-600 font-bold" 
+                          : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                      }`
+                    }
+                    onClick={() => setMobileMenuIsOpen(false)}
+                  >
+                    <Users size={20} />
+                    <span className="font-semibold">Verifikasi User</span>
+                  </NavLink>
+                  <NavLink
+                    to="/verifikasi-event"
+                    className={({ isActive }) => 
+                      `flex items-center space-x-3 p-4 rounded-lg transition-all hover:scale-[1.02] ${
+                        isActive 
+                          ? "bg-blue-50 text-blue-600 font-bold" 
+                          : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                      }`
+                    }
+                    onClick={() => setMobileMenuIsOpen(false)}
+                  >
+                    <CheckCircle size={20} />
+                    <span className="font-semibold">Verifikasi Event</span>
+                  </NavLink>
+                </div>
               </>
             )}
 

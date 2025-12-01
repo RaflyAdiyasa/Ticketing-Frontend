@@ -1,4 +1,3 @@
-// AturEventPage.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
@@ -247,7 +246,7 @@ export default function AturEventPage() {
               className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8"
             >
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Atur Event</h1>
+                <h1 className="text-3xl font-bold text-gray-900">Konfigurasi Event</h1>
                 <p className="text-gray-600 mt-2">
                   Total: {totalCategories} kategori • {totalSubCategories} subkategori • Ditampilkan: {filteredCategories.length} kategori
                 </p>
