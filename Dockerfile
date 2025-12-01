@@ -1,20 +1,23 @@
 
-FROM node:20-alpine
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
 
 
-WORKDIR /frontend/
+FROM nginx:stable-alpine
 
 
-COPY package.json package-lock.json /frontend/
+COPY --from=builder /app/dist /usr/share/nginx/html
 
 
-RUN npm install 
+EXPOSE 8080
 
 
-COPY . /frontend/
+ENV PORT=8080
 
-
-EXPOSE 3000
-
-
-CMD ["npm", "start"]
+CMD ["nginx", "-g", "daemon off;"]
