@@ -21,6 +21,7 @@ import {
   Ticket,
   ChevronDown,
   ChevronUp,
+  LogIn,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api, { eventAPI } from "../services/api";
@@ -29,8 +30,8 @@ import NotificationModal from "../components/NotificationModal";
 import TicketCategoryDetailModal from "../components/TicketCategoryDetailModal";
 import ImagePreviewModal from "../components/ImagePreviewModal";
 
-// ==================== UTILITY FUNCTIONS ====================
 const formatRupiah = (angka) => {
+  if (angka === 0) return "Gratis";
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
@@ -73,23 +74,19 @@ const formatDescriptionWithNewlines = (text) => {
   ));
 };
 
-// Format number untuk like count (sama seperti LandingPage)
 const formatNumber = (num) => {
   if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
   }
   if (num >= 10000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    return (num / 1000).toFixed(1).replace(/\.0$/, "") + "k";
   }
   if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    return (num / 1000).toFixed(1).replace(/\.0$/, "") + "k";
   }
   return num.toString();
 };
 
-// ==================== SUB COMPONENTS ====================
-
-// Status Badge Component
 function StatusBadge({ status }) {
   const getStatusIcon = () => {
     switch (status) {
@@ -125,7 +122,6 @@ function StatusBadge({ status }) {
   );
 }
 
-// Admin Verification Section
 function AdminVerificationSection({ onVerify, verifying }) {
   return (
     <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-blue-50 border border-blue-200 rounded-xl">
@@ -157,7 +153,6 @@ function AdminVerificationSection({ onVerify, verifying }) {
   );
 }
 
-// Verification Modal dengan Animasi
 function VerificationModal({
   isOpen,
   onClose,
@@ -178,7 +173,6 @@ function VerificationModal({
       transition={{ duration: 0.2 }}
       className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4"
     >
-      {/* Backdrop dengan animasi */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -186,21 +180,19 @@ function VerificationModal({
         className="absolute inset-0 bg-black/30"
         onClick={onClose}
       />
-      
-      {/* Modal Content dengan animasi */}
+
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        transition={{ 
-          type: "spring", 
-          damping: 25, 
+        transition={{
+          type: "spring",
+          damping: 25,
           stiffness: 300,
-          duration: 0.3
+          duration: 0.3,
         }}
         className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto relative z-10"
       >
-        {/* Header dengan animasi subtle */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -211,7 +203,6 @@ function VerificationModal({
           </h3>
         </motion.div>
 
-        {/* Event Info dengan animasi */}
         <motion.div
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
@@ -220,15 +211,12 @@ function VerificationModal({
         >
           <p className="text-sm sm:text-base text-gray-700 mb-2">
             Anda akan{" "}
-            <strong>
-              {action === "approve" ? "menyetujui" : "menolak"}
-            </strong>{" "}
+            <strong>{action === "approve" ? "menyetujui" : "menolak"}</strong>{" "}
             event:
           </p>
           <p className="font-semibold text-base sm:text-lg">{eventName}</p>
         </motion.div>
 
-        {/* Comment Input dengan animasi */}
         <motion.div
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
@@ -248,14 +236,13 @@ function VerificationModal({
               action === "approve" ? "persetujuan" : "penolakan"
             }...`}
             required={action === "reject"}
-            whileFocus={{ 
+            whileFocus={{
               scale: 1.01,
-              transition: { duration: 0.2 }
+              transition: { duration: 0.2 },
             }}
           />
         </motion.div>
 
-        {/* Buttons dengan animasi */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -279,11 +266,17 @@ function VerificationModal({
                 : "bg-red-600 hover:bg-red-700"
             }`}
             disabled={verifying || (action === "reject" && !comment.trim())}
-            whileHover={{ 
-              scale: (verifying || (action === "reject" && !comment.trim())) ? 1 : 1.02 
+            whileHover={{
+              scale:
+                verifying || (action === "reject" && !comment.trim())
+                  ? 1
+                  : 1.02,
             }}
-            whileTap={{ 
-              scale: (verifying || (action === "reject" && !comment.trim())) ? 1 : 0.98 
+            whileTap={{
+              scale:
+                verifying || (action === "reject" && !comment.trim())
+                  ? 1
+                  : 0.98,
             }}
           >
             {verifying ? (
@@ -311,13 +304,13 @@ function VerificationModal({
   );
 }
 
-// Ticket Item Component
 function TicketItem({
   ticket,
   index,
   showControls,
   onUpdateQty,
   onViewDetail,
+  isEventEnded,
 }) {
   return (
     <motion.div
@@ -326,92 +319,115 @@ function TicketItem({
       transition={{ duration: 0.3, delay: index * 0.1 }}
       className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-lg transition-all duration-300"
     >
-      {/* Header dengan nama tiket dan badge status */}
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
-        <p className="font-bold text-base sm:text-lg lg:text-xl text-gray-900 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          {ticket.type}
-        </p>
-        {ticket.stock === 0 && (
-          <span className="bg-red-100 text-red-800 text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-semibold border border-red-200">
-            HABIS
-          </span>
-        )}
-        {ticket.stock > 0 && ticket.stock <= 10 && (
-          <span className="bg-orange-100 text-orange-800 text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-semibold border border-orange-200">
-            HAMPIR HABIS
-          </span>
-        )}
-        {ticket.stock > 10 && (
-          <span className="bg-green-100 text-green-800 text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-semibold border border-green-200">
-            TERSEDIA
-          </span>
-        )}
-      </div>
+      <div className="flex items-start justify-between gap-3 sm:gap-4 mb-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap mb-1">
+            <p className="font-bold text-base sm:text-lg lg:text-xl text-gray-900 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              {ticket.type}
+            </p>
+            {ticket.stock === 0 && (
+              <span className="bg-red-100 text-red-800 text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-semibold border border-red-200">
+                HABIS
+              </span>
+            )}
+            {ticket.stock > 0 && ticket.stock <= 10 && (
+              <span className="bg-orange-100 text-orange-800 text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-semibold border border-orange-200">
+                HAMPIR HABIS
+              </span>
+            )}
+            {ticket.stock > 10 && (
+              <span className="bg-green-100 text-green-800 text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-semibold border border-green-200">
+                TERSEDIA
+              </span>
+            )}
+          </div>
 
-      {/* Harga */}
-      <p className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-        {formatRupiah(ticket.price)}
-      </p>
+          {ticket.date_time_start && (
+            <div className="text-2sm sm:text-2sm text-gray-700 space-y-0.5">
+              <p>
+                <span className="font-medium">Mulai:</span>{" "}
+                {formatDateTime(ticket.date_time_start)}
+              </p>
+              <p>
+                <span className="font-medium">Selesai:</span>{" "}
+                {formatDateTime(ticket.date_time_end)}
+              </p>
+              {isEventEnded && (
+                <p className="text-2xs text-red-600 font-medium">
+                  Event ini sudah berakhir
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
-      {/* Periode */}
-      {ticket.date_time_start && (
-        <div className="text-xs sm:text-sm text-gray-600 space-y-0.5 sm:space-y-1 mb-4">
-          <p>
-            <span className="font-medium">Mulai:</span>{" "}
-            {formatDateTime(ticket.date_time_start)}
-          </p>
-          <p>
-            <span className="font-medium">Selesai:</span>{" "}
-            {formatDateTime(ticket.date_time_end)}
+        <div className="flex flex-col items-end gap-2 sm:gap-3">
+          <p
+            className={`text-xl sm:text-2xl font-bold ${
+              ticket.price === 0 ? "text-green-600" : "text-gray-900"
+            }`}
+          >
+            {formatRupiah(ticket.price)}
           </p>
         </div>
-      )}
+      </div>
 
-      {/* Action Buttons - Stack on mobile */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-3 border-t border-gray-100">
+      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             onViewDetail(ticket);
           }}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 rounded-lg transition-colors font-medium bg-purple-100 text-purple-600 hover:bg-purple-200 text-sm sm:text-base"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg transition-colors font-medium bg-purple-100 text-purple-600 hover:bg-purple-200 text-sm sm:text-base"
         >
           <Eye size={16} />
           Lihat Detail
         </button>
 
-        {/* Quantity Controls - Only for User (canPurchase) */}
         {showControls && (
-          <div className="flex items-center justify-center sm:justify-start gap-3">
-            <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-300 p-1 shadow-sm">
-              <button
-                type="button"
-                onClick={() => onUpdateQty(index, -1)}
-                disabled={ticket.qty === 0}
-                className={`w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg transition-all duration-200 ${
-                  ticket.qty === 0
-                    ? "opacity-30 cursor-not-allowed bg-gray-100 text-gray-400"
-                    : "hover:bg-purple-50 hover:text-purple-600 bg-white text-gray-700 active:bg-purple-100"
-                } border border-transparent`}
-              >
-                <Minus size={18} className="sm:w-4 sm:h-4" />
-              </button>
-              <span className="w-10 sm:w-8 text-center font-bold text-lg text-gray-900">
-                {ticket.qty}
-              </span>
-              <button
-                type="button"
-                onClick={() => onUpdateQty(index, 1)}
-                className={`w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg transition-all duration-200 ${
-                  ticket.qty >= ticket.stock || ticket.stock === 0
-                    ? "opacity-30 cursor-not-allowed bg-gray-100 text-gray-400"
-                    : "hover:bg-purple-50 hover:text-purple-600 bg-white text-gray-700 active:bg-purple-100"
-                } border border-transparent`}
-                disabled={ticket.qty >= ticket.stock || ticket.stock === 0}
-              >
-                <Plus size={18} className="sm:w-4 sm:h-4" />
-              </button>
+          <div className="flex items-center gap-4">
+            {!isEventEnded && (
+              <p className="text-sm text-gray-700 whitespace-nowrap">
+                Tersisa: {ticket.stock} pcs
+              </p>
+            )}
+            <div className="flex flex-col items-end">
+              <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-300 p-1 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => onUpdateQty(index, -1)}
+                  disabled={ticket.qty === 0 || isEventEnded}
+                  className={`w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg transition-all duration-200 ${
+                    ticket.qty === 0 || isEventEnded
+                      ? "opacity-30 cursor-not-allowed bg-gray-100 text-gray-400"
+                      : "hover:bg-purple-50 hover:text-purple-600 bg-white text-gray-700 active:bg-purple-100"
+                  } border border-transparent`}
+                >
+                  <Minus size={18} className="sm:w-4 sm:h-4" />
+                </button>
+                <span className="w-10 sm:w-8 text-center font-bold text-lg text-gray-900">
+                  {ticket.qty}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onUpdateQty(index, 1)}
+                  className={`w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg transition-all duration-200 ${
+                    ticket.qty >= ticket.stock ||
+                    ticket.stock === 0 ||
+                    isEventEnded
+                      ? "opacity-30 cursor-not-allowed bg-gray-100 text-gray-400"
+                      : "hover:bg-purple-50 hover:text-purple-600 bg-white text-gray-700 active:bg-purple-100"
+                  } border border-transparent`}
+                  disabled={
+                    ticket.qty >= ticket.stock ||
+                    ticket.stock === 0 ||
+                    isEventEnded
+                  }
+                >
+                  <Plus size={18} className="sm:w-4 sm:h-4" />
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -420,7 +436,6 @@ function TicketItem({
   );
 }
 
-// Cart Summary Component
 function CartSummary({ tickets, totalHarga, onAddToCart }) {
   return (
     <motion.div
@@ -455,8 +470,14 @@ function CartSummary({ tickets, totalHarga, onAddToCart }) {
 
       <div className="border-t border-blue-200 pt-3 sm:pt-4 mb-4">
         <div className="flex justify-between items-center">
-          <span className="text-base sm:text-lg font-semibold text-gray-900">Total</span>
-          <span className="text-xl sm:text-2xl font-bold text-blue-600">
+          <span className="text-base sm:text-lg font-semibold text-gray-900">
+            Total
+          </span>
+          <span
+            className={`text-xl sm:text-2xl font-bold ${
+              totalHarga === 0 ? "text-green-600" : "text-blue-600"
+            }`}
+          >
             {formatRupiah(totalHarga)}
           </span>
         </div>
@@ -475,11 +496,9 @@ function CartSummary({ tickets, totalHarga, onAddToCart }) {
   );
 }
 
-// Event Image Section with Preview
 function EventImageSection({ event, onImageClick }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-1 gap-3 sm:gap-4">
-      {/* Event Poster - aspect-square (1:1) sesuai LandingPage */}
       <div
         className="rounded-xl overflow-hidden shadow-lg aspect-square border border-gray-200 relative group cursor-pointer"
         onClick={() =>
@@ -503,19 +522,16 @@ function EventImageSection({ event, onImageClick }) {
               "https://axistechindia.com/images/image%20not%20available.jpg";
           }}
         />
-        {/* Hover/Tap overlay */}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 rounded-full p-2 sm:p-3">
             <Eye className="w-4 h-4 sm:w-6 sm:h-6 text-gray-700" />
           </div>
         </div>
-        {/* Mobile tap indicator */}
         <div className="absolute bottom-2 right-2 sm:hidden bg-black/50 rounded-full p-1.5">
           <Eye className="w-3 h-3 text-white" />
         </div>
       </div>
 
-      {/* Event Flyer - aspect-video (16:9) */}
       {event.flyer && (
         <div
           className="rounded-xl overflow-hidden shadow-lg aspect-16/6 border border-gray-200 relative group cursor-pointer"
@@ -528,13 +544,11 @@ function EventImageSection({ event, onImageClick }) {
             alt={`Flyer ${event.name}`}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
-          {/* Hover/Tap overlay */}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
             <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 rounded-full p-2 sm:p-3">
               <Eye className="w-4 h-4 sm:w-6 sm:h-6 text-gray-700" />
             </div>
           </div>
-          {/* Mobile tap indicator */}
           <div className="absolute bottom-2 right-2 sm:hidden bg-black/50 rounded-full p-1.5">
             <Eye className="w-3 h-3 text-white" />
           </div>
@@ -544,7 +558,6 @@ function EventImageSection({ event, onImageClick }) {
   );
 }
 
-// Organizer Info Component
 function OrganizerInfo({ owner }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm">
@@ -581,10 +594,14 @@ function OrganizerInfo({ owner }) {
             {owner?.name || "Organizer"}
           </p>
           {owner?.organization && (
-            <p className="text-xs sm:text-sm text-gray-600 truncate">{owner.organization}</p>
+            <p className="text-xs sm:text-sm text-gray-600 truncate">
+              {owner.organization}
+            </p>
           )}
           {owner?.email && (
-            <p className="text-xs text-gray-500 mt-0.5 sm:mt-1 truncate">{owner.email}</p>
+            <p className="text-xs text-gray-500 mt-0.5 sm:mt-1 truncate">
+              {owner.email}
+            </p>
           )}
         </div>
       </div>
@@ -592,18 +609,14 @@ function OrganizerInfo({ owner }) {
   );
 }
 
-// Expandable Rules Component
 function ExpandableRules({ rules, maxLines = 5 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [needsExpand, setNeedsExpand] = useState(false);
-  const contentRef = useState(null);
 
-  // Check if content exceeds maxLines
   useEffect(() => {
     if (!rules) return;
-    const lineCount = rules.split('\n').length;
+    const lineCount = rules.split("\n").length;
     const charCount = rules.length;
-    // Jika lebih dari maxLines atau lebih dari ~300 karakter, tampilkan tombol
     setNeedsExpand(lineCount > maxLines || charCount > 300);
   }, [rules, maxLines]);
 
@@ -613,23 +626,23 @@ function ExpandableRules({ rules, maxLines = 5 }) {
     <div className="relative">
       <div
         className={`prose prose-sm sm:prose-base lg:prose-lg max-w-none text-gray-700 leading-relaxed transition-all duration-300 ${
-          !isExpanded && needsExpand ? 'max-h-32 sm:max-h-40 overflow-hidden' : ''
+          !isExpanded && needsExpand
+            ? "max-h-32 sm:max-h-40 overflow-hidden"
+            : ""
         }`}
       >
         {formatDescriptionWithNewlines(rules)}
       </div>
-      
-      {/* Gradient overlay when collapsed */}
+
       {needsExpand && !isExpanded && (
         <div className="absolute bottom-0 left-0 right-0 h-16 sm:h-20 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none" />
       )}
-      
-      {/* Toggle Button */}
+
       {needsExpand && (
         <motion.button
           onClick={() => setIsExpanded(!isExpanded)}
           className={`flex items-center gap-1.5 text-orange-600 hover:text-orange-700 font-medium text-sm sm:text-base transition-colors ${
-            !isExpanded ? 'relative -mt-2 sm:-mt-4' : 'mt-3 sm:mt-4'
+            !isExpanded ? "relative -mt-2 sm:-mt-4" : "mt-3 sm:mt-4"
           }`}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -651,7 +664,32 @@ function ExpandableRules({ rules, maxLines = 5 }) {
   );
 }
 
-// ==================== MAIN COMPONENT ====================
+function LoginPrompt({ onLogin }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="mt-6"
+    >
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 shadow-sm">
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-gray-700">
+            Anda belum login. Untuk membeli tiket, silahkan login terlebih
+            dahulu.
+          </p>
+          <button
+            onClick={onLogin}
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2.5 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-medium text-sm shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+          >
+            <LogIn size={16} />
+            Login Sekarang
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -673,16 +711,13 @@ export default function EventDetail() {
   const [verificationAction, setVerificationAction] = useState(null);
   const [approvalComment, setApprovalComment] = useState("");
 
-  // State untuk like
   const [isLiked, setIsLiked] = useState(false);
   const [totalLikes, setTotalLikes] = useState(0);
   const [likeLoading, setLikeLoading] = useState(false);
 
-  // State untuk modal detail tiket
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
 
-  // State untuk image preview modal
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImage, setPreviewImage] = useState({
     src: null,
@@ -767,10 +802,8 @@ export default function EventDetail() {
     }
   }, [id]);
 
-  // Fetch liked status untuk user yang login dengan role "user" saja
   useEffect(() => {
     const fetchLikedStatus = async () => {
-      // Hanya fetch jika user login dan role adalah "user"
       if (!isLoggedIn || !isRegularUser || !id) return;
 
       try {
@@ -787,7 +820,6 @@ export default function EventDetail() {
     fetchLikedStatus();
   }, [isLoggedIn, isRegularUser, id]);
 
-  // Handle like/unlike event - Hanya untuk role "user"
   const handleLikeEvent = async (e) => {
     e.stopPropagation();
 
@@ -796,8 +828,6 @@ export default function EventDetail() {
       return;
     }
 
-    // Cek apakah user adalah regular user (role "user")
-    // Jika bukan, tidak melakukan apa-apa (button akan disabled)
     if (!isRegularUser) {
       return;
     }
@@ -809,7 +839,6 @@ export default function EventDetail() {
     const previousIsLiked = isLiked;
     const previousTotalLikes = totalLikes;
 
-    // Optimistic update
     setIsLiked(!isLiked);
     setTotalLikes((prev) => (isLiked ? Math.max(0, prev - 1) : prev + 1));
 
@@ -960,11 +989,7 @@ export default function EventDetail() {
       setEvent(refreshedResponse.data);
     } catch (error) {
       console.error("Error verifying event:", error);
-      showNotification(
-        "Gagal memverifikasi event",
-        "Error",
-        "error"
-      );
+      showNotification("Gagal memverifikasi event", "Error", "error");
     } finally {
       setVerifying(false);
     }
@@ -995,6 +1020,10 @@ export default function EventDetail() {
     setPreviewImage({ src: null, alt: null, aspectRatio: "square" });
   };
 
+  const handleLoginRedirect = () => {
+    navigate("/login");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen py-8">
@@ -1002,7 +1031,9 @@ export default function EventDetail() {
         <div className="flex items-center justify-center h-[calc(100vh-80px)]">
           <div className="flex flex-col items-center gap-3 sm:gap-4">
             <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-b-2 border-blue-600"></div>
-            <p className="text-gray-600 text-sm sm:text-base">Memuat detail event...</p>
+            <p className="text-gray-600 text-sm sm:text-base">
+              Memuat detail event...
+            </p>
           </div>
         </div>
         <NotificationModal
@@ -1025,7 +1056,9 @@ export default function EventDetail() {
             <h2 className="text-xl sm:text-2xl font-bold text-red-600 mb-2">
               Gagal memuat event
             </h2>
-            <p className="text-gray-600 mb-4 text-sm sm:text-base">{error || "Event tidak ditemukan"}</p>
+            <p className="text-gray-600 mb-4 text-sm sm:text-base">
+              {error || "Event tidak ditemukan"}
+            </p>
             <button
               onClick={() => navigate(-1)}
               className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
@@ -1058,6 +1091,8 @@ export default function EventDetail() {
   const showStatusInfo =
     isOwner || isAdmin || (isEO && event.status !== "approved");
 
+  const isEventEnded = event.status === "ended";
+
   return (
     <div className="min-h-screen py-8 mt-30">
       <Navbar />
@@ -1072,7 +1107,6 @@ export default function EventDetail() {
 
       <div className="py-6 sm:py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header dengan Back Button */}
           <div className="mb-6">
             <button
               onClick={() => navigate(-1)}
@@ -1084,17 +1118,14 @@ export default function EventDetail() {
           </div>
 
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            {/* Header Section */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 sm:p-6 lg:p-8">
               <div className="flex flex-col lg:flex-row justify-between items-start gap-4 lg:gap-6">
                 <div className="flex-1 w-full">
-                  {/* Title dan Like Button */}
                   <div className="flex items-start justify-between gap-3 mb-4">
                     <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold leading-tight flex-1">
                       {event.name}
                     </h1>
 
-                    {/* Like Button - Hanya untuk role "user" */}
                     <motion.button
                       onClick={handleLikeEvent}
                       disabled={likeLoading || !isRegularUser}
@@ -1102,20 +1133,29 @@ export default function EventDetail() {
                         isLiked
                           ? "bg-pink-500 text-white hover:bg-pink-600"
                           : "bg-white/20 text-white hover:bg-white/30"
-                      } ${(likeLoading || !isRegularUser) ? "opacity-50 cursor-not-allowed" : ""}`}
-                      whileHover={{ scale: (likeLoading || !isRegularUser) ? 1 : 1.05 }}
-                      whileTap={{ scale: (likeLoading || !isRegularUser) ? 1 : 0.95 }}
+                      } ${
+                        likeLoading || !isRegularUser
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
+                      }`}
+                      whileHover={{
+                        scale: likeLoading || !isRegularUser ? 1 : 1.05,
+                      }}
+                      whileTap={{
+                        scale: likeLoading || !isRegularUser ? 1 : 0.95,
+                      }}
                     >
                       <Heart
                         className={`w-4 h-4 sm:w-5 sm:h-5 transition-all ${
                           isLiked ? "fill-current" : ""
                         } ${likeLoading ? "animate-pulse" : ""}`}
                       />
-                      <span className="font-semibold text-sm sm:text-base">{formatNumber(totalLikes)}</span>
+                      <span className="font-semibold text-sm sm:text-base">
+                        {formatNumber(totalLikes)}
+                      </span>
                     </motion.button>
                   </div>
 
-                  {/* Event Info Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
                     <div className="flex items-start gap-3">
                       <div className="bg-white/20 p-2 rounded-lg shrink-0">
@@ -1128,7 +1168,9 @@ export default function EventDetail() {
                         <p className="text-white font-semibold text-sm sm:text-base truncate">
                           {event.venue}, {event.district}
                         </p>
-                        <p className="text-xs text-blue-100 truncate">{event.location}</p>
+                        <p className="text-xs text-blue-100 truncate">
+                          {event.location}
+                        </p>
                       </div>
                     </div>
 
@@ -1165,9 +1207,7 @@ export default function EventDetail() {
               </div>
             </div>
 
-            {/* Main Content */}
             <div className="p-4 sm:p-6 lg:p-8">
-              {/* Status Info */}
               {showStatusInfo && (
                 <div
                   className={`mb-6 sm:mb-8 p-4 sm:p-6 rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 ${
@@ -1191,7 +1231,6 @@ export default function EventDetail() {
                 </div>
               )}
 
-              {/* Admin Verification Section */}
               {canVerify && (
                 <AdminVerificationSection
                   onVerify={openVerificationModal}
@@ -1200,21 +1239,18 @@ export default function EventDetail() {
               )}
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-                {/* Sidebar - Muncul di atas pada mobile */}
                 <div className="lg:col-span-1 space-y-4 sm:space-y-6 order-first lg:order-last">
-                  {/* Event Images with Preview */}
                   <EventImageSection
                     event={event}
                     onImageClick={openImagePreview}
                   />
 
-                  {/* Organizer Info */}
                   <OrganizerInfo owner={event.owner} />
+
+                  {!isLoggedIn && <LoginPrompt onLogin={handleLoginRedirect} />}
                 </div>
 
-                {/* Main Content */}
                 <div className="lg:col-span-2 space-y-6 sm:space-y-8">
-                  {/* About Event */}
                   <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-100">
                       <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
@@ -1231,7 +1267,6 @@ export default function EventDetail() {
                     </div>
                   </div>
 
-                  {/* Event Rules */}
                   {event.rules && (
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                       <div className="bg-gradient-to-r from-orange-50 to-amber-50 px-4 sm:px-6 py-3 sm:py-4 border-b border-orange-100">
@@ -1248,7 +1283,6 @@ export default function EventDetail() {
                     </div>
                   )}
 
-                  {/* Ticket Section */}
                   <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="bg-purple-100 px-4 sm:px-6 py-3 sm:py-4 border-b border-purple-100">
                       <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
@@ -1291,15 +1325,15 @@ export default function EventDetail() {
                             showControls={showTicketControls}
                             onUpdateQty={updateQty}
                             onViewDetail={openTicketModal}
+                            isEventEnded={isEventEnded}
                           />
                         ))}
                       </div>
                     )}
                   </div>
 
-                  {/* Cart Summary */}
                   <AnimatePresence>
-                    {adaTiketDipilih && canPurchase && (
+                    {adaTiketDipilih && canPurchase && !isEventEnded && (
                       <CartSummary
                         tickets={tickets}
                         totalHarga={totalHarga}
@@ -1314,7 +1348,6 @@ export default function EventDetail() {
         </div>
       </div>
 
-      {/* Verification Modal */}
       <VerificationModal
         isOpen={showVerificationModal}
         onClose={() => {
@@ -1329,7 +1362,6 @@ export default function EventDetail() {
         verifying={verifying}
       />
 
-      {/* Ticket Detail Modal */}
       <TicketCategoryDetailModal
         isOpen={showTicketModal}
         onClose={closeTicketModal}
@@ -1339,7 +1371,6 @@ export default function EventDetail() {
         formatDescriptionWithNewlines={formatDescriptionWithNewlines}
       />
 
-      {/* Image Preview Modal */}
       <ImagePreviewModal
         isOpen={showImagePreview}
         onClose={closeImagePreview}

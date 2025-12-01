@@ -81,6 +81,7 @@ export default function CalendarEventPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [districtFilter, setDistrictFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState(""); // "" = semua, "ended" = berakhir
 
   // State untuk mobile modal
   const [showMobileEventModal, setShowMobileEventModal] = useState(false);
@@ -256,7 +257,11 @@ export default function CalendarEventPage() {
   };
 
   // Get category color based on parent category
-  const getCategoryColor = (category) => {
+  // Event dengan status "ended" akan menampilkan warna abu-abu
+  const getCategoryColor = (category, status) => {
+    if (status === "ended") {
+      return "bg-gray-400";
+    }
     const parentCategory = getParentCategory(category);
     return CATEGORY_COLORS[parentCategory] || CATEGORY_COLORS["Lainnya"];
   };
@@ -277,9 +282,13 @@ export default function CalendarEventPage() {
       const matchesDistrict =
         !districtFilter || event.district === districtFilter;
 
-      return matchesSearch && matchesCategory && matchesDistrict;
+      // Filter berdasarkan status
+      const matchesStatus =
+        !statusFilter || event.status === statusFilter;
+
+      return matchesSearch && matchesCategory && matchesDistrict && matchesStatus;
     });
-  }, [events, searchTerm, categoryFilter, districtFilter, eventCategories]);
+  }, [events, searchTerm, categoryFilter, districtFilter, eventCategories, statusFilter]);
 
   // Mendapatkan events berdasarkan tanggal
   const getEventsForDate = (date) => {
@@ -458,9 +467,10 @@ export default function CalendarEventPage() {
     setSearchTerm("");
     setCategoryFilter("");
     setDistrictFilter("");
+    setStatusFilter("");
   };
 
-  const hasActiveFilters = searchTerm || categoryFilter || districtFilter;
+  const hasActiveFilters = searchTerm || categoryFilter || districtFilter || statusFilter;
 
   const getMinPrice = (event) => {
     if (!event.ticket_categories || event.ticket_categories.length === 0) {
@@ -804,10 +814,11 @@ export default function CalendarEventPage() {
                                   handleEventClick(event.event_id);
                                 }}
                                 className={`${getCategoryColor(
-                                  event.category
+                                  event.category,
+                                  event.status
                                 )} text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded truncate cursor-pointer hover:opacity-80 transition-opacity`}
                               >
-                                {event.name}
+                                {event.status === "ended" ? `${event.name} (Berakhir)` : event.name}
                               </div>
                             ))}
                             {dayEvents.length > 2 && (
@@ -823,7 +834,8 @@ export default function CalendarEventPage() {
                               <div
                                 key={event.event_id}
                                 className={`w-1.5 h-1.5 rounded-full ${getCategoryColor(
-                                  event.category
+                                  event.category,
+                                  event.status
                                 )}`}
                               />
                             ))}
@@ -995,6 +1007,21 @@ export default function CalendarEventPage() {
                     </span>
                   </button>
                 ))}
+                <button
+                  onClick={() =>
+                    setStatusFilter(
+                      statusFilter === "ended" ? "" : "ended"
+                    )
+                  }
+                  className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm transition-all ${
+                    statusFilter === "ended"
+                      ? "bg-gray-300 text-gray-800 ring-1 ring-gray-400"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-gray-400" />
+                  <span>Berakhir</span>
+                </button>
                 {parentCategoriesForLegend.length > 8 && (
                   <button
                     onClick={() => setShowFilters(true)}
@@ -1003,6 +1030,7 @@ export default function CalendarEventPage() {
                     +{parentCategoriesForLegend.length - 8} lainnya
                   </button>
                 )}
+                {/* Legenda Berakhir */}
               </div>
             </div>
           </motion.div>
@@ -1155,13 +1183,16 @@ function MobileEventCard({
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
-            <span
-              className={`${getCategoryColor(
-                event.category
-              )} text-white text-[10px] px-2 py-0.5 rounded-full`}
-            >
-              {parentCategory}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`${getCategoryColor(
+                  event.category,
+                  event.status
+                )} text-white text-[10px] px-2 py-0.5 rounded-full`}
+              >
+                {event.status === "ended" ? "Berakhir" : parentCategory}
+              </span>
+            </div>
             <button
               onClick={onLike}
               disabled={!canLike}
@@ -1260,9 +1291,9 @@ function EventCard({
               {/* Category & Like */}
               <div className="flex items-start justify-between gap-2 mb-1.5">
                 <span
-                  className={`${getCategoryColor(event.category)} text-white text-[10px] px-2 py-0.5 rounded-full inline-block`}
+                  className={`${getCategoryColor(event.category, event.status)} text-white text-[10px] px-2 py-0.5 rounded-full inline-block`}
                 >
-                  {parentCategory}
+                  {event.status === "ended" ? "Berakhir" : parentCategory}
                 </span>
                 <button
                   onClick={(e) => {
@@ -1356,16 +1387,16 @@ function EventCard({
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                 <span
-                  className={`${getCategoryColor(event.category)} text-white text-xs px-2.5 py-1 rounded-full`}
+                  className={`${getCategoryColor(event.category, event.status)} text-white text-xs px-2.5 py-1 rounded-full`}
                 >
-                  {parentCategory}
+                  {event.status === "ended" ? "Berakhir" : parentCategory}
                 </span>
-                {event.category !== parentCategory && event.category && (
+                {event.status !== "ended" && event.category !== parentCategory && event.category && (
                   <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                     {event.category}
                   </span>
                 )}
-                {event.child_category && (
+                {event.status !== "ended" && event.child_category && (
                   <span className="text-xs text-gray-400">
                     • {event.child_category}
                   </span>

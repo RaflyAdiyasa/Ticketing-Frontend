@@ -432,12 +432,17 @@ export default function LandingPage() {
         const approvedResponse = await eventAPI.getApprovedEvents();
         const allEvents = approvedResponse.data || [];
 
+        // Filter hanya event dengan status "approved" atau "active"
+        const filteredByStatus = allEvents.filter(
+          (event) => event.status === "approved" || event.status === "active"
+        );
+
         // Transform all events
-        const transformedEvents = allEvents.map(transformEvent);
+        const transformedEvents = filteredByStatus.map(transformEvent);
 
         // Sort by total_tickets_sold for best selling (minimum 1 sale, limit 6)
         const bestSelling = [...transformedEvents]
-          .filter((e) => e.totalTicketsSold >= 1)
+          .filter((e) => e.totalTicketsSold >= 0)
           .sort((a, b) => b.totalTicketsSold - a.totalTicketsSold)
           .slice(0, 6);
         setBestSellingEvents(bestSelling);
@@ -449,15 +454,17 @@ export default function LandingPage() {
         if (popularEventsData.length === 0) {
           // Fallback: sort all events by likes
           popularEventsData = [...transformedEvents]
-            .filter((e) => e.totalLikes >= 1)
+            .filter((e) => e.totalLikes >= 0)
             .sort((a, b) => b.totalLikes - a.totalLikes)
             .slice(0, 6);
           setPopularEvents(popularEventsData);
         } else {
           // Filter and limit the popular events from API
+          // Hanya tampilkan event dengan status "approved" atau "active"
           const filteredPopular = popularEventsData
+            .filter((event) => event.status === "approved" || event.status === "active")
             .map(transformEvent)
-            .filter((e) => e.totalLikes >= 1)
+            .filter((e) => e.totalLikes >= 0)
             .slice(0, 6);
           setPopularEvents(filteredPopular);
         }

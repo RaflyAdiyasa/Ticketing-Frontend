@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import Navbar from "../components/Navbar";
 import { eventAPI } from "../services/api";
-import { Search, Filter, Calendar, MapPin, X, RefreshCw, Heart, ChevronLeft, ChevronRight, TrendingUp, ShoppingBag, Clock, ArrowRight, Ticket } from "lucide-react";
+import { Search, Filter, Calendar, MapPin, X, RefreshCw, Heart, ChevronLeft, ChevronRight, TrendingUp, ShoppingBag, Clock, ArrowRight, Ticket, CheckCircle, XCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Hapus CATEGORIES, pertahankan DISTRICTS
@@ -85,9 +85,26 @@ export default function CariEvent() {
     return parentCategory ? parentCategory.event_category_name : "Lainnya";
   };
 
-  const getCategoryColor = (category, eventCategories) => {
+  const getCategoryColor = (category, eventCategories, status) => {
+    if (status === "ended") {
+      return "bg-gray-400";
+    }
     const parentCategory = getParentCategory(category, eventCategories);
     return CATEGORY_COLORS[parentCategory] || CATEGORY_COLORS["Lainnya"];
+  };
+
+  // Helper function untuk mendapatkan label status
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case "ended":
+        return { text: "Berakhir", bgColor: "bg-gray-600" };
+      case "active":
+        return { text: "Sedang Berlangsung", bgColor: "bg-green-600" };
+      case "approved":
+        return { text: "Segera Hadir", bgColor: "bg-blue-600" };
+      default:
+        return null;
+    }
   };
 
   const [events, setEvents] = useState([]);
@@ -110,6 +127,7 @@ export default function CariEvent() {
 
   const initialSort = searchParams.get('sort') || "popularitas";
   const [sortBy, setSortBy] = useState(initialSort);
+  const [statusFilter, setStatusFilter] = useState(""); // "" = semua, "active" = aktif, "ended" = berakhir
 
   // Ambil data kategori event dari API
   const fetchEventCategories = async () => {
@@ -219,6 +237,15 @@ export default function CariEvent() {
       result = result.filter(event => event.district === filters.district);
     }
 
+    // Filter berdasarkan status
+    if (statusFilter === "approved") {
+      result = result.filter(event => event.status === "approved");
+    } else if (statusFilter === "active") {
+      result = result.filter(event => event.status === "active");
+    } else if (statusFilter === "ended") {
+      result = result.filter(event => event.status === "ended");
+    }
+
     if (sortBy === "popularitas") {
       result = result.sort((a, b) => (b.total_likes || 0) - (a.total_likes || 0));
     } else if (sortBy === "terlaris") {
@@ -238,7 +265,7 @@ export default function CariEvent() {
 
     setFilteredEvents(result);
     setCurrentPage(1);
-  }, [filters, events, sortBy, eventCategories]);
+  }, [filters, events, sortBy, eventCategories, statusFilter]);
 
   const handleLikeEvent = async (eventId, e) => {
     e.stopPropagation();
@@ -288,17 +315,30 @@ export default function CariEvent() {
     setSearchParams(newParams);
   };
 
+  // Handler untuk status filter dengan logic untuk reset sortBy jika perlu
+  const handleStatusFilterChange = (status) => {
+    setStatusFilter(status);
+    // Jika memilih "ended" dan sortBy adalah "terdekat", reset ke popularitas
+    if (status === "ended" && sortBy === "terdekat") {
+      setSortBy("popularitas");
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('sort', 'popularitas');
+      setSearchParams(newParams);
+    }
+  };
+
   const handleCardClick = (id) => navigate(`/detailEvent/${id}`);
 
   const clearFilters = () => {
     setFilters({ keyword: "", date: "", category: "", district: "" });
     setSortBy("popularitas");
+    setStatusFilter("");
     navigate(`/cariEvent`);
   };
 
   const handleRefresh = () => window.location.reload();
 
-  const hasActiveFilters = filters.keyword || filters.date || filters.category || filters.district;
+  const hasActiveFilters = filters.keyword || filters.date || filters.category || filters.district || statusFilter;
 
   const totalPages = Math.ceil(filteredEvents.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -382,6 +422,59 @@ export default function CariEvent() {
               </div>
             </div>
 
+            {/* Status Filter Label */}
+            <p className="text-xs sm:text-sm text-gray-600 mb-2">Filter berdasarkan status event:</p>
+
+            {/* Status Filter Tabs */}
+            <div className="flex gap-2 mb-3 sm:mb-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible scrollbar-hide">
+              <button
+                onClick={() => handleStatusFilterChange("")}
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-medium transition-all whitespace-nowrap text-sm ${
+                  statusFilter === ''
+                    ? 'bg-gray-700 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Semua
+              </button>
+              <button
+                onClick={() => handleStatusFilterChange("approved")}
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-medium transition-all whitespace-nowrap text-sm ${
+                  statusFilter === 'approved'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <Clock size={16} />
+                Segera Hadir
+              </button>
+              <button
+                onClick={() => handleStatusFilterChange("active")}
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-medium transition-all whitespace-nowrap text-sm ${
+                  statusFilter === 'active'
+                    ? 'bg-green-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <CheckCircle size={16} />
+                Sedang Berlangsung
+              </button>
+              <button
+                onClick={() => handleStatusFilterChange("ended")}
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-medium transition-all whitespace-nowrap text-sm ${
+                  statusFilter === 'ended'
+                    ? 'bg-gray-500 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <XCircle size={16} />
+                Berakhir
+              </button>
+            </div>
+
+            {/* Sort Label */}
+            <p className="text-xs sm:text-sm text-gray-600 mb-2">Urutkan berdasar:</p>
+
             {/* Sort Tabs - Mobile Scrollable */}
             <div className="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible scrollbar-hide">
               <button
@@ -408,8 +501,11 @@ export default function CariEvent() {
               </button>
               <button
                 onClick={() => handleSortChange('terdekat')}
+                disabled={statusFilter === "ended"}
                 className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-medium transition-all whitespace-nowrap text-sm ${
-                  sortBy === 'terdekat'
+                  statusFilter === "ended"
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : sortBy === 'terdekat'
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
@@ -485,12 +581,12 @@ export default function CariEvent() {
                         <select 
                           value={filters.category}
                           onChange={(e) => handleFilterChange('category', e.target.value)}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 sm:py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm bg-white"
                         >
                           <option value="">Semua Kategori</option>
-                          {eventCategories.map((category) => (
-                            <option key={category.event_category_id} value={category.event_category_name}>
-                              {category.event_category_name}
+                          {eventCategories.map((cat) => (
+                            <option key={cat.event_category_id} value={cat.event_category_name}>
+                              {cat.event_category_name}
                             </option>
                           ))}
                         </select>
@@ -501,79 +597,53 @@ export default function CariEvent() {
                         <label className="block text-xs sm:text-sm font-medium text-gray-700">
                           Kecamatan
                         </label>
-                        <div className="relative">
-                          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                          <select 
-                            value={filters.district}
-                            onChange={(e) => handleFilterChange('district', e.target.value)}
-                            className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                          >
-                            <option value="">Semua Kecamatan</option>
-                            {DISTRICTS.map((district) => (
-                              <option key={district} value={district}>{district}</option>
-                            ))}
-                          </select>
-                        </div>
+                        <select 
+                          value={filters.district}
+                          onChange={(e) => handleFilterChange('district', e.target.value)}
+                          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm bg-white"
+                        >
+                          <option value="">Semua Kecamatan</option>
+                          {DISTRICTS.map((district) => (
+                            <option key={district} value={district}>
+                              {district}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
-
-                    {/* Active Filter Info */}
-                    {hasActiveFilters && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-2.5 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg"
-                      >
-                        <p className="text-xs sm:text-sm text-blue-800 break-words">
-                          <span className="font-medium">Filter aktif:</span>
-                          {filters.keyword && ` "${filters.keyword}"`}
-                          {filters.date && ` ${new Date(filters.date).toLocaleDateString("id-ID")}`}
-                          {filters.category && ` ${filters.category}`}
-                          {filters.district && ` ${filters.district}`}
-                        </p>
-                      </motion.div>
-                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
 
-            {/* Event List */}
+            {/* Loading State */}
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-16 sm:py-20">
-                <div className="relative w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4">
-                  <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
-                  <div className="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
+              <div className="flex items-center justify-center py-16 sm:py-20">
+                <div className="flex flex-col items-center gap-3 sm:gap-4">
+                  <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-600"></div>
+                  <p className="text-gray-600 text-sm sm:text-base">Memuat event...</p>
                 </div>
-                <p className="text-gray-600 font-medium text-sm sm:text-base">Memuat daftar event...</p>
               </div>
             ) : filteredEvents.length === 0 ? (
-              <div className="text-center py-12 sm:py-16">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
-                </div>
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
-                  {hasActiveFilters ? "Tidak ada event yang sesuai" : "Tidak ada event tersedia"}
-                </h3>
-                <p className="text-sm text-gray-500 mb-4 px-4">
-                  {hasActiveFilters 
-                    ? "Coba ubah kriteria filter"
-                    : "Coba refresh halaman"
-                  }
-                </p>
-                {hasActiveFilters && (
+              <div className="text-center py-16 sm:py-20">
+                <div className="max-w-md mx-auto px-4">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full flex items-center justify-center bg-gray-100">
+                    <Search className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Tidak ada event ditemukan</h3>
+                  <p className="text-sm sm:text-base text-gray-600 mb-4">Coba ubah filter atau kata kunci pencarian Anda</p>
                   <button
                     onClick={clearFilters}
-                    className="bg-blue-600 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                    className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base"
                   >
-                    Hapus Semua Filter
+                    Reset Filter
                   </button>
-                )}
+                </div>
               </div>
             ) : (
               <>
-                {/* Event Grid - Responsive */}
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
+                {/* Event Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
                   {paginatedEvents.map((event, index) => (
                     <motion.div
                       key={event.event_id}
@@ -591,11 +661,13 @@ export default function CariEvent() {
                         getLowestPrice={getLowestPrice}
                         getCategoryColor={getCategoryColor}
                         getParentCategory={getParentCategory}
+                        getStatusLabel={getStatusLabel}
                         isLiked={likedEvents.has(event.event_id)}
                         onLike={(e) => handleLikeEvent(event.event_id, e)}
                         isLoggedIn={isLoggedIn}
                         sortBy={sortBy}
                         canLike={canLike}
+                        statusFilter={statusFilter}
                       />
                     </motion.div>
                   ))}
@@ -669,11 +741,13 @@ export default function CariEvent() {
 // Event Card Component - Mobile Optimized
 function EventCard({ 
   event, eventCategories, onClick, formatRupiah, formatDate, formatNumber, getLowestPrice,
-  getCategoryColor, getParentCategory, isLiked, onLike,
-  isLoggedIn, sortBy, canLike
+  getCategoryColor, getParentCategory, getStatusLabel, isLiked, onLike,
+  isLoggedIn, sortBy, canLike, statusFilter
 }) {
   const minPrice = getLowestPrice(event.ticket_categories);
   const parentCategory = getParentCategory(event.category, eventCategories);
+  const isEnded = event.status === "ended";
+  const statusLabel = getStatusLabel(event.status);
 
   return (
     <motion.div
@@ -693,8 +767,8 @@ function EventCard({
         />
         {/* Category Badge */}
         <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
-          <span className={`${getCategoryColor(event.category, eventCategories)} text-white text-[10px] sm:text-xs px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full font-medium`}>
-            {parentCategory}
+          <span className={`${getCategoryColor(event.category, eventCategories, event.status)} text-white text-[10px] sm:text-xs px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full font-medium`}>
+            {isEnded ? "Berakhir" : parentCategory}
           </span>
         </div>
         {/* Like Button */}
@@ -711,6 +785,15 @@ function EventCard({
         >
           <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isLiked ? 'fill-current' : ''}`} />
         </button>
+        
+        {/* Status Label - Tampil hanya ketika filter "semua" */}
+        {statusFilter === "" && statusLabel && (
+          <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3">
+            <span className={`${statusLabel.bgColor} text-white text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-medium`}>
+              {statusLabel.text}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Content */}
