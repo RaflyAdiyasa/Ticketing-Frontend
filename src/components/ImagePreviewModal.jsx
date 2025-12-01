@@ -7,7 +7,7 @@ export default function ImagePreviewModal({
   onClose,
   imageSrc,
   imageAlt,
-  aspectRatio = "square", // "square" (1:1) untuk poster, "video" (16:9) untuk flyer
+  aspectRatio = "square", // "square" (1:1) untuk poster, "banner" (16:6) untuk flyer/banner
 }) {
   const [scale, setScale] = useState(1);
 
@@ -33,9 +33,14 @@ export default function ImagePreviewModal({
 
   if (!isOpen || !imageSrc) return null;
 
-  // Aspect ratio classes matching LandingPage
-  const aspectRatioClass =
-    aspectRatio === "square" ? "aspect-square" : "aspect-video";
+  // Aspect ratio classes: square (1:1), banner (16:6)
+  const getAspectRatioStyle = () => {
+    if (aspectRatio === "square") {
+      return { aspectRatio: "1 / 1" };
+    }
+    // 16:6 aspect ratio for banner
+    return { aspectRatio: "16 / 6" };
+  };
 
   return (
     <AnimatePresence>
@@ -105,7 +110,8 @@ export default function ImagePreviewModal({
               className="w-full h-full flex items-center justify-center"
             >
               <div
-                className={`relative ${aspectRatioClass} w-full max-h-[85vh] sm:max-h-[80vh] bg-gray-900 rounded-lg sm:rounded-xl overflow-hidden shadow-2xl`}
+                className="relative w-full max-h-[85vh] sm:max-h-[80vh] bg-gray-900 rounded-lg sm:rounded-xl overflow-hidden shadow-2xl"
+                style={getAspectRatioStyle()}
               >
                 <img
                   src={imageSrc}

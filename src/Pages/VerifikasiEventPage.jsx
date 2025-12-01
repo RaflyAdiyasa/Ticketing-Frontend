@@ -321,7 +321,7 @@ export default function VerifikasiEventPage() {
                         <div className="flex items-start justify-between max-w-[35rem] mb-3">
                           <h3 className="text-xl font-semibold text-gray-900">{event.name}</h3>
                           <span className="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full text-sm font-medium">
-                            Menunggu Review
+                            Ditinjau
                           </span>
                         </div>
                         

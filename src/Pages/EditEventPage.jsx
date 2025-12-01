@@ -6,6 +6,7 @@ import { Calendar, Folder, Plus, Pencil, Trash2, Eye, X, Save, ArrowLeft, Search
 import { eventAPI } from "../services/api";
 import TicketCategoryModal from "../components/TicketCategoryModal";
 import NotificationModal from "../components/NotificationModal";
+import ImagePreviewModal from "../components/ImagePreviewModal";
 import useNotification from "../hooks/useNotification";
 import { motion } from "framer-motion";
 
@@ -846,27 +847,13 @@ export default function EditEventPage() {
         type={notification.type}
       />
 
-      {previewImage.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-4xl max-h-[90vh] overflow-auto">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="text-lg font-bold">
-                Preview {previewImage.type === 'poster' ? 'Poster' : 'Banner'}
-              </h3>
-              <button onClick={handleClosePreview} className="p-1 hover:bg-gray-100 rounded-full">
-                <X size={24} />
-              </button>
-            </div>
-            <div className="p-4">
-              <img 
-                src={previewImage.image} 
-                alt={`Preview ${previewImage.type}`}
-                className="max-w-full max-h-[70vh] object-contain mx-auto"
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      <ImagePreviewModal
+        isOpen={previewImage.isOpen}
+        onClose={handleClosePreview}
+        imageSrc={previewImage.image}
+        imageAlt={previewImage.type === 'poster' ? 'Preview Poster' : 'Preview Banner'}
+        aspectRatio={previewImage.type === 'poster' ? 'square' : 'banner'}
+      />
 
       <TicketCategoryModal
         isOpen={isModalOpen}
